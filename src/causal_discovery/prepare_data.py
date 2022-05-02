@@ -1,0 +1,46 @@
+import pandas as pd
+import numpy as np
+
+import data_generation.datasets as data
+
+
+
+
+def prepare_data(cd: str, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+    if cd == "pc":
+        return prepare_for_pc(data, variables)
+        
+    
+    
+def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+    cols_int = ['I_%s' % var for var in variables]
+    
+    dfs = []
+    for partition, target in zip(data.partitions, data.intervention_targets):
+        df_data = partition.features.clone().numpy()     
+        df_data[...,1] = np.broadcast_to(target, df_data[...,1].shape)
+        df_data = df_data.reshape(-1, len(variables * 2))
+        df = pd.DataFrame(df_data)
+        dfs.append(rename_df_cols(df, variables))
+    
+    df = pd.concat(dfs)
+    # drop data points without inferred intervention target
+ #   drop_indices = ((df[cols_int] == 1).sum(axis=1) == 0).index[((df[cols_int] == 1).sum(axis=1) == 0)]
+ #   df.drop(drop_indices)
+    
+    # re-order dataframe columns 
+    cols =  variables + cols_int
+    df = df[cols]    
+    df = df.loc[:, (df != 0).any(axis=0)] # drop context variables that are always 0 
+    df = (df-df.mean())/df.std()
+    
+    return df
+
+
+def rename_df_cols(df: pd.DataFrame, variables: list[str]) -> pd.DataFrame:
+    
+    for i, var in enumerate(variables):
+        df = df.rename(columns={i * 2:'%s' % var})
+        df = df.rename(columns={i * 2 + 1:'I_%s' % var})
+        
+    return df
