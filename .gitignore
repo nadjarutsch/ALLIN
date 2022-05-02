@@ -163,7 +163,7 @@ cython_debug/
 *.job
 
 # Mac
-*.DS_Stores
+*.DS_Store
 ._*
 
 # wandb
