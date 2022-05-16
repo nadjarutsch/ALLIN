@@ -71,7 +71,7 @@ def main():
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='cc test', notes='normal distributions', tags=['cc', 'metric test'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='pc test', notes='normal distributions', tags=['pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -85,10 +85,16 @@ def main():
             plt.close()
             
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=N_OBS, int_ratio=INT_RATIO, seed=seed)
-    
+
+            # correct partitions
+            target_dataset = data.PartitionData(features=synth_dataset.features[..., 0], targets=synth_dataset.targets)
+            target_dataset.update_partitions(target_dataset.targets)
+
             # initial causal discovery (skeleton)
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-            
+          #  df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            # pc algorithm test on observational data only
+            df = cd.prepare_data(cd="pc", data=synth_dataset.partitions[0], variables=variables)
+
             model_pc = cdt.causality.graph.PC(alpha=alpha_skeleton, CItest='rcot')    
             skeleton = model_pc.create_graph_from_data(df) 
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
@@ -148,10 +154,8 @@ def main():
           #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
           #  synth_dataset.update_partitions(partitions)
           #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
-            
+
             # likelihood evaluation for ground truth partitions (optimal)
-            target_dataset = data.PartitionData(features=synth_dataset.features[...,0], targets=synth_dataset.targets)
-            target_dataset.update_partitions(target_dataset.targets)            
             metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             
