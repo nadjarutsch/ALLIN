@@ -89,11 +89,12 @@ def main():
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., 0], targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
+            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
 
             # initial causal discovery (skeleton)
           #  df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            df = cd.prepare_data(cd="pc", data=synth_dataset.partitions[0], variables=variables)
+            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
             model_pc = cdt.causality.graph.PC(alpha=alpha_skeleton, CItest='rcot')    
             skeleton = model_pc.create_graph_from_data(df) 
