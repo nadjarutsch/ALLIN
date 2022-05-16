@@ -13,8 +13,6 @@ from collections import defaultdict
 import networkx as nx
 import causaldag 
 import cdt
-#cdt.SETTINGS.rpath = '/usr/local/bin/Rscript' # for macOS
-cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
 
 import data_generation.causal_graphs.graph_generation as graph_gen
 import data_generation.causal_graphs.graph_visualization as visual
@@ -63,7 +61,13 @@ def main():
     )
     
     
-    device =  'cuda:0' if torch.cuda.is_available() else 'cpu'
+    if torch.cuda.is_available():
+        cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
+        device = 'cuda:0'
+    else:
+        cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
+        device = 'cpu'
+
     
     for seed in seeds:
         config['seed'] = seed
@@ -100,14 +104,13 @@ def main():
             plt.close()
             
             plt.figure(figsize=(6,6))
-            colors = visual.get_colors(true_skeleton)
+            colors = visual.get_colors(mec)
             nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"true skeleton": wandb.Image(plt)})
             plt.close()
             
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton)
             wandb.run.summary["skeleton CC"] = metrics.causal_correctness(true_graph, skeleton, mec)
-
 
             # use inferred skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))

@@ -21,12 +21,11 @@ def causal_correctness(true_graph: nx.DiGraph,
         mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
         mec = nx.relabel_nodes(mec, mapping)
 
-    true_edges = set(*true_graph.edges())
-    pred_edges = set(*pred_graph.edges())
-    mec_edges = set(*mec.edges())
+    true_edges = set(true_graph.edges())
+    pred_edges = set(pred_graph.edges())
+    mec_edges = set(mec.edges())
     shd = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
-    n_undirected = sum([G[u][v]['directed']==False for u,v in mec.edges()]) / 2.
-    assert n_undirected%2 == 0
+    n_undirected = sum([mec[u][v]['directed']==False for u,v in mec.edges()]) / 2.
 
     if true_edges.issubset(pred_edges) and pred_edges.issubset(mec_edges):
         return n_undirected - shd
@@ -76,5 +75,3 @@ def joint_log_prob(dataset: data.PartitionData,
             plt.close()
         else:
             plt.show()
-
-
