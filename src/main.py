@@ -34,7 +34,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(10))
+seeds = list(range(50))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.00001
@@ -115,8 +115,7 @@ def main():
             wandb.log({"true skeleton": wandb.Image(plt)})
             plt.close()
             
-            wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton)
-            wandb.run.summary["skeleton CC"] = metrics.causal_correctness(true_graph, skeleton, mec)
+            wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
 
             # use inferred skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
@@ -197,7 +196,7 @@ def main():
             created_graph = model_pc.orient_directed_graph(df, skeleton)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))
             
-            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph)  
+            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)  
             wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
             wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
     
