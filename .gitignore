@@ -161,6 +161,7 @@ cython_debug/
 
 # SLURM
 *.job
+*.out
 
 # Mac
 *.DS_Store

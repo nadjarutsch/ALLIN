@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 
 
 def get_colors(G):
+    set_edge_attributes(G)
+    colors = ['black' if G[u][v]['directed']==True else 'r' for u,v in G.edges()]
+    return colors
+
+def set_edge_attributes(G):
     edges = G.edges()
     for (x, y) in G.edges():
         if (y, x) in edges:
@@ -14,8 +19,6 @@ def get_colors(G):
             nx.set_edge_attributes(G, {(x, y): {"directed": False}})
         else:
             nx.set_edge_attributes(G, {(x, y): {"directed": True}})
-    colors = ['black' if G[u][v]['directed']==True else 'r' for u,v in G.edges()]
-    return colors
 
 
 def visualize_graph(graph, **kwargs):

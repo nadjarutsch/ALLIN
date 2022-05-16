@@ -228,6 +228,31 @@ class CausalDAG(object):
         """
         state_dict = torch.load(filename)
         return CausalDAG.load_from_state_dict(state_dict)
+    
+    def get_joint_log_prob(self, var_vals, interventions={}):
+        """
+        Returns the joint log probability of the observational or an interventional graph. 
+        ----------
+        var_vals : list or array or tensor
+        interventions : dict
+                        Dictionary of variable_name -> intervention distribution/value. The distributions of
+                        the variables in this dict will be replaced by the distribution in the dict, if 
+                        interventions[variable_name] is a ProbDist object. Otherwise, it is assumed to be
+                        a constant value and is assigned a ConstantDist object.
+        """
+        graph = self.get_intervened_graph(interventions)
+            
+        log_prob = 0
+        for v_idx, var in enumerate(graph.variables):
+            parents = np.where(self.adj_matrix[:, v_idx])[0]
+            parent_vals = {graph.variables[i].name: var_vals[...,i] for i in parents}
+            log_prob += torch.log(var.get_prob(parent_vals, var_vals[...,v_idx]))
+            
+        return log_prob
+    
+    def get_joint_prob(self, var_vals, interventions={}):
+        prob = torch.exp(self.get_joint_log_prob(var_vals, interventions))
+        return prob if not prob.isnan() else torch.tensor([0])
 
 
 class CausalDAGDataset(CausalDAG):
@@ -259,3 +284,4 @@ class CausalDAGDataset(CausalDAG):
     def sample(self, *args, **kwargs):
         raise Exception('You cannot generate new examples from a Causal-DAG dataset. '
                         'The specific distributions are unknown.')
+        

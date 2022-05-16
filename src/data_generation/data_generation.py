@@ -46,19 +46,21 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
     n_int = int(n_obs * int_ratio)
     targets = []
     targets.append(list(range(n_obs)))
-    targets.append(list(range(n_obs, int(n_obs + n_int * dag.num_vars))))
+    for i in range(dag.num_vars):
+        targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))   
 
     # sample interventional data from DAG
-    intervention_dict = {}
     prob_dist = dists.GaussianDist(mu_func = lambda x: 1.0, sigma_func = lambda x: 2.0) # TODO: variable intervention (e.g. shift)
-    
-    for v in dag.variables:
+    interventions = [{}]
+    for v in dag.variables: # perfect interventions on each variable
+        intervention_dict = {}
         intervention_dict[v.name] = prob_dist
         int_data = dag.sample(interventions=intervention_dict,
                               batch_size=n_int,
                               as_array=True)
         features = torch.cat((features, torch.from_numpy(int_data).float()), dim=0) # TODO: from list, out of loop
-
+        interventions.append(intervention_dict)
+        
     # create dataset from observational and interventional data 
     synth_dataset = data.PartitionData(features=features, targets=targets)
     
@@ -75,7 +77,7 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
                     dataset_name, 
                     properties)
         
-    return synth_dataset
+    return synth_dataset, interventions
 
 
 def update_json(file: str, dataset_name: str, properties: dict):
