@@ -57,7 +57,8 @@ def main():
         edge_prob=0.4,
         mu=0.0,
         sigma=0.5,
-        minpts=5
+        minpts=5,
+        citest='gaussian'
     )
     
     
@@ -96,7 +97,7 @@ def main():
             # pc algorithm test on observational data only
             df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(alpha=alpha_skeleton, CItest='rcot')    
+            model_pc = cdt.causality.graph.PC(alpha=alpha_skeleton, CItest=config['citest'])
             skeleton = model_pc.create_graph_from_data(df) 
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
