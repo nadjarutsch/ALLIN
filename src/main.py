@@ -26,7 +26,7 @@ import metrics
 import clustering.dbscan as dbscan
 
 
-N_OBS = 10000
+N_OBS = 100000
 INT_RATIO = 0.01
 BATCH_SIZE = 128
 lr = 1e-3
@@ -155,7 +155,7 @@ def main():
           #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
 
             # likelihood evaluation for ground truth partitions (optimal)
-            metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
+            # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             
             '''borders = true_target_indices.tolist()
