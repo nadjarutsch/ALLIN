@@ -37,7 +37,7 @@ stds = 4
 seeds = list(range(50))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
-alpha_skeleton = 0.00001
+alpha_skeleton = 0.000001
 alpha = 0.00001
 
 
