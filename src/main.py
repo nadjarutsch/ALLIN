@@ -54,11 +54,13 @@ def main():
         threshold = f'{stds} stds',
         num_vars = NUM_VARS,
         graph_structure = 'random',
-        edge_prob=0.4,
-        mu=0.0,
-        sigma=0.5,
-        minpts=5,
-        citest='gaussian'
+        edge_prob = 0.4,
+        mu = 0.0,
+        sigma = 0.5,
+        minpts = 5,
+        citest = 'gaussian',
+        alpha_skeleton = alpha_skeleton,
+        alpha = alpha
     )
     
     
@@ -97,7 +99,7 @@ def main():
             # pc algorithm test on observational data only
             df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(alpha=alpha_skeleton, CItest=config['citest'])
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
             skeleton = model_pc.create_graph_from_data(df) 
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
@@ -194,7 +196,7 @@ def main():
                 skeleton.add_node(node)
                 skeleton.add_edge(node, node.replace("I_",""))
     
-            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=alpha)
+            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
             created_graph = model_pc.orient_directed_graph(df, skeleton)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))
             
