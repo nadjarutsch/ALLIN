@@ -26,7 +26,7 @@ import metrics
 import clustering.dbscan as dbscan
 
 
-N_OBS = 10000
+N_OBS = 100000
 INT_RATIO = 0.01
 BATCH_SIZE = 128
 lr = 1e-3
