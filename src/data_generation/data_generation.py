@@ -50,7 +50,7 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
         targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))   
 
     # sample interventional data from DAG
-    prob_dist = dists.GaussianDist(mu_func = lambda x: 1.0, sigma_func = lambda x: 2.0) # TODO: variable intervention (e.g. shift)
+    prob_dist = dists.GaussianDist(mu_func = lambda x: 10.0, sigma_func = lambda x: 0.0001) # TODO: variable intervention (e.g. shift)
     interventions = [{}]
     for v in dag.variables: # perfect interventions on each variable
         intervention_dict = {}
@@ -58,7 +58,7 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
         int_data = dag.sample(interventions=intervention_dict,
                               batch_size=n_int,
                               as_array=True)
-        features = torch.cat((features, torch.from_numpy(int_data).float()), dim=0) # TODO: from list, out of loop
+        features = torch.cat((features, torch.from_numpy(int_data).float()), dim=0) # TODO: from list, outside of loop
         interventions.append(intervention_dict)
         
     # create dataset from observational and interventional data 
