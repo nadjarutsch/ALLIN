@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 import numpy as np
 import wandb
+from omegaconf import DictConfig, OmegaConf
+import hydra
 
 import os
 if os.path.split(os.getcwd())[-1] != 'src':
@@ -42,11 +44,12 @@ alpha = 0.00001
 expected_N = 2
 
 
-def main():
+@hydra.main(config_path=".", config_name="config")
+def main(cfg: DictConfig):
     
     # wandb config for logging
     config = dict(
-        n_obs = N_OBS,
+        n_obs = cfg.n_obs,
         int_ratio = INT_RATIO,
         batch_size = BATCH_SIZE,
         lr = lr,
@@ -55,8 +58,8 @@ def main():
         threshold = f'{stds} stds',
         num_vars = NUM_VARS,
         graph_structure = 'random',
-        edge_prob = expected_N / NUM_VARS,
-        E[N] = expected_N,
+        edge_prob = cfg.expected_N / NUM_VARS,
+        E[N] = cfg.expected_N,
         mu = 0.0,
         sigma = 1.,
         minpts = 5,
