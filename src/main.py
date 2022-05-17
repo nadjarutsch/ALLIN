@@ -92,7 +92,7 @@ def main(cfg: DictConfig):
             wandb.log({"true graph": wandb.Image(plt)})
             plt.close()
 
-            wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(true_graph)
+            wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=N_OBS, int_ratio=INT_RATIO, seed=seed)
 
