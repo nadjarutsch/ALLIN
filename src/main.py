@@ -59,7 +59,7 @@ def main(cfg: DictConfig):
         num_vars = NUM_VARS,
         graph_structure = 'random',
         edge_prob = cfg.expected_N / NUM_VARS,
-        E[N] = cfg.expected_N,
+        E_N = cfg.expected_N,
         mu = 0.0,
         sigma = 1.,
         minpts = 5,
