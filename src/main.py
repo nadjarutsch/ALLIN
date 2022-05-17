@@ -39,6 +39,7 @@ NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.001
 alpha = 0.00001
+expected_N = 2
 
 
 def main():
@@ -54,7 +55,8 @@ def main():
         threshold = f'{stds} stds',
         num_vars = NUM_VARS,
         graph_structure = 'random',
-        edge_prob = 0.4,
+        edge_prob = expected_N / NUM_VARS,
+        E[N] = expected_N,
         mu = 0.0,
         sigma = 0.5,
         minpts = 5,
@@ -86,6 +88,8 @@ def main():
             nx.draw(true_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"true graph": wandb.Image(plt)})
             plt.close()
+
+            wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(true_graph)
             
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=N_OBS, int_ratio=INT_RATIO, seed=seed)
 
@@ -118,7 +122,7 @@ def main():
             nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"true skeleton": wandb.Image(plt)})
             plt.close()
-            
+
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
 
             # use inferred skeleton
