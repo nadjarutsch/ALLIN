@@ -66,7 +66,8 @@ def main(cfg: DictConfig):
         minpts = 5,
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
-        alpha = alpha
+        alpha = alpha,
+        num_clus = NUM_VARS + 1
     )
     
     
@@ -80,7 +81,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='code test', notes='normal distributions', tags=['pc', 'kalisch2007'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='k-means deterministic', notes='normal distributions', tags=['k-means', 'depcon'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -143,22 +144,21 @@ def main(cfg: DictConfig):
             
             '''# set ground truth observational and interventional partitions
             synth_dataset.update_partitions([list(range(N_OBS)), list(range(N_OBS, int(N_OBS + config['num_vars'] * N_OBS * INT_RATIO)))])
-                
-            # evaluate causal kernel on the interventional partition
-            partitions_temp = depcon.kernel_k_means(synth_dataset.partitions[1].features[...,0], num_clus=config['num_vars'], device=device)
-            partitions_int = []
-            for part in partitions_temp:
-                partitions_int.append([p + N_OBS for p in part if p])
+            '''
 
-            partitions = [list(range(N_OBS))]
-            partitions.extend(partitions_int)
+            # K-means
+            partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,0], num_clus=config['num_clus'], device=device)
+            partitions = []
+            for part in partitions_temp:
+                partitions.append([p for p in part if p])
+
             synth_dataset.update_partitions(partitions)
             
             # kernel analysis         
             # (1) avg sample likelihood
                 
             metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
-            '''
+
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,0], device=device)
           #  distance_matrix = torch.arccos(kappa).cpu().detach()
@@ -167,7 +167,7 @@ def main(cfg: DictConfig):
           #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
 
             # likelihood evaluation for ground truth partitions (optimal)
-            # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
+            metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             
             '''borders = true_target_indices.tolist()
@@ -220,9 +220,5 @@ def main(cfg: DictConfig):
     
     
 
-
-
-
 if __name__ == '__main__':
-    
     main()
