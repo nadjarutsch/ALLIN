@@ -37,7 +37,7 @@ epochs = 5
 fit_epochs = 60
 stds = 4
 seeds = list(range(50))
-NUM_VARS = 7
+NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.00001
 alpha = 0.00001
@@ -64,7 +64,7 @@ def main(cfg: DictConfig):
         mu = 0.0,
         sigma = 0.0001,
         minpts = 5,
-        citest = 'gaussian',
+        citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1
@@ -104,9 +104,9 @@ def main(cfg: DictConfig):
             obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
 
             # initial causal discovery (skeleton)
-          #  df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
             model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
             skeleton = model_pc.create_graph_from_data(df) 
