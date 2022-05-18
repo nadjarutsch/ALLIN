@@ -43,7 +43,7 @@ alpha_skeleton = 0.00001
 alpha = 0.00001
 expected_N = 2
 
-os.environ['WANDB_MODE'] = 'offline'
+# os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path=".", config_name="config")
 def main(cfg: DictConfig):
