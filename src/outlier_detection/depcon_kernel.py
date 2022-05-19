@@ -22,7 +22,7 @@ import networkx as nx
 
 
 
-def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
+def dep_contrib_kernel(X, alpha=0.1, device='cuda:0'):
     num_samps, num_feats = X.shape
     thresh = torch.eye(num_feats).to(device)
     if alpha is not None:
@@ -109,5 +109,39 @@ def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, max_iters=100, d
     for idx, l in enumerate(labels):
         partitions[l].append(idx)
     return partitions
+
+
+def plus_plus(ds, k):
+    """
+    Create cluster centroids using the k-means++ algorithm.
+    Parameters
+    ----------
+    ds : numpy array
+        The dataset to be used for centroid initialization.
+    k : int
+        The desired number of clusters for which centroids are required.
+    Returns
+    -------
+    centroids : numpy array
+        Collection of k centroids as a numpy array.
+    Inspiration from here: https://stackoverflow.com/questions/5466323/how-could-one-implement-the-k-means-algorithm
+    """
+
+    centroids = [ds[0]]
+
+    for _ in range(1, k):
+        dist_sq = torch.tensor([min([torch.inner(c - x, c - x) for c in centroids]) for x in ds])
+        probs = dist_sq / torch.sum(dist_sq)
+        cumulative_probs = torch.cumsum(probs)
+        r = np.random.rand()
+
+        for j, p in enumerate(cumulative_probs):
+            if r < p:
+                i = j
+                break
+
+        centroids.append(ds[i])
+
+    return torch.tensor(centroids)
 
 

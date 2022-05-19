@@ -170,6 +170,9 @@ cython_debug/
 # wandb
 wandb/
 
-#
+# R
 .Rhistory
 .RData
+
+# misc
+plotting.py
