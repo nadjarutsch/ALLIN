@@ -83,7 +83,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kernel kmeans', notes='fci with mixed data', tags=['fci', 'depcon', 'kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='standard kmeans', notes='fci with mixed data', tags=['fci', 'kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
