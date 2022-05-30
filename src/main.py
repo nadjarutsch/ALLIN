@@ -30,7 +30,7 @@ import clustering.kmeans as kmeans
 from fci import FCI
 
 
-N_OBS = 1000
+N_OBS = cfg.n_obs
 INT_RATIO = 1
 BATCH_SIZE = 128
 lr = 1e-3
@@ -83,7 +83,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='standard kmeans', notes='fci with mixed data', tags=['fci', 'kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci test', notes='fci with observational data', tags=['fci'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -98,7 +98,7 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
-            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=N_OBS, int_ratio=INT_RATIO, seed=seed)
+            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=cfg.n_obs, int_ratio=INT_RATIO, seed=seed)
 
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., 0], targets=synth_dataset.targets)
@@ -106,9 +106,9 @@ def main(cfg: DictConfig):
             obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
 
             # initial causal discovery (skeleton)
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
            # model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
             model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
@@ -147,7 +147,7 @@ def main(cfg: DictConfig):
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
             
             '''# set ground truth observational and interventional partitions
-            synth_dataset.update_partitions([list(range(N_OBS)), list(range(N_OBS, int(N_OBS + config['num_vars'] * N_OBS * INT_RATIO)))])
+            synth_dataset.update_partitions([list(range(cfg.n_obs)), list(range(cfg.n_obs, int(cfg.n_obs + config['num_vars'] * cfg.n_obs * INT_RATIO)))])
             '''
 
             ''''# kernel K-means
@@ -159,13 +159,13 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions(partitions)'''
 
             # normal K-means
-            partitions = kmeans.kmeans(synth_dataset.features[...,0], n_clusters=config['num_clus'])
-            synth_dataset.update_partitions(partitions)
+            # partitions = kmeans.kmeans(synth_dataset.features[...,0], n_clusters=config['num_clus'])
+            # synth_dataset.update_partitions(partitions)
 
             # cluster analysis
             # (1) avg sample likelihood
                 
-            metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
+            # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
 
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,0], device=device)
@@ -175,7 +175,7 @@ def main(cfg: DictConfig):
           #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
 
             # likelihood evaluation for ground truth partitions (optimal)
-            metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
+            # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             
             '''borders = true_target_indices.tolist()
