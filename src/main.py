@@ -26,6 +26,7 @@ import outlier_detection.model_based as ood
 import outlier_detection.depcon_kernel as depcon
 import metrics
 import clustering.dbscan as dbscan
+import clustering.kmeans as kmeans
 from fci import FCI
 
 
@@ -149,15 +150,19 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(N_OBS)), list(range(N_OBS, int(N_OBS + config['num_vars'] * N_OBS * INT_RATIO)))])
             '''
 
-            # kernel K-means
+            ''''# kernel K-means
             partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,0], num_clus=config['num_clus'], device=device)
             partitions = []
             for part in partitions_temp:
                 partitions.append([p for p in part if p])
 
+            synth_dataset.update_partitions(partitions)'''
+
+            # normal K-means
+            partitions = kmeans.kmeans(synth_dataset.features[...,0], n_clusters=config['num_clus'])
             synth_dataset.update_partitions(partitions)
-            
-            # kernel analysis         
+
+            # cluster analysis
             # (1) avg sample likelihood
                 
             metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
