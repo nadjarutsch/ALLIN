@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         mu = 0.0,
         sigma = 1,
         minpts = 5,
-        citest = 'rcot',
+        citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1
