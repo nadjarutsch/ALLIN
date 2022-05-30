@@ -29,8 +29,8 @@ import clustering.dbscan as dbscan
 from fci import FCI
 
 
-N_OBS = 10000
-INT_RATIO = 0.01
+N_OBS = 1000
+INT_RATIO = 1
 BATCH_SIZE = 128
 lr = 1e-3
 loss = mmlp.nll
@@ -38,7 +38,7 @@ epochs = 5
 fit_epochs = 60
 stds = 4
 seeds = list(range(50))
-NUM_VARS = 7
+NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
 alpha = 0.00001
@@ -63,9 +63,9 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 1,
+        sigma = 0.5,
         minpts = 5,
-        citest = 'gaussian',
+        citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1
@@ -82,7 +82,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci test', notes='', tags=['fci'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kernel kmeans', notes='fci with mixed data', tags=['fci', 'depcon', 'kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -105,9 +105,9 @@ def main(cfg: DictConfig):
             obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
 
             # initial causal discovery (skeleton)
-            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
            # model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
             model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
@@ -149,7 +149,7 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(N_OBS)), list(range(N_OBS, int(N_OBS + config['num_vars'] * N_OBS * INT_RATIO)))])
             '''
 
-            '''# K-means 
+            # kernel K-means
             partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,0], num_clus=config['num_clus'], device=device)
             partitions = []
             for part in partitions_temp:
@@ -171,7 +171,7 @@ def main(cfg: DictConfig):
 
             # likelihood evaluation for ground truth partitions (optimal)
             metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
-            '''
+
             
             '''borders = true_target_indices.tolist()
             borders.insert(0,0)
