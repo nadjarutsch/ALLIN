@@ -37,10 +37,10 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(10))
-NUM_VARS = 5
+seeds = list(range(50))
+NUM_VARS = 7
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
-alpha_skeleton = 0.00001
+alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
@@ -63,7 +63,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 0.5,
+        sigma = 1,
         minpts = 5,
         citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
@@ -149,7 +149,7 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(N_OBS)), list(range(N_OBS, int(N_OBS + config['num_vars'] * N_OBS * INT_RATIO)))])
             '''
 
-            # K-means
+            '''# K-means 
             partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,0], num_clus=config['num_clus'], device=device)
             partitions = []
             for part in partitions_temp:
@@ -171,7 +171,7 @@ def main(cfg: DictConfig):
 
             # likelihood evaluation for ground truth partitions (optimal)
             metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
-
+            '''
             
             '''borders = true_target_indices.tolist()
             borders.insert(0,0)
