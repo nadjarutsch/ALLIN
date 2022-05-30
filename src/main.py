@@ -26,6 +26,7 @@ import outlier_detection.model_based as ood
 import outlier_detection.depcon_kernel as depcon
 import metrics
 import clustering.dbscan as dbscan
+from fci import FCI
 
 
 N_OBS = 10000
@@ -62,7 +63,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 0.0001,
+        sigma = 0.5,
         minpts = 5,
         citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
@@ -81,7 +82,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='k-means deterministic', notes='normal distributions', tags=['k-means', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci code test', notes='', tags=['fci'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -101,15 +102,17 @@ def main(cfg: DictConfig):
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., 0], targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
+            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
 
             # initial causal discovery (skeleton)
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
-            skeleton = model_pc.create_graph_from_data(df) 
+           # model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            skeleton = model_fci.create_graph_from_data(df)
+
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
             mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
