@@ -32,8 +32,9 @@ class PartitionData(Dataset):
         if ispartition:
             self.features = features 
         else: 
-            ids = torch.arange(features.shape[0])[:,None].expand(-1,features.shape[-1])
-            self.features = torch.stack((features, ids), dim=-1)
+            ids = torch.arange(features.shape[0]).reshape((features.shape[0],1)) # [:,None].expand(-1,features.shape[-1])
+           # self.features = torch.stack((features, ids), dim=-1)
+            self.features = torch.cat((features, ids), -1)
         self.targets = targets
         if not ispartition:
             self.partitions = [PartitionData(features=self.features, 
@@ -48,16 +49,27 @@ class PartitionData(Dataset):
 
     def __getitem__(self, idx: int):
         """Returns the features and id of a single datapoint."""
-        return self.features[idx,...,0], self.features[idx,0,1].int().item()
+        return self.features[idx,:-1], self.features[idx,-1].int().item()
     
-    def update_partitions(self, partitions: list[list[int]]):
+    #def update_partitions(self, partitions: list[list[int]]):
+    #    """Creates new instances of PartitionData, according to the provided partitioning."""
+    #    partitions_lst = []
+    #    for lst in partitions:
+    #        indices = torch.tensor(lst).long()
+    #        partition_features = torch.index_select(self.features, 0, indices)
+    #        partitions_lst.append(PartitionData(features=partition_features,
+    #                                            targets=self.targets,
+    #                                            ispartition=True))
+    #    self.partitions = partitions_lst
+
+    def update_partitions(self, partitions: list[int]):
         """Creates new instances of PartitionData, according to the provided partitioning."""
         partitions_lst = []
-        for lst in partitions:
-            indices = torch.tensor(lst).long()
+        for label in range(max(partitions) + 1):
+            indices = torch.nonzero(torch.tensor(partitions) == label).long().squeeze()
             partition_features = torch.index_select(self.features, 0, indices)
-            partitions_lst.append(PartitionData(features=partition_features, 
-                                                targets=self.targets, 
+            partitions_lst.append(PartitionData(features=partition_features,
+                                                targets=self.targets,
                                                 ispartition=True))
         self.partitions = partitions_lst
     
@@ -74,10 +86,10 @@ class PartitionData(Dataset):
         torch.save(self, os.path.join('..', 'data', directory, filename))
         return filename
     
-    def set_true_intervention_targets(self, ground_truth: list[int]):
+    def set_true_intervention_targets(self, ground_truth: list[int]): # TODO: deprecated, was only used for prototype
         # lists of indices that belong to each cluster, 0-th cluster corresponds to observational data
         partitions = []
-        num_vars = self.features.shape[-2]
+        num_vars = self.features.shape[-1] - 1
         partitions.append(list(set(self.partitions[0].features[...,1].flatten().tolist())))
 
         for i, (idx_lower, idx_upper)in enumerate(zip(ground_truth, ground_truth[1:])):

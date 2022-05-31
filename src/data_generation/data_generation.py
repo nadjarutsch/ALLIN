@@ -43,11 +43,15 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
     features = torch.from_numpy(dag.sample(batch_size=n_obs, as_array=True)).float()  
     
     # save information about target partitions (observational, interventional)
+    true_target_labels = [0] * n_obs
     n_int = int(n_obs * int_ratio)
-    targets = []
-    targets.append(list(range(n_obs)))
-    for i in range(dag.num_vars):
-        targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))   
+    for i in range(1,dag.num_vars+1):
+        true_target_labels.extend([i] * n_int)
+
+   # targets = []
+   # targets.append(list(range(n_obs)))
+   # for i in range(dag.num_vars):
+   #     targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))
 
     # sample interventional data from DAG
     prob_dist = dists.GaussianDist(mu_func = lambda x: 5.0, sigma_func = lambda x: 0.5) # TODO: variable intervention (e.g. shift)
@@ -62,7 +66,7 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
         interventions.append(intervention_dict)
         
     # create dataset from observational and interventional data 
-    synth_dataset = data.PartitionData(features=features, targets=targets)
+    synth_dataset = data.PartitionData(features=features, targets=true_target_labels)
     
     # save dataset to disk and add the dataset to overview (json file)
     if save_to_file:

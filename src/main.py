@@ -28,6 +28,7 @@ import metrics
 import clustering.dbscan as dbscan
 import clustering.kmeans as kmeans
 from fci import FCI
+import sklearn
 
 
 N_OBS = 1000 # overwritten through hydra
@@ -83,7 +84,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci test', notes='fci with observational data', tags=['fci'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='normal kmeans', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -101,9 +102,9 @@ def main(cfg: DictConfig):
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=cfg.n_obs, int_ratio=INT_RATIO, seed=seed)
 
             # correct partitions
-            target_dataset = data.PartitionData(features=synth_dataset.features[..., 0], targets=synth_dataset.targets)
+            target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[..., 0], targets=target_dataset.targets)
+            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # initial causal discovery (skeleton)
             # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -151,7 +152,7 @@ def main(cfg: DictConfig):
             '''
 
             ''''# kernel K-means
-            partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,0], num_clus=config['num_clus'], device=device)
+            partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
             partitions = []
             for part in partitions_temp:
                 partitions.append([p for p in part if p])
@@ -159,8 +160,12 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions(partitions)'''
 
             # normal K-means
-            # partitions = kmeans.kmeans(synth_dataset.features[...,0], n_clusters=config['num_clus'])
-            # synth_dataset.update_partitions(partitions)
+            labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
+            synth_dataset.update_partitions(labels)
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
+
 
             # cluster analysis
             # (1) avg sample likelihood
@@ -168,7 +173,7 @@ def main(cfg: DictConfig):
             # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
 
             # DBSCAN clustering
-          #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,0], device=device)
+          #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
           #  distance_matrix = torch.arccos(kappa).cpu().detach()
           #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
           #  synth_dataset.update_partitions(partitions)

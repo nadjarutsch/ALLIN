@@ -16,8 +16,8 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     cols_int = ['I_%s' % var for var in variables]
     
     dfs = []
-    for partition, target in zip(data.partitions, data.intervention_targets):
-        df_data = partition.features.clone().numpy()     
+    for partition, target in zip(data.partitions, data.intervention_targets): # if no intervention targets were explicitly set, data.intervention_targets consists of only one list with zeros
+        df_data = partition.features[...,:-1].reshape((-1,len(variables),1)).expand((-1,len(variables),2)).clone().numpy()
         df_data[...,1] = np.broadcast_to(target, df_data[...,1].shape)
         df_data = df_data.reshape(-1, len(variables * 2))
         df = pd.DataFrame(df_data)
@@ -27,7 +27,7 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     # drop data points without inferred intervention target
  #   drop_indices = ((df[cols_int] == 1).sum(axis=1) == 0).index[((df[cols_int] == 1).sum(axis=1) == 0)]
  #   df.drop(drop_indices)
-    
+
     # re-order dataframe columns 
     cols = variables + cols_int
     df = df[cols]    

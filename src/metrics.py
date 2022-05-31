@@ -79,3 +79,4 @@ def joint_log_prob(dataset: data.PartitionData,
 
 def avg_neighbourhood_size(dag: graphs.CausalDAG) -> float:
     return np.sum(dag.adj_matrix) * 2 / len(dag.variables)
+
