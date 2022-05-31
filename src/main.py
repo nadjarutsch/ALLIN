@@ -67,7 +67,7 @@ def main(cfg: DictConfig):
         mu = 0.0,
         sigma = 0.5,
         minpts = 5,
-        citest = 'rcot',
+        citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1
@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='normal kmeans', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -151,26 +151,13 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(cfg.n_obs)), list(range(cfg.n_obs, int(cfg.n_obs + config['num_vars'] * cfg.n_obs * INT_RATIO)))])
             '''
 
-            ''''# kernel K-means
-            partitions_temp = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
-            partitions = []
-            for part in partitions_temp:
-                partitions.append([p for p in part if p])
-
-            synth_dataset.update_partitions(partitions)'''
+            # kernel K-means
+            labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
+            synth_dataset.update_partitions(labels)
 
             # normal K-means
-            labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
-            synth_dataset.update_partitions(labels)
-            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-
-
-            # cluster analysis
-            # (1) avg sample likelihood
-                
-            # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
+            # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
+            # synth_dataset.update_partitions(labels)
 
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
@@ -179,9 +166,17 @@ def main(cfg: DictConfig):
           #  synth_dataset.update_partitions(partitions)
           #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
 
+            # cluster analysis
+            # (1) avg sample likelihood
+            metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
+
             # likelihood evaluation for ground truth partitions (optimal)
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
+            # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
             
             '''borders = true_target_indices.tolist()
             borders.insert(0,0)
