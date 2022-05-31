@@ -153,7 +153,7 @@ def main(cfg: DictConfig):
 
             # kernel K-means
             labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
-            synth_dataset.update_partitions(labels)
+            synth_dataset.update_partitions(labels.cpu())
 
             # normal K-means
             # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
