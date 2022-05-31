@@ -30,7 +30,7 @@ import clustering.kmeans as kmeans
 from fci import FCI
 
 
-N_OBS = cfg.n_obs
+N_OBS = 1000 # overwritten through hydra
 INT_RATIO = 1
 BATCH_SIZE = 128
 lr = 1e-3
