@@ -105,10 +105,10 @@ def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, max_iters=100, d
         print("iteration {} with cluster sizes {}".format(itr, counts))
         labels = new_labels
     
-    partitions = [[] for _ in range(num_clus)]
-    for idx, l in enumerate(labels):
-        partitions[l].append(idx)
-    return partitions
+#    partitions = [[] for _ in range(num_clus)]
+#    for idx, l in enumerate(labels):
+#        partitions[l].append(idx)
+    return labels
 
 
 def plus_plus(ds, k):
