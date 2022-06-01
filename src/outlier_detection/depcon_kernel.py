@@ -22,7 +22,7 @@ import networkx as nx
 
 
 
-def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
+def dep_contrib_kernel(X, alpha=0.1, device='cuda:0'):
     num_samps, num_feats = X.shape
     thresh = torch.eye(num_feats).to(device)
     if alpha is not None:
@@ -108,7 +108,7 @@ def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, max_iters=100, d
 #    partitions = [[] for _ in range(num_clus)]
 #    for idx, l in enumerate(labels):
 #        partitions[l].append(idx)
-    return labels
+    return labels.cpu()
 
 
 def plus_plus(ds, k):
