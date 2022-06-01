@@ -22,7 +22,7 @@ import networkx as nx
 
 
 
-def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
+def dep_contrib_kernel(X, alpha=0.1, device='cuda:0'):
     num_samps, num_feats = X.shape
     thresh = torch.eye(num_feats).to(device)
     if alpha is not None:

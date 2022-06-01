@@ -31,8 +31,8 @@ from fci import FCI
 import sklearn
 
 
-N_OBS = 1000 # overwritten through hydra
-INT_RATIO = 1
+N_OBS = 10000 # overwritten through hydra
+INT_RATIO = 0.01
 BATCH_SIZE = 128
 lr = 1e-3
 loss = mmlp.nll
@@ -40,7 +40,7 @@ epochs = 5
 fit_epochs = 60
 stds = 4
 seeds = list(range(50))
-NUM_VARS = 5
+NUM_VARS = 7
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
 alpha = 0.00001
@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 0.5,
+        sigma = 1,
         minpts = 5,
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans w/o threshold', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci test 7 vars', notes='', tags=['fci'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -152,8 +152,8 @@ def main(cfg: DictConfig):
             '''
 
             # kernel K-means
-            labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
-            synth_dataset.update_partitions(labels)
+            # labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
+            # synth_dataset.update_partitions(labels)
 
             # normal K-means
             # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
@@ -168,37 +168,16 @@ def main(cfg: DictConfig):
 
             # cluster analysis
             # (1) avg sample likelihood
-            metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
+            # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
 
             # likelihood evaluation for ground truth partitions (optimal)
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
-            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-            
-            '''borders = true_target_indices.tolist()
-            borders.insert(0,0)
+            # wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            # wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            # wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            for p_i, part in enumerate(partitions_int):
-                counts = []
-                for i in range(len(partitions)):
-                    idx_lower = borders[i]
-                    idx_upper = borders[i+1]
-
-                    print([(p >= idx_lower) and (p < idx_upper) for p in part])
-                    counts.append(sum([(p >= idx_lower) and (p < idx_upper) for p in part]))
-                                    
-
-                fig = plt.figure(figsize=(6,6))
-                ax = fig.add_axes([0,0,1,1])
-                partitions = list(range(len(partitions)))
-                ax.bar(partitions, counts)
-                wandb.log({f"partition_{p_i}": wandb.Image(plt)})
-                plt.close()'''
-            
-            
             # causal discovery
             '''synth_dataset.set_true_intervention_targets(true_target_indices)
             
