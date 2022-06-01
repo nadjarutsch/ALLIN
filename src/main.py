@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans w/o threshold', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans', notes='with clustering metrics', tags=['fci', 'kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -153,7 +153,7 @@ def main(cfg: DictConfig):
 
             # kernel K-means
             labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
-            synth_dataset.update_partitions(labels.cpu())
+            synth_dataset.update_partitions(labels)
 
             # normal K-means
             # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
@@ -174,9 +174,9 @@ def main(cfg: DictConfig):
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
-            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets.cpu(), labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets.cpu(), labels)
+            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets.cpu(), labels)
             
             '''borders = true_target_indices.tolist()
             borders.insert(0,0)
