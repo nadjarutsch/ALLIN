@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kernel kmeans++ w/o threshold', notes='', tags=['kmeans++', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='normal kmeans random init', notes='', tags=['kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -152,12 +152,12 @@ def main(cfg: DictConfig):
             '''
 
             # kernel K-means
-            labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
-            synth_dataset.update_partitions(labels)
+            # labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
+            # synth_dataset.update_partitions(labels)
 
             # normal K-means
-            # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
-            # synth_dataset.update_partitions(labels)
+            labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='random', n_clusters=config['num_clus'])
+            synth_dataset.update_partitions(labels)
 
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
