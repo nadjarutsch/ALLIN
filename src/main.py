@@ -31,8 +31,8 @@ from fci import FCI
 import sklearn
 
 
-N_OBS = 10000 # overwritten through hydra
-INT_RATIO = 0.01
+N_OBS = 1000 # overwritten through hydra
+INT_RATIO = 1
 BATCH_SIZE = 128
 lr = 1e-3
 loss = mmlp.nll
@@ -40,7 +40,7 @@ epochs = 5
 fit_epochs = 60
 stds = 4
 seeds = list(range(50))
-NUM_VARS = 7
+NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
 alpha = 0.00001
@@ -156,8 +156,8 @@ def main(cfg: DictConfig):
             # synth_dataset.update_partitions(labels)
 
             # normal K-means
-            # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
-            # synth_dataset.update_partitions(labels)
+            labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
+            synth_dataset.update_partitions(labels)
 
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
@@ -174,9 +174,9 @@ def main(cfg: DictConfig):
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
-            # wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            # wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            # wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
             # causal discovery
             '''synth_dataset.set_true_intervention_targets(true_target_indices)
