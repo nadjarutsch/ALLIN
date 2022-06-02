@@ -22,7 +22,7 @@ import networkx as nx
 
 
 
-def dep_contrib_kernel(X, alpha=0.1, device='cuda:0'):
+def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
     num_samps, num_feats = X.shape
     thresh = torch.eye(num_feats).to(device)
     if alpha is not None:
@@ -51,14 +51,17 @@ def dep_contrib_kernel(X, alpha=0.1, device='cuda:0'):
     return kappa, gamma
 
 
-def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, max_iters=100, device='cuda:0'):
+def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, init='k-means++', max_iters=100, device='cuda:0'):
     num_samps, num_feats = data.shape
-    rng = np.random.default_rng(1312)
-    init = rng.choice(
-        num_samps, num_clus, replace=False
-    )  # choose initial clusters using Forgy method
-    
-    inner_prods, _ = kernel(data, device=device)
+    if init == 'random':
+        rng = np.random.default_rng(1312)
+        init = rng.choice(
+            num_samps, num_clus, replace=False
+        )  # choose initial clusters using Forgy method
+        inner_prods, _ = kernel(data, device=device)
+    elif init == 'k-means++':
+        inner_prods, init = plus_plus(data, num_clus, device=device)
+
     inner_prods = inner_prods.to(device)
     left = torch.tile(torch.diag(inner_prods)[:, None], (1, num_clus)).to(device)
     distances = (
@@ -111,7 +114,7 @@ def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, max_iters=100, d
     return labels.cpu()
 
 
-def plus_plus(ds, k):
+def plus_plus(ds, k, device='cuda:0'):
     """
     Create cluster centroids using the k-means++ algorithm.
     Parameters
@@ -128,11 +131,13 @@ def plus_plus(ds, k):
     """
 
     centroids = [ds[0]]
+    c_indices = [0]
+    distances, _ = dep_contrib_kernel(ds, device=device)
 
     for _ in range(1, k):
-        dist_sq = torch.tensor([min([torch.inner(c - x, c - x) for c in centroids]) for x in ds])
+        dist_sq = torch.tensor([min([distances[idx1, idx2] for idx1 in c_indices]) for idx2 in range(ds.shape[0])])
         probs = dist_sq / torch.sum(dist_sq)
-        cumulative_probs = torch.cumsum(probs)
+        cumulative_probs = torch.cumsum(probs, 0)
         r = np.random.rand()
 
         for j, p in enumerate(cumulative_probs):
@@ -141,7 +146,8 @@ def plus_plus(ds, k):
                 break
 
         centroids.append(ds[i])
+        c_indices.append(i)
 
-    return torch.tensor(centroids)
+    return distances, torch.tensor(c_indices).long()
 
 

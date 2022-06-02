@@ -84,12 +84,12 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='fci test 7 vars', notes='', tags=['fci'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kernel kmeans++ w/o threshold', notes='', tags=['kmeans++', 'depcon'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
             variables = [v.name for v in dag.variables]
-            
+
             true_graph = dag.nx_graph
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(true_graph)
@@ -105,7 +105,7 @@ def main(cfg: DictConfig):
             target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
             obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
-
+            '''
             # initial causal discovery (skeleton)
             # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
@@ -139,7 +139,7 @@ def main(cfg: DictConfig):
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
             
             # use true skeleton
-            adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))
+            adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))'''
     
             # intervention detection (ood)
         #    print('Creating model...')
@@ -152,12 +152,12 @@ def main(cfg: DictConfig):
             '''
 
             # kernel K-means
-            # labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], num_clus=config['num_clus'], device=device)
-            # synth_dataset.update_partitions(labels)
+            labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
+            synth_dataset.update_partitions(labels)
 
             # normal K-means
-            labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
-            synth_dataset.update_partitions(labels)
+            # labels = kmeans.kmeans(synth_dataset.features[...,:-1], n_clusters=config['num_clus'])
+            # synth_dataset.update_partitions(labels)
 
             # DBSCAN clustering
           #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
