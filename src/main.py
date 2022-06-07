@@ -71,8 +71,8 @@ def main(cfg: DictConfig):
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
-        intervention_mu = cfg.int_mu,
-        intervention_sigma = cfg.int_sigma
+        int_mu = cfg.int_mu,
+        int_sigma = cfg.int_sigma
     )
     
     
