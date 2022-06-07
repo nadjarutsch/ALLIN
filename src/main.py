@@ -101,7 +101,7 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
-            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=cfg.n_obs, int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
+            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
 
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)
