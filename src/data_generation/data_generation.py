@@ -27,7 +27,7 @@ def generate_dag(num_vars: int,
 
 
 
-def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}):
+def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, save_to_file=False, properties={}):
     """
         
     Attributes:
@@ -54,7 +54,7 @@ def generate_data(dag, n_obs, int_ratio, seed, save_to_file=False, properties={}
    #     targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))
 
     # sample interventional data from DAG
-    prob_dist = dists.GaussianDist(mu_func = lambda x: 0.0, sigma_func = lambda x: 0.5) # TODO: variable intervention (e.g. shift)
+    prob_dist = dists.GaussianDist(mu_func = lambda x: int_mu, sigma_func = lambda x: int_sigma) # TODO: variable intervention (e.g. shift)
     interventions = [{}]
     for v in dag.variables: # perfect interventions on each variable
         intervention_dict = {}

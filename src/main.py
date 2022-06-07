@@ -39,7 +39,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(50))
+seeds = list(range(30))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
@@ -70,7 +70,9 @@ def main(cfg: DictConfig):
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
-        num_clus = NUM_VARS + 1
+        num_clus = NUM_VARS + 1,
+        intervention_mu = cfg.int_mu,
+        intervention_sigma = cfg.int_sigma
     )
     
     
@@ -84,7 +86,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='kernel kmeans++ w similar means w/o threshold', notes='', tags=['kmeans', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans++, varying mean and std', notes='', tags=['kmeans', 'kmeans++'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -99,7 +101,7 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
-            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=cfg.n_obs, int_ratio=INT_RATIO, seed=seed)
+            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=cfg.n_obs, int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
 
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)

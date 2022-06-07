@@ -1,2 +1,4 @@
 expected_N: 2
 n_obs: 1000
+int_mu: 1
+int_sigma: 0.5
