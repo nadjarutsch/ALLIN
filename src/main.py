@@ -180,7 +180,8 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            # causal discovery
+
+            ''''# causal discovery
             # synth_dataset.set_true_intervention_targets(true_target_indices)
             
             df = cd.prepare_data(cd="jci", data=synth_dataset, variables=variables)
@@ -205,7 +206,7 @@ def main(cfg: DictConfig):
             colors = visual.get_colors(created_graph)
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"discovered graph": wandb.Image(plt)})
-            plt.close()
+            plt.close()'''
 
             wandb.finish()
 
