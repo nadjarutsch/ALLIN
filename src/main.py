@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = cfg.int_sigma,
+        sigma = 0.5,
         minpts = 5,
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
@@ -86,7 +86,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans++, varying mean and both std', notes='', tags=['kmeans', 'kmeans++'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans++, varying mean and std', notes='', tags=['kmeans', 'kmeans++'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
