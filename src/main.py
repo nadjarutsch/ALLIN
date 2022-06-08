@@ -39,7 +39,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(30))
+seeds = list(range(10))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 0.5,
+        sigma = cfg.int_sigma,
         minpts = 5,
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
@@ -106,10 +106,25 @@ def main(cfg: DictConfig):
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
+            # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
+
+            # PC on ground truth clusters
+            for i, cluster in enumerate(target_dataset.partitions):
+                cluster_dataset = data.PartitionData(features=cluster.features[...,:-1])
+                df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
+                model_pc = cdt.causality.graph.PC(CItest="gaussian", alpha=config["alpha"])
+                created_graph = model_pc.predict(df)
+
+                plt.figure(figsize=(6, 6))
+                colors = visual.get_colors(created_graph)
+                nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                        edge_color=colors)
+                wandb.log({f"true graph, cluster {i}": wandb.Image(plt)})
+                plt.close()
+
             '''
             # initial causal discovery (skeleton)
-            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
             df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
@@ -181,32 +196,46 @@ def main(cfg: DictConfig):
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
 
-            ''''# causal discovery
+            # causal discovery
             # synth_dataset.set_true_intervention_targets(true_target_indices)
-            
-            df = cd.prepare_data(cd="jci", data=synth_dataset, variables=variables)
+
+            # PC on each partition separately
+            for i, cluster in enumerate(synth_dataset.partitions):
+                cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
+                df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
+                model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+                created_graph = model_pc.predict(df)
+
+                plt.figure(figsize=(6, 6))
+                colors = visual.get_colors(created_graph)
+                nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
+                wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
+                plt.close()
+
+
+            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             
             # logging
-            tbl = wandb.Table(dataframe=df)
-            wandb.log({"clustered data": tbl})
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"clustered data": tbl})
     
-            for node in list(df.columns.values[config['num_vars']:]):
-                skeleton.add_node(node)
-                skeleton.add_edge(node, node.replace("I_",""))
+            # for node in list(df.columns.values[config['num_vars']:]):
+            #    skeleton.add_node(node)
+            #    skeleton.add_edge(node, node.replace("I_",""))
     
-            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
-            created_graph = model_pc.orient_directed_graph(df, skeleton)
-            created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))
+            # model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+            # created_graph = model_pc.orient_directed_graph(df, skeleton)
+            # created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))
             
-            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)  
-            wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
+            # wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            # wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
+            # wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
     
-            plt.figure(figsize=(6,6))
-            colors = visual.get_colors(created_graph)
-            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"discovered graph": wandb.Image(plt)})
-            plt.close()'''
+            # plt.figure(figsize=(6,6))
+            # colors = visual.get_colors(created_graph)
+            # nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
+            # wandb.log({"discovered graph": wandb.Image(plt)})
+            # plt.close()
 
             wandb.finish()
 
