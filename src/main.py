@@ -86,7 +86,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='pc on depcon kmeans clusters', notes='', tags=['kmeans', 'kmeans++', 'pc', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans++, varying mean and both std', notes='', tags=['kmeans', 'kmeans++', 'depcon'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -119,7 +119,7 @@ def main(cfg: DictConfig):
                 colors = visual.get_colors(created_graph)
                 nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                         edge_color=colors)
-                wandb.log({f"true graph, cluster {i}": wandb.Image(plt)})
+                wandb.log({f"ground truth cluster {i}": wandb.Image(plt)})
                 plt.close()
 
             '''
@@ -200,6 +200,7 @@ def main(cfg: DictConfig):
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
             # PC on each partition separately
+            '''
             for i, cluster in enumerate(synth_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
@@ -210,7 +211,7 @@ def main(cfg: DictConfig):
                 colors = visual.get_colors(created_graph)
                 nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
                 wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
-                plt.close()
+                plt.close()'''
 
 
             # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
