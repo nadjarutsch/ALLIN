@@ -89,4 +89,4 @@ def fp(pred_dag, target_dag) -> float:
 def fn(pred_dag, target_dag) -> float:
     pred = pred_dag.adj_matrix.astype(bool)
     target = target_dag.adj_matrix.astype(bool)
-    return np.sum(np.invert(pred) * target))
+    return np.sum(np.invert(pred) * target)
