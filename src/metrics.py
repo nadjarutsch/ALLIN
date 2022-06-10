@@ -82,11 +82,11 @@ def avg_neighbourhood_size(dag: graphs.CausalDAG) -> float:
 
 
 def fp(pred_dag, target_dag) -> float:
-    pred = pred_dag.adj_matrix.astype(bool)
-    target = target_dag.adj_matrix.astype(bool)
+    pred = nx.to_numpy_array(pred_dag).astype(bool)
+    target = nx.to_numpy_array(target_dag).astype(bool)
     return np.sum(pred * np.invert(target))
 
 def fn(pred_dag, target_dag) -> float:
-    pred = pred_dag.adj_matrix.astype(bool)
-    target = target_dag.adj_matrix.astype(bool)
+    pred = nx.to_numpy_array(pred_dag).astype(bool)
+    target = nx.to_numpy_array(target_dag).astype(bool)
     return np.sum(np.invert(pred) * target)
