@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
         edge_prob = cfg.expected_N / NUM_VARS,
         E_N = cfg.expected_N,
         mu = 0.0,
-        sigma = 0.5,
+        sigma = cfg.int_sigma,
         minpts = 5,
         citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
