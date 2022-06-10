@@ -141,8 +141,8 @@ def main(cfg: DictConfig):
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
 
-            wandb.run.summary["Avg FP target clusters"] = mean(fps)
-            wandb.run.summary["Avg FN target clusters"] = mean(fns)
+            wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
+            wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
 
             '''
             # initial causal discovery (skeleton)
@@ -233,8 +233,8 @@ def main(cfg: DictConfig):
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
 
-            wandb.run.summary["Avg FP pred clusters"] = mean(fps)
-            wandb.run.summary["Avg FN pred clusters"] = mean(fns)
+            wandb.run.summary["Avg FP pred clusters"] = np.mean(fps)
+            wandb.run.summary["Avg FN pred clusters"] = np.mean(fns)
 
 
 
