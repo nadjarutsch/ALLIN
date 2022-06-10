@@ -86,17 +86,31 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans++ for my plot', notes='', tags=['kmeans', 'kmeans++'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='pc algo on clusters kmeans', notes='', tags=['kmeans', 'kmeans++', 'pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
             variables = [v.name for v in dag.variables]
 
+            # plot the true underlying causal graph
             true_graph = dag.nx_graph
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(true_graph)
             nx.draw(true_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"true graph": wandb.Image(plt)})
+            plt.close()
+
+            # get true essential graph representing the MEC
+            adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
+            mapping = dict(zip(range(len(var_lst)), var_lst))
+            mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
+            mec = nx.relabel_nodes(mec, mapping)
+            visual.set_edge_attributes(mec)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(mec)
+            nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
+            wandb.log({"essential graph": wandb.Image(plt)})
             plt.close()
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
@@ -109,6 +123,8 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
+            fps = []
+            fns = []
             for i, cluster in enumerate(target_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[...,:-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
@@ -122,6 +138,12 @@ def main(cfg: DictConfig):
                 wandb.log({f"ground truth cluster {i}": wandb.Image(plt)})
                 plt.close()
 
+                fps.append(metrics.fp(created_graph, mec))
+                fns.append(metrics.fn(created_graph, mec))
+
+            wandb.run.summary["Avg FP target clusters"] = mean(fps)
+            wandb.run.summary["Avg FN target clusters"] = mean(fns)
+
             '''
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -131,12 +153,6 @@ def main(cfg: DictConfig):
            # model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
             model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
             skeleton = model_fci.create_graph_from_data(df)
-
-            adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
-            mapping = dict(zip(range(len(var_lst)), var_lst))
-            mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
-            mec = nx.relabel_nodes(mec, mapping)
-            visual.set_edge_attributes(mec)
             
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(skeleton)
@@ -200,7 +216,8 @@ def main(cfg: DictConfig):
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
             # PC on each partition separately
-            '''
+            fps = []
+            fns = []
             for i, cluster in enumerate(synth_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
@@ -211,7 +228,15 @@ def main(cfg: DictConfig):
                 colors = visual.get_colors(created_graph)
                 nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
                 wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
-                plt.close()'''
+                plt.close()
+
+                fps.append(metrics.fp(created_graph, mec))
+                fns.append(metrics.fn(created_graph, mec))
+
+            wandb.run.summary["Avg FP pred clusters"] = mean(fps)
+            wandb.run.summary["Avg FN pred clusters"] = mean(fns)
+
+
 
 
             # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)

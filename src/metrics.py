@@ -80,3 +80,13 @@ def joint_log_prob(dataset: data.PartitionData,
 def avg_neighbourhood_size(dag: graphs.CausalDAG) -> float:
     return np.sum(dag.adj_matrix) * 2 / len(dag.variables)
 
+
+def fp(pred_dag, target_dag) -> float:
+    pred = pred_dag.adj_matrix.astype(bool)
+    target = target_dag.adj_matrix.astype(bool)
+    return np.sum(pred * np.invert(target))
+
+def fn(pred_dag, target_dag) -> float:
+    pred = pred_dag.adj_matrix.astype(bool)
+    target = target_dag.adj_matrix.astype(bool)
+    return np.sum(np.invert(pred) * target))
