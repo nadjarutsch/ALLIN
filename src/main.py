@@ -126,6 +126,7 @@ def main(cfg: DictConfig):
             # PC on ground truth clusters
             fps = []
             fns = []
+            shds = []
             for i, cluster in enumerate(target_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[...,:-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
@@ -139,11 +140,18 @@ def main(cfg: DictConfig):
                 wandb.log({f"ground truth cluster {i}": wandb.Image(plt)})
                 plt.close()
 
+                # true graph of the matched interventional distribution
+                int_adj_matrix = nx.to_numpy_array(true_graph)
+                int_adj_matrix[:, int_targets[i]] = 0
+                true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
+
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
+                shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
 
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
+            wandb.run.summary["Target cluster SHD"] = np.mean(shds)
 
 
             # initial causal discovery (skeleton)
@@ -220,7 +228,8 @@ def main(cfg: DictConfig):
             counts = []
             int_targets = []
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
-                count = cluster.features[..., -1] == target.features[..., -1]
+                # compare equal elements
+                count = len(set(cluster.features[..., -1].tolist()) & set(target.features[..., -1].tolist()))
                 counts.append[count]
                 if len(counts) == len(target_dataset.partitions):
                     int_targets.append(np.argmax(counts))
@@ -242,7 +251,7 @@ def main(cfg: DictConfig):
                 wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
                 plt.close()
 
-                # true graph of the match interventional distribution
+                # true graph of the matched interventional distribution
                 int_adj_matrix = nx.to_numpy_array(true_graph)
                 int_adj_matrix[:,int_targets[i]] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
