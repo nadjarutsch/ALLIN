@@ -150,7 +150,7 @@ def main(cfg: DictConfig):
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
               #  mapping_int = dict(zip(range(len(variables)), variables))
               #  print(mapping_int)
-                true_int_graph = nx.relabel_nodes(true_int_graph)
+                true_int_graph = nx.relabel_nodes(true_int_graph, mapping)
 
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
