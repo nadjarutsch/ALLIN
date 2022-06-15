@@ -29,6 +29,7 @@ import clustering.dbscan as dbscan
 import clustering.kmeans as kmeans
 from fci import FCI
 import sklearn
+from sklearn.cluster import DBSCAN
 from itertools import product
 
 
@@ -67,13 +68,15 @@ def main(cfg: DictConfig):
         E_N = cfg.expected_N,
         mu = 0.0,
         sigma = cfg.int_sigma,
-        minpts = 5,
+        minpts = cfg.minpts,
+        eps = cfg.eps,
         citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
         int_mu = cfg.int_mu,
-        int_sigma = cfg.int_sigma
+        int_sigma = cfg.int_sigma,
+        clustering = cfg.clustering
     )
     
     
@@ -145,7 +148,8 @@ def main(cfg: DictConfig):
                 if i > 0:
                     int_adj_matrix[:, i-1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
-                nx.relabel_nodes(true_int_graph, mapping)
+                mapping_int = dict(zip(range(len(variables)), variables))
+                nx.relabel_nodes(true_int_graph, mapping_int)
                 print(list(true_int_graph.nodes))
                 print(list(created_graph.nodes))
 
@@ -198,20 +202,25 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(cfg.n_obs)), list(range(cfg.n_obs, int(cfg.n_obs + config['num_vars'] * cfg.n_obs * INT_RATIO)))])
             '''
 
-            # kernel K-means
-            # labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
-            # synth_dataset.update_partitions(labels)
+            ### CLUSTERING
 
-            # normal K-means
-            labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='k-means++', n_clusters=config['num_clus'])
+            if config["clustering"] == "depcon kmeans":
+                # kernel K-means
+                labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
+
+            elif config["clustering"] == "kmeans":
+                # normal K-means
+                labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='k-means++', n_clusters=config['num_clus'])
+
+            elif config["clustering"] == "dbscan":
+                # DBSCAN clustering
+              #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
+              #  distance_matrix = torch.arccos(kappa).cpu().detach()
+              #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
+              #  synth_dataset.update_partitions(partitions)
+                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(synth_dataset.features[...,:-1])
+
             synth_dataset.update_partitions(labels)
-
-            # DBSCAN clustering
-          #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
-          #  distance_matrix = torch.arccos(kappa).cpu().detach()
-          #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
-          #  synth_dataset.update_partitions(partitions)
-          #  metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="DBSCAN clusters")
 
             # cluster analysis
             # (1) avg sample likelihood
@@ -260,7 +269,7 @@ def main(cfg: DictConfig):
                 if i > 0:
                     int_adj_matrix[:,int_targets[i]-1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
-                nx.relabel_nodes(true_int_graph, mapping)
+                nx.relabel_nodes(true_int_graph, mapping_int)
 
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
