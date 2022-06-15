@@ -267,9 +267,9 @@ def main(cfg: DictConfig):
             wandb.run.summary["Cluster SHD"] = np.mean(shds)
 
 
-
-
-            # df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            # putting everything together: PC with context variables
+            synth_dataset.set_random_intervention_targets()
+            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             
             # logging
             # tbl = wandb.Table(dataframe=df)
@@ -279,19 +279,19 @@ def main(cfg: DictConfig):
             #    skeleton.add_node(node)
             #    skeleton.add_edge(node, node.replace("I_",""))
     
-            # model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
-            # created_graph = model_pc.orient_directed_graph(df, skeleton)
-            # created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))
+            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+            created_graph = model_pc.predict(df)
+            created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
-            # wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            # wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
-            # wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
+            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
     
-            # plt.figure(figsize=(6,6))
-            # colors = visual.get_colors(created_graph)
-            # nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            # wandb.log({"discovered graph": wandb.Image(plt)})
-            # plt.close()
+            plt.figure(figsize=(6,6))
+            colors = visual.get_colors(created_graph)
+            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
+            wandb.log({"discovered graph": wandb.Image(plt)})
+            plt.close()
 
             wandb.finish()
 

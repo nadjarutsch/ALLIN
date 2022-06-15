@@ -104,3 +104,11 @@ class PartitionData(Dataset):
         partitions.append(list(set(self.partitions[1].features[...,1][self.partitions[1].features[...,1] < ground_truth[0]].flatten().tolist())))
         self.intervention_targets.append(torch.ones(num_vars)) # set false positives to 1-vector
         self.update_partitions(partitions)
+
+    def set_random_intervention_targets(self):
+        self.intervention_targets = []
+
+        for i, part in enumerate(self.partitions):
+            target = np.zeros(len(self.partitions))
+            target[i] = 1
+            self.intervention_targets.append(target)
