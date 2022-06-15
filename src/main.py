@@ -29,6 +29,7 @@ import clustering.dbscan as dbscan
 import clustering.kmeans as kmeans
 from fci import FCI
 import sklearn
+from itertools import product
 
 
 N_OBS = 1000 # overwritten through hydra
@@ -67,7 +68,7 @@ def main(cfg: DictConfig):
         mu = 0.0,
         sigma = cfg.int_sigma,
         minpts = 5,
-        citest = 'gaussian',
+        citest = 'rcot',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
@@ -144,15 +145,16 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
 
-            '''
+
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-           # model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
-            model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
-            skeleton = model_fci.create_graph_from_data(df)
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            # skeleton = model_fci.create_graph_from_data(df)
+            skeleton = model_pc.predict(df)
             
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(skeleton)
@@ -172,7 +174,7 @@ def main(cfg: DictConfig):
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
             
             # use true skeleton
-            adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))'''
+            # adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))
     
             # intervention detection (ood)
         #    print('Creating model...')
@@ -211,11 +213,21 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-
             # causal discovery
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
+            # Match clusters to intervention targets
+            counts = []
+            int_targets = []
+            for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
+                count = cluster.features[..., -1] == target.features[..., -1]
+                counts.append[count]
+                if len(counts) == len(target_dataset.partitions):
+                    int_targets.append(np.argmax(counts))
+                    counts = []
+
             # PC on each partition separately
+            shds = []
             fps = []
             fns = []
             for i, cluster in enumerate(synth_dataset.partitions):
@@ -230,11 +242,18 @@ def main(cfg: DictConfig):
                 wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
                 plt.close()
 
+                # true graph of the match interventional distribution
+                int_adj_matrix = nx.to_numpy_array(true_graph)
+                int_adj_matrix[:,int_targets[i]] = 0
+                true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
+
                 fps.append(metrics.fp(created_graph, mec))
                 fns.append(metrics.fn(created_graph, mec))
+                shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
 
             wandb.run.summary["Avg FP pred clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN pred clusters"] = np.mean(fns)
+            wandb.run.summary["Cluster SHD"] = np.mean(shds)
 
 
 
