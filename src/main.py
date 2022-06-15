@@ -142,7 +142,8 @@ def main(cfg: DictConfig):
 
                 # true graph of the matched interventional distribution
                 int_adj_matrix = nx.to_numpy_array(true_graph)
-                int_adj_matrix[:, int_targets[i]] = 0
+                if i > 0:
+                    int_adj_matrix[:, i-1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
 
                 fps.append(metrics.fp(created_graph, mec))
@@ -253,7 +254,8 @@ def main(cfg: DictConfig):
 
                 # true graph of the matched interventional distribution
                 int_adj_matrix = nx.to_numpy_array(true_graph)
-                int_adj_matrix[:,int_targets[i]] = 0
+                if i > 0:
+                    int_adj_matrix[:,int_targets[i]-1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
 
                 fps.append(metrics.fp(created_graph, mec))
