@@ -184,6 +184,7 @@ def main(cfg: DictConfig):
             plt.close()
 
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
+            wandb.run.summary["PC SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
 
             # use inferred skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
@@ -217,7 +218,7 @@ def main(cfg: DictConfig):
               #  distance_matrix = torch.arccos(kappa).cpu().detach()
               #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
               #  synth_dataset.update_partitions(partitions)
-                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(synth_dataset.features[...,:-1])
+                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(synth_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
 
