@@ -243,7 +243,7 @@ def main(cfg: DictConfig):
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
                 # compare equal elements
                 count = len(set(cluster.features[..., -1].tolist()) & set(target.features[..., -1].tolist()))
-                counts.append[count]
+                counts.append(count)
                 if len(counts) == len(target_dataset.partitions):
                     int_targets.append(np.argmax(counts))
                     counts = []
