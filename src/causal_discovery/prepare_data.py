@@ -30,6 +30,7 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
          df.columns = variables
          df = (df - df.mean()) / df.std()  # normalize
          df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions))
+         print(df)
          dfs.append(df)
     
     df = pd.concat(dfs)
