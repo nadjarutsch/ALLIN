@@ -19,9 +19,9 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     for partition, target in zip(data.partitions, data.intervention_targets): # if no intervention targets were explicitly set, data.intervention_targets consists of only one list with zeros
         df_data = partition.features[...,:-1].reshape((-1,len(variables),1)).expand((-1,len(variables),2)).clone().numpy()
         print(target)
-        df_data[...,1] = np.broadcast_to(target, df_data[...,1].shape)
-        print(np.broadcast_to(target, df_data[...,1].shape))
-        df_data = df_data.reshape(-1, len(variables), len(data.partitions))
+        df_data[...,1] = np.broadcast_to(target, (df_data.shape[0], len(data.partitions)))
+        print(np.broadcast_to(target, (df_data.shape[0], len(data.partitions))))
+        df_data = df_data.reshape(-1, len(variables) * len(data.partitions))
         df = pd.DataFrame(df_data)
         print(df)
         dfs.append(rename_df_cols(df, variables))
