@@ -106,11 +106,10 @@ class PartitionData(Dataset):
         self.update_partitions(partitions)
 
     def set_random_intervention_targets(self):
-        self.intervention_targets = []
+        if len(self.partitions) > 1:
+            self.intervention_targets = []
 
-        for i in range(len(self.partitions)):
-            target = torch.zeros(len(self.partitions))
-            target[i] = 1
-            self.intervention_targets.append(target)
-
-        print(self.intervention_targets)
+            for i in range(len(self.partitions)):
+                target = torch.zeros(len(self.partitions))
+                target[i] = 1
+                self.intervention_targets.append(target)
