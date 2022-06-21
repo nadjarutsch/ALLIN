@@ -108,7 +108,9 @@ class PartitionData(Dataset):
     def set_random_intervention_targets(self):
         self.intervention_targets = []
 
-        for i, part in enumerate(self.partitions):
+        for i in range(len(self.partitions)):
             target = np.zeros(len(self.partitions))
             target[i] = 1
             self.intervention_targets.append(target)
+
+        print(self.intervention_targets)
