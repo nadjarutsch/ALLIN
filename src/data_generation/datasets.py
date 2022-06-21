@@ -109,7 +109,7 @@ class PartitionData(Dataset):
         self.intervention_targets = []
 
         for i in range(len(self.partitions)):
-            target = np.zeros(len(self.partitions))
+            target = torch.zeros(len(self.partitions))
             target[i] = 1
             self.intervention_targets.append(target)
 
