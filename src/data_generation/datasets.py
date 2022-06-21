@@ -27,7 +27,7 @@ class PartitionData(Dataset):
         """Inits an instance of PartitionData."""  
         features = features.float()
         # one-hot encoding of intervention targets for each partition
-        self.intervention_targets = [np.zeros(features.shape[-1])] 
+        self.intervention_targets = [torch.zeros(features.shape[-1])]
         
         if ispartition:
             self.features = features 
