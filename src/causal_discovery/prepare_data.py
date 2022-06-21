@@ -21,7 +21,7 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
         print(target)
         df_data[...,1] = np.broadcast_to(target, df_data[...,1].shape)
         print(np.broadcast_to(target, df_data[...,1].shape))
-        df_data = df_data.reshape(-1, len(variables * 2))
+        df_data = df_data.reshape(-1, len(variables), len(data.partitions))
         df = pd.DataFrame(df_data)
         print(df)
         dfs.append(rename_df_cols(df, variables))
