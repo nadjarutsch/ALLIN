@@ -25,11 +25,11 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     #    df = pd.DataFrame(df_data)
     #    print(df)
     #    dfs.append(rename_df_cols(df, variables))
-         df_data = partition.features[...,:-1]
+         df_data = partition.features[...,:-1].clone().numpy()
          df = pd.DataFrame(df_data)
          df.columns = variables
          df = (df - df.mean()) / df.std()  # normalize
-         df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions))
+         df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions)).clone().numpy()
          dfs.append(df)
     
     df = pd.concat(dfs)
