@@ -324,6 +324,6 @@ def main(cfg: DictConfig):
 
 if __name__ == '__main__':
     # main()
-    sweep_config = yaml.load(open('sweep.yaml', 'r'))
+    sweep_config = yaml.safe_load(open('sweep.yaml', 'r'))
     sweep_id = wandb.sweep(sweep_config, project="idiod")
     wandb.agent(sweep_id, main, count=800)
