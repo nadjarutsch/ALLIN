@@ -31,6 +31,7 @@ from fci import FCI
 import sklearn
 from sklearn.cluster import DBSCAN
 from itertools import product
+import random
 
 
 N_OBS = 1000 # overwritten through hydra
@@ -41,7 +42,8 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(10))
+# seeds = list(range(10))
+seeds = list(random.randint(0, 100))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
@@ -49,6 +51,7 @@ alpha = 0.00001
 expected_N = 2
 
 # os.environ['WANDB_MODE'] = 'offline'
+
 
 @hydra.main(config_path=".", config_name="config")
 def main(cfg: DictConfig):
