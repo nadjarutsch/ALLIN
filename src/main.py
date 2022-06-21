@@ -32,6 +32,8 @@ import sklearn
 from sklearn.cluster import DBSCAN
 from itertools import product
 import random
+import yaml
+
 
 
 N_OBS = 1000 # overwritten through hydra
@@ -321,4 +323,7 @@ def main(cfg: DictConfig):
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    sweep_config = yaml.load(open('sweep.yaml', 'r'))
+    sweep_id = wandb.sweep(sweep_config, project="idiod")
+    wandb.agent(sweep_id, main, count=800)
