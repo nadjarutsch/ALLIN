@@ -90,7 +90,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans', 'kmeans++', 'pc'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='DBSCAN hparam sweep', notes='', tags=['dbscan'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -104,6 +104,7 @@ def main(cfg: DictConfig):
             wandb.log({"true graph": wandb.Image(plt)})
             plt.close()
 
+            '''
             # get true essential graph representing the MEC
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
@@ -115,7 +116,7 @@ def main(cfg: DictConfig):
             colors = visual.get_colors(mec)
             nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
             wandb.log({"essential graph": wandb.Image(plt)})
-            plt.close()
+            plt.close()'''
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
@@ -127,6 +128,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
+            '''
             fps = []
             fns = []
             shds = []
@@ -157,7 +159,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
             wandb.run.summary["Target cluster SHD"] = np.mean(shds)
-
+            
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -183,13 +185,15 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
             wandb.run.summary["PC SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
-
+            
+            
             # use inferred skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
             
             # use true skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))
-    
+            '''
+
             # intervention detection (ood)
         #    print('Creating model...')
         #    gnmodel = mmlp.GaussianNoiseModel(num_vars=dag.num_vars, hidden_dims=[])
@@ -236,6 +240,7 @@ def main(cfg: DictConfig):
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
             # Match clusters to intervention targets
+            '''
             counts = []
             int_targets = []
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
@@ -306,6 +311,7 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"discovered graph": wandb.Image(plt)})
             plt.close()
+            '''
 
             wandb.finish()
 
