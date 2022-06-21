@@ -48,7 +48,7 @@ alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-os.environ['WANDB_MODE'] = 'offline'
+# os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path=".", config_name="config")
 def main(cfg: DictConfig):
@@ -90,7 +90,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='pc algo on clusters kmeans properly', notes='', tags=['kmeans', 'kmeans++', 'pc'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans', 'kmeans++', 'pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -148,8 +148,6 @@ def main(cfg: DictConfig):
                 if i > 0:
                     int_adj_matrix[:, i-1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
-              #  mapping_int = dict(zip(range(len(variables)), variables))
-              #  print(mapping_int)
                 true_int_graph = nx.relabel_nodes(true_int_graph, mapping)
 
                 fps.append(metrics.fp(created_graph, mec))
@@ -202,7 +200,7 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions([list(range(cfg.n_obs)), list(range(cfg.n_obs, int(cfg.n_obs + config['num_vars'] * cfg.n_obs * INT_RATIO)))])
             '''
 
-            ### CLUSTERING
+            ### CLUSTERING ###
 
             if config["clustering"] == "depcon kmeans":
                 # kernel K-means
@@ -248,6 +246,9 @@ def main(cfg: DictConfig):
                     int_targets.append(np.argmax(counts))
                     counts = []
 
+
+            ### CAUSAL DISCOVERY ###
+
             # PC on each partition separately
             shds = []
             fps = []
@@ -285,8 +286,8 @@ def main(cfg: DictConfig):
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             
             # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"clustered data": tbl})
+            tbl = wandb.Table(dataframe=df)
+            wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
