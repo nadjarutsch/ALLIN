@@ -52,7 +52,7 @@ alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-os.environ['WANDB_MODE'] = 'offline'
+# os.environ['WANDB_MODE'] = 'offline'
 
 
 @hydra.main(config_path=".", config_name="config")
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='Kmeans JCI', notes='', tags=['kmeans', 'jci', 'pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
-            '''
+
             fps = []
             fns = []
             shds = []
@@ -165,7 +165,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
             wandb.run.summary["Target cluster SHD"] = np.mean(shds)
-            '''
+
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -232,15 +232,15 @@ def main(cfg: DictConfig):
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
-            # wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            # wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            # wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
             # causal discovery
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
             # Match clusters to intervention targets
-            '''
+
             counts = []
             int_targets = []
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
@@ -287,12 +287,12 @@ def main(cfg: DictConfig):
 
 
             # putting everything together: PC with context variables
-            synth_dataset.set_random_intervention_targets()
+            target_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             
             # logging
-            tbl = wandb.Table(dataframe=df)
-            wandb.log({"clustered data": tbl})
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
@@ -302,35 +302,50 @@ def main(cfg: DictConfig):
             created_graph = model_pc.predict(df)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
-            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
+            wandb.run.summary["SHD PC+context"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            wandb.run.summary["SID PC+context"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["CC PC+context"] = metrics.causal_correctness(true_graph, created_graph, mec)
     
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(created_graph)
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"discovered graph": wandb.Image(plt)})
+            wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
-            '''
+
 
             # JCI
-            synth_dataset.set_random_intervention_targets()
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             jci_graph = model_jci.predict(df, jci="123", contextvars=list(range(len(variables), len(variables) + len(synth_dataset.partitions))))
-
             jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
-            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
-            wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, jci_graph)
-            wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, jci_graph, mec)
+            wandb.run.summary["SHD JCI pred"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
+            wandb.run.summary["SID JCI pred"] = cdt.metrics.SID(true_graph, jci_graph)
+            wandb.run.summary["CC JCI pred"] = metrics.causal_correctness(true_graph, jci_graph, mec)
 
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(jci_graph)
             nx.draw(jci_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
-            wandb.log({"JCI": wandb.Image(plt)})
+            wandb.log({"JCI, pred clusters": wandb.Image(plt)})
+            plt.close()
+
+            target_dataset.set_random_intervention_targets()
+            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+
+            model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
+            jci_target_graph = model_jci.predict(df_target, jci="123", contextvars=list(
+                range(len(variables), len(variables) + len(target_dataset.partitions))))
+            jci_target_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
+
+            wandb.run.summary["SHD JCI target"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
+            wandb.run.summary["SID JCI target"] = cdt.metrics.SID(true_graph, jci_target_graph)
+            wandb.run.summary["CC JCI target"] = metrics.causal_correctness(true_graph, jci_target_graph, mec)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(jci_target_graph)
+            nx.draw(jci_target_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                    edge_color=colors)
+            wandb.log({"JCI, target clusters": wandb.Image(plt)})
             plt.close()
 
 
