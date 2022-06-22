@@ -327,7 +327,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, jci_graph, mec)
 
             plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(created_graph)
+            colors = visual.get_colors(jci_graph)
             nx.draw(jci_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"JCI": wandb.Image(plt)})
