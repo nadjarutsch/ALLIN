@@ -36,6 +36,7 @@ from cdt.causality.graph.model import GraphModel
 from pandas import DataFrame, read_csv
 from cdt.utils.Settings import SETTINGS
 from cdt.utils.R import RPackages, launch_R_script
+from rpy2 import robjects
 
 
 def message_warning(msg, *a, **kwargs):
@@ -234,7 +235,7 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
       #  self.arguments['{JCI}'] = str(jci)
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else f"c({', '.join([str(c+1) for c in contextvars])})"
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else robjects.IntVector(contextvars)
 
         fe = DataFrame(nx.adj_matrix(graph, weight=None).todense())
         fg = DataFrame(1 - fe.values)
@@ -279,7 +280,7 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
         self.arguments['{JCI}'] = jci
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else f"c({', '.join([str(c+1) for c in contextvars])})"
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else robjects.IntVector(contextvars)
 
         results = self._run_fci(data, verbose=self.verbose)
 

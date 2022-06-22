@@ -315,10 +315,8 @@ def main(cfg: DictConfig):
 
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
-            contextvars = list(range(len(variables), len(variables) + len(synth_dataset.partitions)))
+            contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
             jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars, verbose=True)
-            print(f"c({', '.join([str(c+1) for c in contextvars])})")
-
             jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["SHD JCI pred"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
