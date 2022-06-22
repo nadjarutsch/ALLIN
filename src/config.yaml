@@ -4,4 +4,4 @@ int_mu: 1
 int_sigma: 0.2
 minpts: 10
 eps: 0.3
-clustering: dbscan
+clustering: kmeans

@@ -44,15 +44,15 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-# seeds = list(range(10))
-seeds = [random.randint(0, 100)]
+seeds = list(range(10))
+# seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 
 
 @hydra.main(config_path=".", config_name="config")
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='DBSCAN sweep 3', notes='', tags=['dbscan'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -109,7 +109,7 @@ def main(cfg: DictConfig):
             wandb.log({"true graph": wandb.Image(plt)})
             plt.close()
 
-            '''
+
             # get true essential graph representing the MEC
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
@@ -117,11 +117,12 @@ def main(cfg: DictConfig):
             mec = nx.relabel_nodes(mec, mapping)
             visual.set_edge_attributes(mec)
 
+
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(mec)
             nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
             wandb.log({"essential graph": wandb.Image(plt)})
-            plt.close()'''
+            plt.close()
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
@@ -164,7 +165,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
             wandb.run.summary["Target cluster SHD"] = np.mean(shds)
-            
+            '''
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -181,12 +182,6 @@ def main(cfg: DictConfig):
             nx.draw(skeleton, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"skeleton": wandb.Image(plt)})
             plt.close()
-            
-            plt.figure(figsize=(6,6))
-            colors = visual.get_colors(mec)
-            nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"true skeleton": wandb.Image(plt)})
-            plt.close()
 
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
             wandb.run.summary["PC SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
@@ -197,7 +192,7 @@ def main(cfg: DictConfig):
             
             # use true skeleton
             # adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))
-            '''
+
 
             # intervention detection (ood)
         #    print('Creating model...')
@@ -231,15 +226,15 @@ def main(cfg: DictConfig):
 
             # cluster analysis
             # (1) avg sample likelihood
-            metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
+            # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
 
             # likelihood evaluation for ground truth partitions (optimal)
             # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
 
             # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
-            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
-            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
+            # wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
+            # wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
+            # wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
             # causal discovery
             # synth_dataset.set_true_intervention_targets(true_target_indices)
@@ -318,12 +313,33 @@ def main(cfg: DictConfig):
             plt.close()
             '''
 
+            # JCI
+            synth_dataset.set_random_intervention_targets()
+            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+
+            model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
+            jci_graph = model_jci.predict(df, jci="123", contextvars=list(range(len(variables), len(variables) + len(synth_dataset.partitions))))
+
+            jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
+
+            wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
+            wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, jci_graph)
+            wandb.run.summary["CC"] = metrics.causal_correctness(true_graph, jci_graph, mec)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(created_graph)
+            nx.draw(jci_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                    edge_color=colors)
+            wandb.log({"JCI": wandb.Image(plt)})
+            plt.close()
+
+
             wandb.finish()
 
 
 
 if __name__ == '__main__':
-    # main()
-    sweep_config = yaml.safe_load(open('sweep.yaml', 'r'))
-    sweep_id = wandb.sweep(sweep_config, project="idiod")
-    wandb.agent(sweep_id, main, count=800)
+    main()
+    # sweep_config = yaml.safe_load(open('sweep.yaml', 'r'))
+    # sweep_id = wandb.sweep(sweep_config, project="idiod")
+    # wandb.agent(sweep_id, main, count=800)
