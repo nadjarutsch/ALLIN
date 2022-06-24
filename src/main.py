@@ -334,7 +334,7 @@ def main(cfg: DictConfig):
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             jci_target_graph = model_jci.predict(df_target, jci="123", contextvars=list(
                 range(len(variables), len(variables) + len(target_dataset.partitions))))
-            jci_target_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
+            jci_target_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["SHD JCI target"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
             wandb.run.summary["SID JCI target"] = cdt.metrics.SID(true_graph, jci_target_graph)
