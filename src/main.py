@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
-
+            '''
             fps = []
             fns = []
             shds = []
@@ -330,7 +330,7 @@ def main(cfg: DictConfig):
                     edge_color=colors)
             wandb.log({"JCI, pred clusters": wandb.Image(plt)})
             plt.close()
-
+            '''
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
 
