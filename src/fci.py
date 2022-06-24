@@ -236,7 +236,7 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
       #  self.arguments['{JCI}'] = str(jci)
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([var + 1 for var in contextvars]) + ')'
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([str(var + 1) for var in contextvars]) + ')'
 
         fe = DataFrame(nx.adj_matrix(graph, weight=None).todense())
         fg = DataFrame(1 - fe.values)
@@ -281,10 +281,10 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
         self.arguments['{JCI}'] = jci
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([var + 1 for var in contextvars]) + ')'
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([str(var + 1) for var in contextvars]) + ')'
 #        print(f"{robjects.IntVector(contextvars)}")
         if contextvars != "NULL":
-            print('c(' + ','.join([var + 1 for var in contextvars]) + ')')
+            print('c(' + ','.join([str(var + 1) for var in contextvars]) + ')')
         results = self._run_fci(data, verbose=self.verbose)
 
         return nx.relabel_nodes(nx.DiGraph(results),
