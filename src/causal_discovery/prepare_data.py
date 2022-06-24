@@ -29,21 +29,17 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
          df = pd.DataFrame(df_data)
          df.columns = variables
          df = (df - df.mean()) / df.std()  # normalize
-         print(target.expand(partition.features.shape[0], len(data.partitions)))
          df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions)).clone().numpy()
-         print(df)
          dfs.append(df)
     
     df = pd.concat(dfs)
     # drop data points without inferred intervention target
  #   drop_indices = ((df[cols_int] == 1).sum(axis=1) == 0).index[((df[cols_int] == 1).sum(axis=1) == 0)]
  #   df.drop(drop_indices)
-    print(df)
     # re-order dataframe columns 
     cols = variables + cols_int
     df = df[cols]    
     df = df.loc[:, (df != 0).any(axis=0)] # drop context variables that are always 0
-    print(df)
     return df
 
 

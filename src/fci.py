@@ -283,8 +283,6 @@ class FCI(GraphModel):
         self.arguments['{JCI}'] = jci
         self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([str(var + 1) for var in contextvars]) + ')'
 #        print(f"{robjects.IntVector(contextvars)}")
-        if contextvars != "NULL":
-            print('c(' + ','.join([str(var + 1) for var in contextvars]) + ')')
         results = self._run_fci(data, verbose=self.verbose)
 
         return nx.relabel_nodes(nx.DiGraph(results),

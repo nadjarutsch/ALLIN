@@ -286,7 +286,6 @@ def main(cfg: DictConfig):
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-            print(df)
             
             # logging
             # tbl = wandb.Table(dataframe=df)
