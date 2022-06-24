@@ -296,7 +296,7 @@ def main(cfg: DictConfig):
             #    skeleton.add_edge(node, node.replace("I_",""))
     
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
-            created_graph = model_pc.predict(df)
+            created_graph = model_pc.predict(df, verbose=True)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
             wandb.run.summary["SHD PC+context"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
