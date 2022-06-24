@@ -236,7 +236,7 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
       #  self.arguments['{JCI}'] = str(jci)
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else f"{robjects.IntVector(contextvars)}".replace("[1] ","")
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(5,6,7)'
 
         fe = DataFrame(nx.adj_matrix(graph, weight=None).todense())
         fg = DataFrame(1 - fe.values)
@@ -281,7 +281,7 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
         self.arguments['{JCI}'] = jci
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else f"{robjects.IntVector(contextvars)}".replace("[1] ","")
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(5,6,7)'
         print(f"{robjects.IntVector(contextvars)}")
         results = self._run_fci(data, verbose=self.verbose)
 
