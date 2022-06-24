@@ -200,9 +200,6 @@ def main(cfg: DictConfig):
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
             
-            '''# set ground truth observational and interventional partitions
-            synth_dataset.update_partitions([list(range(cfg.n_obs)), list(range(cfg.n_obs, int(cfg.n_obs + config['num_vars'] * cfg.n_obs * INT_RATIO)))])
-            '''
 
             ### CLUSTERING ###
 
