@@ -289,6 +289,7 @@ def main(cfg: DictConfig):
             # putting everything together: PC with context variables
             target_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+            print(df)
             
             # logging
             # tbl = wandb.Table(dataframe=df)
@@ -315,7 +316,7 @@ def main(cfg: DictConfig):
 
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
-            contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions) - 1)
+            contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
             jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars, verbose=True)
             jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
@@ -335,7 +336,7 @@ def main(cfg: DictConfig):
 
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             jci_target_graph = model_jci.predict(df_target, jci="123", contextvars=list(
-                range(len(variables), len(variables) + len(target_dataset.partitions) - 1)))
+                range(len(variables), len(variables) + len(target_dataset.partitions))))
             jci_target_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["SHD JCI target"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
