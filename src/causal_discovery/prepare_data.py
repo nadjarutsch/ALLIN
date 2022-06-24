@@ -36,12 +36,12 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     # drop data points without inferred intervention target
  #   drop_indices = ((df[cols_int] == 1).sum(axis=1) == 0).index[((df[cols_int] == 1).sum(axis=1) == 0)]
  #   df.drop(drop_indices)
-
+    print(df)
     # re-order dataframe columns 
     cols = variables + cols_int
     df = df[cols]    
     df = df.loc[:, (df != 0).any(axis=0)] # drop context variables that are always 0
-    
+    print(df)
     return df
 
 
