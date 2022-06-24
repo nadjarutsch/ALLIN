@@ -236,7 +236,8 @@ class FCI(GraphModel):
         self.arguments['{NJOBS}'] = str(self.njobs)
         self.arguments['{VERBOSE}'] = str(self.verbose).upper()
       #  self.arguments['{JCI}'] = str(jci)
-        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(1,2,3)'
+        self.arguments['{CONTEXTVARS}'] = contextvars if contextvars=="NULL" else 'c(' + ','.join([var + 1 for var in contextvars]) + ')'
+        print('c(' + ','.join([var + 1 for var in contextvars]) + ')')
 
         fe = DataFrame(nx.adj_matrix(graph, weight=None).todense())
         fg = DataFrame(1 - fe.values)
