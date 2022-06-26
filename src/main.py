@@ -299,7 +299,7 @@ def main(cfg: DictConfig):
             #    skeleton.add_edge(node, node.replace("I_",""))
     
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
-            created_graph = model_pc.predict(df, verbose=True)
+            created_graph = model_pc.predict(df)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
             wandb.run.summary["SHD PC+context"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
@@ -317,7 +317,7 @@ def main(cfg: DictConfig):
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
 
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
-            created_graph = model_pc.predict(df_target, verbose=True)
+            created_graph = model_pc.predict(df_target)
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["SHD PC+context target"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
@@ -335,7 +335,7 @@ def main(cfg: DictConfig):
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
-            jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars, verbose=True)
+            jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars)
             jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["SHD JCI pred"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
