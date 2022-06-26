@@ -40,6 +40,7 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     cols = variables + cols_int
     df = df[cols]    
     df = df.loc[:, (df != 0).any(axis=0)] # drop context variables that are always 0
+    df = df.loc[:, (df != 1).any(axis=0)]  # drop context variables that are always 1
     return df
 
 

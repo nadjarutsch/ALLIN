@@ -44,12 +44,12 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(3,5))
+seeds = list(range(20))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
-alpha = 0.00001
+alpha = 0.0001
 expected_N = 2
 
 # os.environ['WANDB_MODE'] = 'offline'
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='experiments last-minute everything', notes='', tags=['kmeans', 'jci', 'pc', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='extensive experiments clustering & causal discovery', notes='', tags=['kmeans', 'jci', 'pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -172,7 +172,7 @@ def main(cfg: DictConfig):
             # pc algorithm test on observational data only
             # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
             # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
             # skeleton = model_fci.create_graph_from_data(df)
             skeleton = model_pc.predict(df)
@@ -185,6 +185,8 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
             wandb.run.summary["PC SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
+            wandb.run.summary["PC SID"] = cdt.metrics.SID(skeleton, created_graph)
+            wandb.run.summary["PC CC"] = metrics.causal_correctness(skeleton, created_graph, mec)
             
             
             # use inferred skeleton
@@ -220,6 +222,7 @@ def main(cfg: DictConfig):
                 labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(synth_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
+            wandb.log({"cluster sizes": wandb.Histogram(labels)})
 
             # cluster analysis
             # (1) avg sample likelihood
@@ -288,8 +291,8 @@ def main(cfg: DictConfig):
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             
             # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"clustered data": tbl})
+            tbl = wandb.Table(dataframe=df)
+            wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
@@ -309,6 +312,25 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
 
+            # target partitions
+            target_dataset.set_random_intervention_targets()
+            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+
+            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+            created_graph = model_pc.predict(df_target, verbose=True)
+            created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
+
+            wandb.run.summary["SHD PC+context target"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            wandb.run.summary["SID PC+context target"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["CC PC+context target"] = metrics.causal_correctness(true_graph, created_graph, mec)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(created_graph)
+            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                    edge_color=colors)
+            wandb.log({"PC+context, target clusters": wandb.Image(plt)})
+            plt.close()
+
 
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
@@ -326,9 +348,6 @@ def main(cfg: DictConfig):
                     edge_color=colors)
             wandb.log({"JCI, pred clusters": wandb.Image(plt)})
             plt.close()
-
-            target_dataset.set_random_intervention_targets()
-            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
 
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             jci_target_graph = model_jci.predict(df_target, jci="123", contextvars=list(
