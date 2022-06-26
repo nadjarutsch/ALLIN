@@ -49,7 +49,7 @@ seeds = list(range(20))
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
 alpha_skeleton = 0.01
-alpha = 0.0001
+alpha = 0.00001
 expected_N = 2
 
 # os.environ['WANDB_MODE'] = 'offline'
@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
         sigma = cfg.int_sigma,
         minpts = cfg.minpts,
         eps = cfg.eps,
-        citest = 'rcot',
+        citest = 'rcit',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
