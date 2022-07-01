@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
         sigma = cfg.int_sigma,
         minpts = cfg.minpts,
         eps = cfg.eps,
-        citest = 'rcit',
+        citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
@@ -262,7 +262,7 @@ def main(cfg: DictConfig):
             for i, cluster in enumerate(synth_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
-                model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+                model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
                 created_graph = model_pc.predict(df)
 
                 plt.figure(figsize=(6, 6))
@@ -302,7 +302,7 @@ def main(cfg: DictConfig):
             #    skeleton.add_node(node)
             #    skeleton.add_edge(node, node.replace("I_",""))
     
-            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
@@ -320,7 +320,7 @@ def main(cfg: DictConfig):
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
+            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
