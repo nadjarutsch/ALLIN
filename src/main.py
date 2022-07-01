@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans + cd of full graph', notes='', tags=['kmeans', 'jci', 'pc', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans + cd on clusters', notes='', tags=['kmeans', 'pc', 'depcon'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
-            '''
+
             fps = []
             fns = []
             shds = []
@@ -201,7 +201,7 @@ def main(cfg: DictConfig):
         #    gnmodel = mmlp.GaussianNoiseModel(num_vars=dag.num_vars, hidden_dims=[])
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
-            '''
+
 
             ### CLUSTERING ###
 
@@ -255,7 +255,7 @@ def main(cfg: DictConfig):
             ### CAUSAL DISCOVERY ###
 
             # PC on each partition separately
-            '''
+
             shds = []
             fps = []
             fns = []
@@ -368,7 +368,7 @@ def main(cfg: DictConfig):
                     edge_color=colors)
             wandb.log({"JCI, target clusters": wandb.Image(plt)})
             plt.close()
-
+            '''
 
             wandb.finish()
 
