@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
-
+            '''
             fps = []
             fns = []
             shds = []
@@ -165,7 +165,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
             wandb.run.summary["Target cluster SHD"] = np.mean(shds)
-
+            
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -201,7 +201,7 @@ def main(cfg: DictConfig):
         #    gnmodel = mmlp.GaussianNoiseModel(num_vars=dag.num_vars, hidden_dims=[])
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
-            
+            '''
 
             ### CLUSTERING ###
 
@@ -255,6 +255,7 @@ def main(cfg: DictConfig):
             ### CAUSAL DISCOVERY ###
 
             # PC on each partition separately
+            '''
             shds = []
             fps = []
             fns = []
@@ -288,11 +289,11 @@ def main(cfg: DictConfig):
             for i in range(10):
                 wandb.run.summary[f"test {i}"] = i
 
-
+            '''
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-            
+            '''
             # logging
             tbl = wandb.Table(dataframe=df)
             wandb.log({"clustered data": tbl})
@@ -315,9 +316,9 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
 
-            # target partitions
+            # target partitions'''
             target_dataset.set_random_intervention_targets()
-            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)'''
 
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
@@ -332,7 +333,7 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
-            plt.close()
+            plt.close()'''
 
 
             # JCI
