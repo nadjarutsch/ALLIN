@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
         sigma = cfg.int_sigma,
         minpts = cfg.minpts,
         eps = cfg.eps,
-        citest = 'hsic_gamma',
+        citest = 'gaussian',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans', 'pc', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans cd', notes='', tags=['kmeans', 'pc', 'jci'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -134,7 +134,7 @@ def main(cfg: DictConfig):
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # PC on ground truth clusters
-            '''
+
             fps = []
             fns = []
             shds = []
@@ -202,7 +202,7 @@ def main(cfg: DictConfig):
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
 
-            '''
+
             ### CLUSTERING ###
 
             if config["clustering"] == "depcon kmeans":
@@ -240,7 +240,7 @@ def main(cfg: DictConfig):
             # synth_dataset.set_true_intervention_targets(true_target_indices)
 
             # Match clusters to intervention targets
-            '''
+
             counts = []
             int_targets = []
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
@@ -289,7 +289,7 @@ def main(cfg: DictConfig):
             for i in range(10):
                 wandb.run.summary[f"test {i}"] = i
 
-            '''
+
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
