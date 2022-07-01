@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
         sigma = cfg.int_sigma,
         minpts = cfg.minpts,
         eps = cfg.eps,
-        citest = 'gaussian',
+        citest = 'rcit',
         alpha_skeleton = alpha_skeleton,
         alpha = alpha,
         num_clus = NUM_VARS + 1,
