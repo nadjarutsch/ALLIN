@@ -318,8 +318,8 @@ def main(cfg: DictConfig):
 
             # target partitions'''
             target_dataset.set_random_intervention_targets()
-            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)'''
-
+            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+            '''
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
