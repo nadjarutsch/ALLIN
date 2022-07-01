@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='depcon kmeans cd', notes='', tags=['kmeans', 'pc', 'jci', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans cd', notes='', tags=['kmeans', 'pc', 'jci'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -236,8 +236,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            # causal discovery
-            # synth_dataset.set_true_intervention_targets(true_target_indices)
+
 
             # Match clusters to intervention targets
 
@@ -285,9 +284,6 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FP pred clusters"] = np.mean(fps)
             wandb.run.summary["Avg FN pred clusters"] = np.mean(fns)
             wandb.run.summary["Cluster SHD"] = np.mean(shds)
-
-            for i in range(10):
-                wandb.run.summary[f"test {i}"] = i
 
 
             # putting everything together: PC with context variables
