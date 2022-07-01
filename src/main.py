@@ -285,6 +285,9 @@ def main(cfg: DictConfig):
             wandb.run.summary["Avg FN pred clusters"] = np.mean(fns)
             wandb.run.summary["Cluster SHD"] = np.mean(shds)
 
+            for i in range(10):
+                wandb.run.summary[f"test {i}"] = i
+
 
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
