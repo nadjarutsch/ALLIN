@@ -44,7 +44,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(20))
+seeds = list(range(30))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='debug', notes='', tags=['kmeans', 'jci', 'pc', 'depcon'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans + cd of full graph', notes='', tags=['kmeans', 'jci', 'pc'], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -293,10 +293,10 @@ def main(cfg: DictConfig):
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-            '''
+
             # logging
-            tbl = wandb.Table(dataframe=df)
-            wandb.log({"clustered data": tbl})
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
@@ -316,10 +316,10 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
 
-            # target partitions'''
+            # target partitions
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
-            '''
+
             model_pc = cdt.causality.graph.PC(CItest="rcot", alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
@@ -333,7 +333,7 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
-            plt.close()'''
+            plt.close()
 
 
             # JCI
