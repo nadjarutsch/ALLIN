@@ -1,7 +1,7 @@
 expected_N: 2
-n_obs: 1000
+n_obs: 6000
 int_mu: 1
 int_sigma: 0.2
 minpts: 10
 eps: 0.3
-clustering: depcon kmeans
+clustering: kmeans
