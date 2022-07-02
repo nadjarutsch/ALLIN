@@ -186,8 +186,8 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["PC: SHD to MEC"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
             wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
-            wandb.run.summary["PC: SID"] = cdt.metrics.SID(skeleton, created_graph)
-            wandb.run.summary["PC: CC"] = metrics.causal_correctness(skeleton, created_graph, mec)
+            wandb.run.summary["PC: SID"] = cdt.metrics.SID(skeleton, true_graph)
+            wandb.run.summary["PC: CC"] = metrics.causal_correctness(skeleton, true_graph, mec)
             
             
             # use inferred skeleton
