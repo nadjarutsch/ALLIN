@@ -27,9 +27,9 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     #    dfs.append(rename_df_cols(df, variables))
          df_data = partition.features[...,:-1].clone().numpy()
          df = pd.DataFrame(df_data)
+         df = (df - df.mean()) / df.std()  # normalize
          df.columns = variables
          df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions)).clone().numpy()
-         df = (df - df.mean()) / df.std()  # normalize
          dfs.append(df)
     
     df = pd.concat(dfs)
@@ -40,7 +40,7 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
     cols = variables + cols_int
     df = df[cols]    
     df = df.loc[:, (df != 0).any(axis=0)] # drop context variables that are always 0
-    df = df.loc[:, (df != 1).any(axis=0)]  # drop context variables that are always 1
+    df = df.loc[:, (df != 1).any(axis=0)] # drop context variables that are always 1
     return df
 
 
