@@ -163,9 +163,9 @@ def main(cfg: DictConfig):
                 fns.append(metrics.fn(created_graph, mec))
                 shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
 
-            wandb.run.summary["Avg FP target clusters"] = np.mean(fps)
-            wandb.run.summary["Avg FN target clusters"] = np.mean(fns)
-            wandb.run.summary["Target cluster SHD"] = np.mean(shds)
+            wandb.run.summary["Target clusters: avg FP"] = np.mean(fps)
+            wandb.run.summary["Target clusters: avg FN"] = np.mean(fns)
+            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)
             
 
             # initial causal discovery (skeleton)
@@ -184,10 +184,10 @@ def main(cfg: DictConfig):
             wandb.log({"skeleton": wandb.Image(plt)})
             plt.close()
 
-            wandb.run.summary["skeleton SHD"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
-            wandb.run.summary["PC SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
-            wandb.run.summary["PC SID"] = cdt.metrics.SID(skeleton, created_graph)
-            wandb.run.summary["PC CC"] = metrics.causal_correctness(skeleton, created_graph, mec)
+            wandb.run.summary["PC: SHD to MEC"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
+            wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
+            wandb.run.summary["PC: SID"] = cdt.metrics.SID(skeleton, created_graph)
+            wandb.run.summary["PC: CC"] = metrics.causal_correctness(skeleton, created_graph, mec)
             
             
             # use inferred skeleton
@@ -282,9 +282,9 @@ def main(cfg: DictConfig):
                 fns.append(metrics.fn(created_graph, mec))
                 shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
 
-            wandb.run.summary["Avg FP pred clusters"] = np.mean(fps)
-            wandb.run.summary["Avg FN pred clusters"] = np.mean(fns)
-            wandb.run.summary["Cluster SHD"] = np.mean(shds)
+            wandb.run.summary["Pred clusters: avg FP"] = np.mean(fps)
+            wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
+            wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
 
 
             # putting everything together: PC with context variables
@@ -303,9 +303,9 @@ def main(cfg: DictConfig):
             created_graph = model_pc.predict(df)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
             
-            wandb.run.summary["SHD PC+context"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            wandb.run.summary["SID PC+context"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["CC PC+context"] = metrics.causal_correctness(true_graph, created_graph, mec)
+            wandb.run.summary["PC+context: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            wandb.run.summary["PC+context: SID"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["PC+context: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
     
             plt.figure(figsize=(6,6))
             colors = visual.get_colors(created_graph)
@@ -321,9 +321,9 @@ def main(cfg: DictConfig):
             created_graph = model_pc.predict(df_target)
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
-            wandb.run.summary["SHD PC+context target"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            wandb.run.summary["SID PC+context target"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["CC PC+context target"] = metrics.causal_correctness(true_graph, created_graph, mec)
+            wandb.run.summary["PC+context target: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
+            wandb.run.summary["PC+context target: SID"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["PC+context target: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
 
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(created_graph)
@@ -339,9 +339,9 @@ def main(cfg: DictConfig):
             jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars)
             jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
-            wandb.run.summary["SHD JCI pred"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
-            wandb.run.summary["SID JCI pred"] = cdt.metrics.SID(true_graph, jci_graph)
-            wandb.run.summary["CC JCI pred"] = metrics.causal_correctness(true_graph, jci_graph, mec)
+            wandb.run.summary["JCI pred: SHD"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
+            wandb.run.summary["JCI pred: SID"] = cdt.metrics.SID(true_graph, jci_graph)
+            wandb.run.summary["JCI pred: CC"] = metrics.causal_correctness(true_graph, jci_graph, mec)
 
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(jci_graph)
@@ -355,9 +355,9 @@ def main(cfg: DictConfig):
                 range(len(variables), len(variables) + len(target_dataset.partitions))))
             jci_target_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
-            wandb.run.summary["SHD JCI target"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
-            wandb.run.summary["SID JCI target"] = cdt.metrics.SID(true_graph, jci_target_graph)
-            wandb.run.summary["CC JCI target"] = metrics.causal_correctness(true_graph, jci_target_graph, mec)
+            wandb.run.summary["JCI target: SHD"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
+            wandb.run.summary["JCI target: SID"] = cdt.metrics.SID(true_graph, jci_target_graph)
+            wandb.run.summary["JCI target: CC"] = metrics.causal_correctness(true_graph, jci_target_graph, mec)
 
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(jci_target_graph)
