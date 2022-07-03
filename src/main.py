@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group='kmeans cd on obs', notes='', tags=['kmeans', 'pc', 'jci'], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group=cfg.group, notes='', tags=[], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
@@ -126,7 +126,7 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
             
-            # synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
+            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
 
 
 
