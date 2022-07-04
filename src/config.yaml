@@ -1,4 +1,4 @@
-c: kmeans_cd_on_obs
+c: kmeans_cd
 expected_N: 2
 int_mu: 1
 int_sigma: 0.2
