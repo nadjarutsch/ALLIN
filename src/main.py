@@ -60,7 +60,7 @@ def main(cfg: DictConfig):
     
     # wandb config for logging
     config = dict(
-        n_obs = cfg.n_obs,
+        n_obs = cfg.c.n_obs,
         int_ratio = INT_RATIO,
         batch_size = BATCH_SIZE,
         lr = lr,
@@ -81,7 +81,7 @@ def main(cfg: DictConfig):
         num_clus = NUM_VARS + 1,
         int_mu = cfg.int_mu,
         int_sigma = cfg.int_sigma,
-        clustering = cfg.clustering
+        clustering = cfg.c.clustering
     )
     
     
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
     
     for seed in seeds:
         config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group=cfg.group, notes='', tags=[], config=config, reinit=True)
+        run = wandb.init(project="idiod", entity="nadjarutsch", group=cfg.c.group, notes='', tags=[], config=config, reinit=True)
         with run:
             # generate data
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])

@@ -1,6 +1,5 @@
 defaults:
-  - kmeans_cd_on_obs
-  - _self_
+  - c: kmeans_cd_on_obs
 
 expected_N: 2
 int_mu: 1
