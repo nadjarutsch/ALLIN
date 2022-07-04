@@ -57,7 +57,7 @@ expected_N = 2
 
 @hydra.main(config_path=".", config_name="config")
 def main(cfg: DictConfig):
-    
+    print(cfg.c)
     # wandb config for logging
     config = dict(
         n_obs = cfg.c.n_obs,
