@@ -1,4 +1,6 @@
-c: kmeans_cd
+defaults:
+  - kmeans_cd
+
 expected_N: 2
 int_mu: 1
 int_sigma: 0.2
