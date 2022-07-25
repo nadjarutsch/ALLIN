@@ -170,6 +170,7 @@ def main(cfg: DictConfig):
             for i, cluster in enumerate(target_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
+                print(df)
 
                 model_pc = cdt.causality.graph.PC(CItest="gaussian", alpha=config["alpha"])
                 created_graph = model_pc.predict(df)

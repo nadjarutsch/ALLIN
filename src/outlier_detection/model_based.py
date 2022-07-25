@@ -32,7 +32,7 @@ def fit(dataset, model, loss_module, optimizer, fit_epochs, batch_size, adj_matr
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, drop_last=True)
     
     t = tqdm(range(fit_epochs))
-    for i in t:
+    for _ in t:
         for x, idx in iter(dataloader):
             preds = model(x, adj_matrix)
             optimizer.zero_grad()
