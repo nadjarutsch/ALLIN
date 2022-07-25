@@ -148,7 +148,7 @@ def main(cfg: DictConfig):
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1))
-            cond_targets = [0 if label in root_vars else label for label in synth_dataset.targets]
+            cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
             print(set(cond_targets))
             synth_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
