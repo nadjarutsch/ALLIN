@@ -33,6 +33,7 @@ from sklearn.cluster import DBSCAN
 from itertools import product
 import random
 import yaml
+from clustering.dbscan_hparam import get_eps
 
 
 
@@ -44,7 +45,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(17,30))
+seeds = list(range(1))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -52,7 +53,7 @@ alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 
 
 @hydra.main(config_path=".", config_name="config")
@@ -128,22 +129,46 @@ def main(cfg: DictConfig):
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
 
 
+            # get_eps(10, synth_dataset.features)
+            # get_eps(50, synth_dataset.features)
+            # get_eps(500, synth_dataset.features)
+
+            ### FEATURE TRANSFORMATION ###
+
+            gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
+            optimizer = torch.optim.Adam(gnmodel.parameters(), lr=config["lr"])
+            loss = mmlp.nll
+            fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
+            fit_adj_matrix.fill_diagonal_(0)
+
+            ood.fit(synth_dataset.partitions[0], gnmodel, loss, optimizer, config["fit_epochs"], config["batch_size"], fit_adj_matrix)
+            preds = gnmodel(synth_dataset.features, fit_adj_matrix)
+            losses = loss(preds, synth_dataset.features)
+
+            true_adj_matrix = nx.to_numpy_array(true_graph)
+            root_vars = torch.nonzero(torch.all(~true_adj_matrix.bool(), dim=1))
+            cond_targets = [0 if label in root_vars else label for label in synth_dataset.targets]
+            print(set(cond_targets))
+            synth_dataset = data.PartitionData(features=losses, targets=cond_targets)
+
+            ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
 
             # correct partitions
-            target_dataset = data.PartitionData(features=synth_dataset.features[...,:-1], targets=synth_dataset.targets)
+            target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
+                                                targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # what happens if all data comes from the same (observational) distribution?
             # synth_dataset = obs_dataset
 
-            # PC on ground truth clusters
 
+            # PC on ground truth clusters
             fps = []
             fns = []
             shds = []
             for i, cluster in enumerate(target_dataset.partitions):
-                cluster_dataset = data.PartitionData(features=cluster.features[...,:-1])
+                cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
 
                 model_pc = cdt.causality.graph.PC(CItest="gaussian", alpha=config["alpha"])
@@ -159,7 +184,7 @@ def main(cfg: DictConfig):
                 # true graph of the matched interventional distribution
                 int_adj_matrix = nx.to_numpy_array(true_graph)
                 if i > 0:
-                    int_adj_matrix[:, i-1] = 0
+                    int_adj_matrix[:, i - 1] = 0
                 true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
                 true_int_graph = nx.relabel_nodes(true_int_graph, mapping)
 
@@ -171,7 +196,6 @@ def main(cfg: DictConfig):
             wandb.run.summary["Target clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Target clusters: SHD"] = np.mean(shds)
 
-            
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -217,7 +241,7 @@ def main(cfg: DictConfig):
 
             elif config["clustering"] == "kmeans":
                 # normal K-means
-                labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='k-means++', n_clusters=config['num_clus'])
+                labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='k-means++', n_clusters=len(set(synth_dataset.targets))) # TODO: number of clusters automatically
 
             elif config["clustering"] == "dbscan":
                 # DBSCAN clustering
@@ -339,7 +363,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
             plt.close()
 
-
+            '''
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
@@ -374,7 +398,7 @@ def main(cfg: DictConfig):
             wandb.log({"JCI, target clusters": wandb.Image(plt)})
             plt.close()
 
-
+            '''
             wandb.finish()
 
 

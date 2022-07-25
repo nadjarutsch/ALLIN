@@ -36,8 +36,6 @@ from cdt.causality.graph.model import GraphModel
 from pandas import DataFrame, read_csv
 from cdt.utils.Settings import SETTINGS
 from cdt.utils.R import RPackages, launch_R_script
-import rpy2
-import rpy2.robjects as robjects
 
 
 def message_warning(msg, *a, **kwargs):
