@@ -53,7 +53,7 @@ alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 
 
 @hydra.main(config_path=".", config_name="config")
@@ -144,6 +144,7 @@ def main(cfg: DictConfig):
             ood.fit(synth_dataset.partitions[0], gnmodel, loss, optimizer, config["fit_epochs"], config["batch_size"], fit_adj_matrix)
             preds = gnmodel(synth_dataset.features[..., :-1], fit_adj_matrix)
             losses = loss(preds, synth_dataset.features[..., :-1]).detach()
+            print(losses.shape)
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1))
