@@ -168,10 +168,9 @@ def main(cfg: DictConfig):
             fps = []
             fns = []
             shds = []
-            for i, cluster in enumerate(target_dataset.partitions):
+            for i, cluster in zip(set(target_dataset.targets), target_dataset.partitions):
                 cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
                 df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
-                print(df)
 
                 model_pc = cdt.causality.graph.PC(CItest="gaussian", alpha=config["alpha"])
                 created_graph = model_pc.predict(df)
@@ -280,7 +279,7 @@ def main(cfg: DictConfig):
                 count = len(set(cluster.features[..., -1].tolist()) & set(target.features[..., -1].tolist()))
                 counts.append(count)
                 if len(counts) == len(target_dataset.partitions):
-                    int_targets.append(np.argmax(counts))
+                    int_targets.append(list(set(cond_targets))[np.argmax(counts)])
                     counts = []
 
 
