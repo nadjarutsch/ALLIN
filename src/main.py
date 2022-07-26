@@ -45,7 +45,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(1))
+seeds = list(range(50))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -147,10 +147,7 @@ def main(cfg: DictConfig):
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=0))
-            print('root_vars', root_vars)
             cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
-            wandb.run.summary["root_vars"] = str(root_vars)
-            wandb.run.summary["cluster labels"] = str(set(cond_targets))
             clustering_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
