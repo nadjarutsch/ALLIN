@@ -149,7 +149,7 @@ def main(cfg: DictConfig):
             true_adj_matrix = nx.to_numpy_array(true_graph)
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1))
             cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
-            print(set(cond_targets))
+            wandb.run.summary["root_vars"] = root_vars
             synth_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
@@ -323,8 +323,8 @@ def main(cfg: DictConfig):
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
 
             # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"clustered data": tbl})
+            tbl = wandb.Table(dataframe=df)
+            wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
@@ -348,6 +348,9 @@ def main(cfg: DictConfig):
             # target partitions
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+
+            tbl = wandb.Table(dataframe=df_target)
+            wandb.log({"clustered data (target)": tbl})
 
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
