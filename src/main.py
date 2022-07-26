@@ -146,10 +146,8 @@ def main(cfg: DictConfig):
             losses = loss(preds, synth_dataset.features[..., :-1]).detach()
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
-            print('true adj matrix', true_adj_matrix)
-            print('inverse', ~torch.from_numpy(true_adj_matrix).bool())
-            print('root_vars', torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1)))
-            root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1))
+            root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=0))
+            print('root_vars', root_vars)
             cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
             wandb.run.summary["root_vars"] = str(root_vars)
             wandb.run.summary["cluster labels"] = str(set(cond_targets))
