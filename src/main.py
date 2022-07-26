@@ -45,7 +45,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 4
-seeds = list(range(5))
+seeds = list(range(1))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -53,7 +53,7 @@ alpha_skeleton = 0.01
 alpha = 0.00001
 expected_N = 2
 
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 
 
 @hydra.main(config_path=".", config_name="config")
@@ -147,9 +147,12 @@ def main(cfg: DictConfig):
             print(losses.shape)
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
+            print('true adj matrix', true_adj_matrix)
+            print('inverse', ~torch.from_numpy(true_adj_matrix).bool())
+            print('root_vars', torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1)))
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=1))
             cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
-            wandb.run.summary["root_vars"] = root_vars
+            wandb.run.summary["root_vars"] = str(root_vars)
             synth_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
