@@ -151,13 +151,13 @@ def main(cfg: DictConfig):
             cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
             wandb.run.summary["root_vars"] = str(root_vars)
             wandb.run.summary["cluster labels"] = str(set(cond_targets))
-            synth_dataset = data.PartitionData(features=losses, targets=cond_targets)
+            clustering_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
 
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
-                                                targets=synth_dataset.targets)
+                                                targets=cond_targets)
             target_dataset.update_partitions(target_dataset.targets)
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
@@ -239,11 +239,11 @@ def main(cfg: DictConfig):
 
             if config["clustering"] == "depcon kmeans":
                 # kernel K-means
-                labels = depcon.kernel_k_means(synth_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
+                labels = depcon.kernel_k_means(clustering_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
 
             elif config["clustering"] == "kmeans":
                 # normal K-means
-                labels = kmeans.kmeans(synth_dataset.features[...,:-1], init='k-means++', n_clusters=len(set(synth_dataset.targets))) # TODO: number of clusters automatically
+                labels = kmeans.kmeans(clustering_dataset.features[...,:-1], init='k-means++', n_clusters=len(set(synth_dataset.targets))) # TODO: number of clusters automatically
 
             elif config["clustering"] == "dbscan":
                 # DBSCAN clustering
@@ -251,7 +251,7 @@ def main(cfg: DictConfig):
               #  distance_matrix = torch.arccos(kappa).cpu().detach()
               #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
               #  synth_dataset.update_partitions(partitions)
-                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(synth_dataset.features[...,:-1]).labels_
+                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
