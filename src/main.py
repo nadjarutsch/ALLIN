@@ -179,7 +179,7 @@ def main(cfg: DictConfig):
             fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
             fit_adj_matrix.fill_diagonal_(0)
 
-            partitions = ood.cluster(synth_dataset.partitions[0],
+            partitions = ood.cluster(synth_dataset,
                                      gnmodel,
                                      loss,
                                      optimizer,

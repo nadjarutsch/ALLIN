@@ -115,8 +115,15 @@ def move_datapoints(dataset,
     for idx in move_indices:
         partitions[dest_idx].append(idx)
         partitions[src_idx].remove(idx)
-    
-    dataset.update_partitions(partitions)
+
+    labels = []
+    for idx, _ in dataset.features:
+        if idx in partitions[0]:
+            labels.append(0)
+        else:
+            labels.append(1)
+
+    dataset.update_partitions(labels)
 
     return partitions
 
