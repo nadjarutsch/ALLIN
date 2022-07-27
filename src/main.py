@@ -338,7 +338,7 @@ def main(cfg: DictConfig):
                 count = len(set(cluster.features[..., -1].tolist()) & set(target.features[..., -1].tolist()))
                 counts.append(count)
                 if len(counts) == len(target_dataset.partitions):
-                    int_targets.append(list(set(cond_targets))[np.argmax(counts)])
+                    int_targets.append(list(set(synth_dataset.targets))[np.argmax(counts)])
                     counts = []
 
 
