@@ -66,7 +66,7 @@ def main(cfg: DictConfig):
         lr = lr,
         epochs = epochs,
         fit_epochs = fit_epochs,
-        threshold = f'{stds} stds',
+        threshold = stds,
         num_vars = NUM_VARS,
         graph_structure = 'random',
         edge_prob = cfg.expected_N / NUM_VARS,
@@ -81,7 +81,8 @@ def main(cfg: DictConfig):
         num_clus = NUM_VARS + 1,
         int_mu = cfg.int_mu,
         int_sigma = cfg.int_sigma,
-        clustering = cfg.clustering
+        clustering = cfg.clustering,
+        n_int_targets = NUM_VARS
     )
     
     
@@ -97,9 +98,13 @@ def main(cfg: DictConfig):
         config['seed'] = seed
         run = wandb.init(project="idiod", entity="nadjarutsch", group=cfg.group, notes='', tags=[], config=config, reinit=True)
         with run:
-            # generate data
+
+            ### DATA GENERATION ###
+
+            # generate graph
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
             variables = [v.name for v in dag.variables]
+            wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
 
             # plot the true underlying causal graph
             true_graph = dag.nx_graph
@@ -109,31 +114,64 @@ def main(cfg: DictConfig):
             wandb.log({"true graph": wandb.Image(plt)})
             plt.close()
 
-
             # get true essential graph representing the MEC
             adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
             mapping = dict(zip(range(len(var_lst)), var_lst))
             mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
             mec = nx.relabel_nodes(mec, mapping)
             visual.set_edge_attributes(mec)
-
-
+            # logging
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(mec)
             nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
             wandb.log({"essential graph": wandb.Image(plt)})
             plt.close()
 
-            wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
-            
+            # generate data
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
-
 
             # get_eps(10, synth_dataset.features)
             # get_eps(50, synth_dataset.features)
             # get_eps(500, synth_dataset.features)
 
-            ### FEATURE TRANSFORMATION ###
+            ''''### ORACLE PC+CONTEXT ###
+
+            # create the PC+context graph
+            pc_context_graph = true_graph.copy()
+
+            context_vars = []
+            for var in random.sample(variables, config["n_int_targets"]):
+                pc_context_graph.add_node(f'I_{var}')
+                pc_context_graph.add_edge(f'I_{var}', var)
+                context_vars.append(f'I_{var}')
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(pc_context_graph)
+            nx.draw(pc_context_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
+            wandb.log({"PC+context graph": wandb.Image(plt)})
+            plt.close()
+
+            # get essential graph of the PC+context graph
+            adj_matrix, var_lst = causaldag.DAG.from_nx(pc_context_graph).cpdag().to_amat()
+            mapping = dict(zip(range(len(var_lst)), var_lst))
+            pc_context_mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
+            pc_context_mec = nx.relabel_nodes(pc_context_mec, mapping)
+            visual.set_edge_attributes(pc_context_mec)
+            # logging
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(pc_context_mec)
+            nx.draw(pc_context_mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
+            wandb.log({"Oracle PC+context MEC": wandb.Image(plt)})
+            plt.close()
+
+            # remove context variables and compute metrics
+            pc_context_mec.remove_nodes_from(context_vars)
+            wandb.run.summary["Oracle PC+context: SHD"] = cdt.metrics.SHD(true_graph, pc_context_mec,
+                                                                   double_for_anticausal=False)
+            wandb.run.summary["Oracle PC+context: SID"] = cdt.metrics.SID(true_graph, pc_context_mec)
+            wandb.run.summary["Oracle PC+context: CC"] = metrics.causal_correctness(true_graph, pc_context_mec, mec)
+
+            '''### FEATURE TRANSFORMATION ###
 
             gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
             optimizer = torch.optim.Adam(gnmodel.parameters(), lr=config["lr"])
@@ -141,13 +179,24 @@ def main(cfg: DictConfig):
             fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
             fit_adj_matrix.fill_diagonal_(0)
 
-            ood.fit(synth_dataset.partitions[0], gnmodel, loss, optimizer, config["fit_epochs"], config["batch_size"], fit_adj_matrix)
+            partitions = ood.cluster(synth_dataset.partitions[0],
+                                     gnmodel,
+                                     loss_module,
+                                     optimizer,
+                                     config["epochs"],
+                                     config["fit_epochs"],
+                                     fit_adj_matrix,
+                                     config["threshold"])
+            #ood.fit(synth_dataset.partitions[0], gnmodel, loss, optimizer, config["fit_epochs"], config["batch_size"], fit_adj_matrix)
+            for part in partitions:
+                print(len(part))
+
             preds = gnmodel(synth_dataset.features[..., :-1], fit_adj_matrix)
             losses = loss(preds, synth_dataset.features[..., :-1]).detach()
 
             true_adj_matrix = nx.to_numpy_array(true_graph)
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=0))
-            cond_targets = [0 if label-1 in root_vars else label for label in synth_dataset.targets]
+            cond_targets = [0 if label - 1 in root_vars else label for label in synth_dataset.targets]
             clustering_dataset = data.PartitionData(features=losses, targets=cond_targets)
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
