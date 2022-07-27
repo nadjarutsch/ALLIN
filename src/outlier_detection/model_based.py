@@ -103,12 +103,12 @@ def move_datapoints(dataset,
         indices = condition_fn(indices=indices, distances=torch.abs(features-mean), thresholds=stds*std)
         move_indices.extend(indices)
         n_outliers = len(move_indices)
-        if n_outliers > 0:
-            n_correct = len(set(move_indices).intersection(dataset.targets[dest_idx]))
-            precision =  n_correct / n_outliers 
-        else:
-            n_correct = 0
-            precision = 'None'
+       # if n_outliers > 0:
+       #     n_correct = len(set(move_indices).intersection(dataset.targets[dest_idx]))
+       #     precision =  n_correct / n_outliers
+       # else:
+       #     n_correct = 0
+       #     precision = 'None'
 
         t.set_description('Moving %i data points from partition %i to %i... Precision: %s' % (len(move_indices), src_idx, dest_idx, precision))
     
