@@ -31,9 +31,11 @@ from fci import FCI
 import sklearn
 from sklearn.cluster import DBSCAN
 from itertools import product
+from itertools import combinations
 import random
 import yaml
 # from clustering.dbscan_hparam import get_eps
+import hdbscan
 
 
 
@@ -134,7 +136,7 @@ def main(cfg: DictConfig):
             # get_eps(50, synth_dataset.features)
             # get_eps(500, synth_dataset.features)
 
-            ''''### ORACLE PC+CONTEXT ###
+            '''### ORACLE PC+CONTEXT ###
 
             # create the PC+context graph
             pc_context_graph = true_graph.copy()
@@ -144,6 +146,10 @@ def main(cfg: DictConfig):
                 pc_context_graph.add_node(f'I_{var}')
                 pc_context_graph.add_edge(f'I_{var}', var)
                 context_vars.append(f'I_{var}')
+
+            pc_context_graph.add_node('conf')
+            for var in context_vars:
+                pc_context_graph.add_edge('conf', var)
 
             plt.figure(figsize=(6, 6))
             colors = visual.get_colors(pc_context_graph)
@@ -165,7 +171,7 @@ def main(cfg: DictConfig):
             plt.close()
 
             # remove context variables and compute metrics
-            pc_context_mec.remove_nodes_from(context_vars)
+            pc_context_mec.remove_nodes_from(context_vars + ['conf'])
             wandb.run.summary["Oracle PC+context: SHD"] = cdt.metrics.SHD(true_graph, pc_context_mec,
                                                                    double_for_anticausal=False)
             wandb.run.summary["Oracle PC+context: SID"] = cdt.metrics.SID(true_graph, pc_context_mec)
@@ -173,7 +179,7 @@ def main(cfg: DictConfig):
 
             '''### FEATURE TRANSFORMATION ###
 
-            gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
+            '''gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
             optimizer = torch.optim.Adam(gnmodel.parameters(), lr=config["lr"])
             loss = mmlp.nll
             fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
@@ -198,12 +204,14 @@ def main(cfg: DictConfig):
             root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=0))
             cond_targets = [0 if label - 1 in root_vars else label for label in synth_dataset.targets]
             clustering_dataset = data.PartitionData(features=losses, targets=cond_targets)
+            '''
+            clustering_dataset = synth_dataset
 
             ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
 
             # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
-                                                targets=cond_targets)
+                                                targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
             # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
@@ -298,6 +306,10 @@ def main(cfg: DictConfig):
               #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
               #  synth_dataset.update_partitions(partitions)
                 labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
+
+            elif config["clusgering"] == "hdbscan":
+                # HDBSCAN*
+                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
