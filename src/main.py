@@ -181,7 +181,7 @@ def main(cfg: DictConfig):
 
             partitions = ood.cluster(synth_dataset.partitions[0],
                                      gnmodel,
-                                     loss_module,
+                                     loss,
                                      optimizer,
                                      config["epochs"],
                                      config["fit_epochs"],
