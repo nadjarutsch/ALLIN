@@ -110,8 +110,10 @@ def move_datapoints(dataset,
        #     n_correct = 0
        #     precision = 'None'
 
-        t.set_description('Moving %i data points from partition %i to %i... Precision: %s' % (len(move_indices), src_idx, dest_idx, precision))
-    
+        # t.set_description('Moving %i data points from partition %i to %i... Precision: %s' % (len(move_indices), src_idx, dest_idx, precision))
+        t.set_description('Moving %i data points from partition %i to %i...' % (len(move_indices), src_idx, dest_idx))
+
+
     for idx in move_indices:
         partitions[dest_idx].append(idx)
         partitions[src_idx].remove(idx)
