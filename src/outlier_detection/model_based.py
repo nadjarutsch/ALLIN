@@ -119,7 +119,7 @@ def move_datapoints(dataset,
         partitions[src_idx].remove(idx)
 
     labels = []
-    for idx, _ in dataset.features:
+    for idx in range(len(dataset.features)):
         if idx in partitions[0]:
             labels.append(0)
         else:
