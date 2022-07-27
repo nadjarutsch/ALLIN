@@ -307,7 +307,7 @@ def main(cfg: DictConfig):
               #  synth_dataset.update_partitions(partitions)
                 labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
 
-            elif config["clusgering"] == "hdbscan":
+            elif config["clustering"] == "hdbscan":
                 # HDBSCAN*
                 labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
 
