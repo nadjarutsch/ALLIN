@@ -1,3 +1,4 @@
 clustering: kmeans
-group: kmeans cd cond w mlp-clustering
+group: pc+context oracle confounder
 n_obs: 1000
+cluster_metric: euclidean

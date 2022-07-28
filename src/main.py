@@ -136,8 +136,8 @@ def main(cfg: DictConfig):
             # get_eps(10, synth_dataset.features)
             # get_eps(50, synth_dataset.features)
             # get_eps(500, synth_dataset.features)
-
-            '''### ORACLE PC+CONTEXT ###
+            '''
+            ### ORACLE PC+CONTEXT ###
 
             # create the PC+context graph
             pc_context_graph = true_graph.copy()
@@ -178,9 +178,9 @@ def main(cfg: DictConfig):
             wandb.run.summary["Oracle PC+context: SID"] = cdt.metrics.SID(true_graph, pc_context_mec)
             wandb.run.summary["Oracle PC+context: CC"] = metrics.causal_correctness(true_graph, pc_context_mec, mec)
 
-            '''### FEATURE TRANSFORMATION ###
+            ### FEATURE TRANSFORMATION ###
 
-            '''gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
+            gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
             optimizer = torch.optim.Adam(gnmodel.parameters(), lr=config["lr"])
             loss = mmlp.nll
             fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
@@ -220,7 +220,8 @@ def main(cfg: DictConfig):
             # synth_dataset = obs_dataset
             # clustering_dataset = obs_dataset # TODO: redundant, make nice
 
-            '''# PC on ground truth clusters
+            '''
+            # PC on ground truth clusters
             fps = []
             fns = []
             shds = []
@@ -251,8 +252,8 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["Target clusters: avg FP"] = np.mean(fps)
             wandb.run.summary["Target clusters: avg FN"] = np.mean(fns)
-            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)'''
-
+            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)
+            '''
 
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -310,11 +311,11 @@ def main(cfg: DictConfig):
 
             elif config["clustering"] == "hdbscan":
                 # HDBSCAN*
-                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"]).fit(clustering_dataset.features[...,:-1]).labels_
+                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"], metric_params={'V': torch.cov(clustering_dataset.features[...,:-1])}).fit(clustering_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
-
+            '''
             # cluster analysis
             # (1) avg sample likelihood
             # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
@@ -327,7 +328,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            '''
+            
             # Match clusters to intervention targets
 
             counts = []
@@ -339,10 +340,10 @@ def main(cfg: DictConfig):
                 if len(counts) == len(target_dataset.partitions):
                     int_targets.append(list(set(synth_dataset.targets))[np.argmax(counts)])
                     counts = []
-            '''
+            
 
             ### CAUSAL DISCOVERY ###
-            '''
+            
             # PC on each partition separately
 
             shds = []
