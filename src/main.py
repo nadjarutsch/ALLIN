@@ -315,7 +315,7 @@ def main(cfg: DictConfig):
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
-            '''
+
             # cluster analysis
             # (1) avg sample likelihood
             # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
@@ -328,7 +328,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            
+            '''
             # Match clusters to intervention targets
 
             counts = []
