@@ -391,7 +391,8 @@ def main(cfg: DictConfig):
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df)
             created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
-            
+
+            wandb.run.summary["PC+context: SHD to MEC"] = cdt.metrics.SHD(mec, created_graph, double_for_anticausal=False)
             wandb.run.summary["PC+context: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
             wandb.run.summary["PC+context: SID"] = cdt.metrics.SID(true_graph, created_graph)
             wandb.run.summary["PC+context: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
