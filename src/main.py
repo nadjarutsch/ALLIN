@@ -213,13 +213,12 @@ def main(cfg: DictConfig):
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
                                                 targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
+            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # what happens if all data comes from the same (observational) distribution?
-            # synth_dataset = obs_dataset
+            synth_dataset = obs_dataset
 
-
-            # PC on ground truth clusters
+            '''# PC on ground truth clusters
             fps = []
             fns = []
             shds = []
@@ -250,7 +249,7 @@ def main(cfg: DictConfig):
 
             wandb.run.summary["Target clusters: avg FP"] = np.mean(fps)
             wandb.run.summary["Target clusters: avg FN"] = np.mean(fns)
-            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)
+            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)'''
 
 
             # initial causal discovery (skeleton)
@@ -314,7 +313,7 @@ def main(cfg: DictConfig):
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
 
-
+            '''
             # cluster analysis
             # (1) avg sample likelihood
             # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
@@ -326,7 +325,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-
+            
 
 
             # Match clusters to intervention targets
@@ -340,10 +339,10 @@ def main(cfg: DictConfig):
                 if len(counts) == len(target_dataset.partitions):
                     int_targets.append(list(set(synth_dataset.targets))[np.argmax(counts)])
                     counts = []
-
+            '''
 
             ### CAUSAL DISCOVERY ###
-
+            '''
             # PC on each partition separately
 
             shds = []
@@ -375,15 +374,15 @@ def main(cfg: DictConfig):
             wandb.run.summary["Pred clusters: avg FP"] = np.mean(fps)
             wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
-
+            '''
 
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
 
             # logging
-            tbl = wandb.Table(dataframe=df)
-            wandb.log({"clustered data": tbl})
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"clustered data": tbl})
     
             # for node in list(df.columns.values[config['num_vars']:]):
             #    skeleton.add_node(node)
@@ -403,7 +402,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
 
-
+            '''
             # target partitions
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
@@ -426,7 +425,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
             plt.close()
 
-            '''
+            
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
