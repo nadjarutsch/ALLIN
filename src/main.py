@@ -311,7 +311,7 @@ def main(cfg: DictConfig):
 
             elif config["clustering"] == "hdbscan":
                 # HDBSCAN*
-                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"], metric_params={'V': torch.cov(clustering_dataset.features[...,:-1])}).fit(clustering_dataset.features[...,:-1]).labels_
+                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"], V=torch.cov(clustering_dataset.features[...,:-1])).fit(clustering_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
