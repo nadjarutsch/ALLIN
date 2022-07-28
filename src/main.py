@@ -217,6 +217,7 @@ def main(cfg: DictConfig):
 
             # what happens if all data comes from the same (observational) distribution?
             synth_dataset = obs_dataset
+            clustering_dataset = obs_dataset # TODO: redundant, make nice
 
             '''# PC on ground truth clusters
             fps = []
