@@ -1,3 +1,4 @@
 clustering: hdbscan
-group: hdbscan cd on observational
-n_obs: 6000
+group: hdbscan cd 2
+n_obs: 1000
+cluster_metric: euclidean

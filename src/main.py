@@ -84,7 +84,8 @@ def main(cfg: DictConfig):
         int_mu = cfg.int_mu,
         int_sigma = cfg.int_sigma,
         clustering = cfg.clustering,
-        n_int_targets = NUM_VARS
+        n_int_targets = NUM_VARS,
+        cluster_metric = cfg.cluster_metric
     )
     
     
@@ -213,11 +214,11 @@ def main(cfg: DictConfig):
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
                                                 targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
+            # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # what happens if all data comes from the same (observational) distribution?
-            synth_dataset = obs_dataset
-            clustering_dataset = obs_dataset # TODO: redundant, make nice
+            # synth_dataset = obs_dataset
+            # clustering_dataset = obs_dataset # TODO: redundant, make nice
 
             '''# PC on ground truth clusters
             fps = []
@@ -270,9 +271,9 @@ def main(cfg: DictConfig):
             plt.close()
 
             wandb.run.summary["PC: SHD to MEC"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
-            wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(skeleton, true_graph, double_for_anticausal=False)
-            wandb.run.summary["PC: SID"] = cdt.metrics.SID(skeleton, true_graph)
-            wandb.run.summary["PC: CC"] = metrics.causal_correctness(skeleton, true_graph, mec)
+            wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(true_graph, skeleton, double_for_anticausal=False)
+            wandb.run.summary["PC: SID"] = cdt.metrics.SID(true_graph, skeleton)
+            wandb.run.summary["PC: CC"] = metrics.causal_correctness(true_graph, skeleton, mec)
             
             
             # use inferred skeleton
@@ -309,12 +310,11 @@ def main(cfg: DictConfig):
 
             elif config["clustering"] == "hdbscan":
                 # HDBSCAN*
-                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
+                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"]).fit(clustering_dataset.features[...,:-1]).labels_
 
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
 
-            '''
             # cluster analysis
             # (1) avg sample likelihood
             # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
@@ -326,9 +326,8 @@ def main(cfg: DictConfig):
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-            
 
-
+            '''
             # Match clusters to intervention targets
 
             counts = []
@@ -404,7 +403,6 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
             plt.close()
 
-            '''
             # target partitions
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
@@ -427,7 +425,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
             plt.close()
 
-            
+            '''
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
