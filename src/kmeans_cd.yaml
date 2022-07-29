@@ -1,4 +1,4 @@
 clustering: kmeans
-group: pc+context oracle confounder
+group: kmeans cd 2
 n_obs: 1000
 cluster_metric: euclidean

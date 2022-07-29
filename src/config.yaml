@@ -1,5 +1,5 @@
 defaults:
-  - hdbscan_cd
+  - kmeans_cd
 
 expected_N: 2
 int_mu: 1
