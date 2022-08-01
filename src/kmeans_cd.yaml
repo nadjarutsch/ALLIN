@@ -1,4 +1,4 @@
 clustering: kmeans
-group: kmeans cd 2
+group: target cluster eval
 n_obs: 1000
 cluster_metric: euclidean
