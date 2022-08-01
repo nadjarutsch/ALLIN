@@ -1,4 +1,4 @@
-clustering: kmeans
-group: context discovery
+clustering: random
+group: random clustering
 n_obs: 1000
 cluster_metric: euclidean

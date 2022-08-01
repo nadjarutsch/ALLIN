@@ -313,6 +313,9 @@ def main(cfg: DictConfig):
                 # HDBSCAN*
                 labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"], VI=torch.linalg.inv(torch.cov(clustering_dataset.features[...,:-1].T)).T).fit(clustering_dataset.features[...,:-1]).labels_
 
+            elif config["clustering"] == "random":
+                labels = torch.randint(low=0, high=config["num_clus"], size=len(synth_dataset.features)).tolist()
+            
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
 
@@ -376,7 +379,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
             '''
-            '''
+
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -402,7 +405,7 @@ def main(cfg: DictConfig):
             colors = visual.get_colors(created_graph)
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
-            plt.close()'''
+            plt.close()
 
             # target partitions
             target_dataset.set_random_intervention_targets()
@@ -414,7 +417,7 @@ def main(cfg: DictConfig):
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
 
-            pred_adj_matrix = nx.to_numpy_array(created_graph)
+            '''pred_adj_matrix = nx.to_numpy_array(created_graph)
             # FN edges from context variables to intervention targets
             tps = 0
             fps = 0
@@ -434,7 +437,7 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context (target clusters), context graph": wandb.Image(plt)})
-            plt.close()
+            plt.close()'''
 
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
