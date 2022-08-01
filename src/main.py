@@ -420,9 +420,10 @@ def main(cfg: DictConfig):
             fps = 0
             for i in range(config['num_vars']):
                 tps += pred_adj_matrix[config['num_vars'] + i + 1, i] == 1
-                pred_adj_matrix[config['num_vars'] + i + 1, i] = 0
-                pred_adj_matrix[i, config['num_vars'] + i + 1] = 0
-                fps += np.sum(pred_adj_matrix[config['num_vars'] + i + 1,:]) + np.sum(pred_adj_matrix[:,config['num_vars'] + i + 1])
+                temp_matrix = pred_adj_matrix.copy()
+                temp_matrix[config['num_vars'] + i + 1, i] = 0
+                temp_matrix[i, config['num_vars'] + i + 1] = 0
+                fps += np.sum(temp_matrix[config['num_vars'] + i + 1,:]) + np.sum(temp_matrix[:,config['num_vars'] + i + 1])
 
 
             wandb.run.summary["PC+context target: TPs context vars"] = tps / config['num_vars']
