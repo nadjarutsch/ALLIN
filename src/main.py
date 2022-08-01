@@ -290,7 +290,7 @@ def main(cfg: DictConfig):
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
 
-            '''
+
             ### CLUSTERING ###
 
             if config["clustering"] == "depcon kmeans":
@@ -330,7 +330,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-            '''
+
             '''
             # Match clusters to intervention targets
 
