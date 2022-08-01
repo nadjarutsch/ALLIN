@@ -413,6 +413,28 @@ def main(cfg: DictConfig):
 
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
+
+            pred_adj_matrix = nx.to_numpy_array(created_graph)
+            # FN edges from context variables to intervention targets
+            tps = 0
+            fps = 0
+            for i in range(config['num_vars']):
+                tps += pred_adj_matrix[config['num_vars'] + i, i] == 1
+                pred_adj_matrix[config['num_vars'] + i, i] = 0
+                pred_adj_matrix[i, config['num_vars'] + i] = 0
+                fps += np.sum(pred_adj_matrix[config['num_vars'] + i,:]) + np.sum(pred_adj_matrix[:,config['num_vars'] + i])
+
+
+            wandb.run.summary["PC+context target: TPs context vars"] = tps / config['num_vars']
+            wandb.run.summary["PC+context target: FPs context vars"] = fps / config['num_vars']
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(created_graph)
+            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                    edge_color=colors)
+            wandb.log({"PC+context (target clusters), context graph": wandb.Image(plt)})
+            plt.close()
+
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
             wandb.run.summary["PC+context target: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
@@ -424,26 +446,6 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
-            plt.close()
-
-            # target partitions 2.0
-            target_dataset.intervention_targets[0] = torch.zeros(len(target_dataset.partitions))
-            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
-
-            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
-            created_graph = model_pc.predict(df_target)
-            created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
-
-            wandb.run.summary["PC+context target 2.0: SHD"] = cdt.metrics.SHD(true_graph, created_graph,
-                                                                          double_for_anticausal=False)
-            wandb.run.summary["PC+context target 2.0: SID"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["PC+context target 2.0: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(created_graph)
-            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                    edge_color=colors)
-            wandb.log({"PC+context, target clusters 2.0": wandb.Image(plt)})
             plt.close()
 
             '''
