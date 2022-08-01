@@ -290,7 +290,7 @@ def main(cfg: DictConfig):
         #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
         #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
 
-
+            '''
             ### CLUSTERING ###
 
             if config["clustering"] == "depcon kmeans":
@@ -327,7 +327,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
-
+            '''
             '''
             # Match clusters to intervention targets
 
@@ -376,7 +376,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
             '''
-
+            '''
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
@@ -402,14 +402,14 @@ def main(cfg: DictConfig):
             colors = visual.get_colors(created_graph)
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
             wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
-            plt.close()
+            plt.close()'''
 
             # target partitions
             target_dataset.set_random_intervention_targets()
             df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
 
-            tbl = wandb.Table(dataframe=df_target)
-            wandb.log({"clustered data (target)": tbl})
+            # tbl = wandb.Table(dataframe=df_target)
+            # wandb.log({"clustered data (target)": tbl})
 
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
@@ -424,6 +424,26 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
+            plt.close()
+
+            # target partitions 2.0
+            target_dataset.intervention_targets[0] = torch.zeros(len(target_dataset.partitions))
+            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+
+            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
+            created_graph = model_pc.predict(df_target)
+            created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
+
+            wandb.run.summary["PC+context target 2.0: SHD"] = cdt.metrics.SHD(true_graph, created_graph,
+                                                                          double_for_anticausal=False)
+            wandb.run.summary["PC+context target 2.0: SID"] = cdt.metrics.SID(true_graph, created_graph)
+            wandb.run.summary["PC+context target 2.0: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(created_graph)
+            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
+                    edge_color=colors)
+            wandb.log({"PC+context, target clusters 2.0": wandb.Image(plt)})
             plt.close()
 
             '''
