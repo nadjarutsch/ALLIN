@@ -260,7 +260,7 @@ def main(cfg: DictConfig):
             # pc algorithm test on observational data only
             # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest="rcot")
             # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
             # skeleton = model_fci.create_graph_from_data(df)
             skeleton = model_pc.predict(df)

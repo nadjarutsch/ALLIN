@@ -1,4 +1,4 @@
 clustering: random
-group: random clustering
+group: rcot versus gaussian
 n_obs: 1000
 cluster_metric: euclidean
