@@ -105,7 +105,7 @@ def main(cfg: DictConfig):
             ### DATA GENERATION ###
 
             # generate graph
-            dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'])
+            dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'], seed=seed)
             variables = [v.name for v in dag.variables]
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
 
@@ -133,9 +133,7 @@ def main(cfg: DictConfig):
             # generate data
             synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
 
-            # get_eps(10, synth_dataset.features)
-            # get_eps(50, synth_dataset.features)
-            # get_eps(500, synth_dataset.features)
+
             '''
             ### ORACLE PC+CONTEXT ###
 
@@ -260,6 +258,10 @@ def main(cfg: DictConfig):
             # pc algorithm test on observational data only
             # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
+            # logging
+            tbl = wandb.Table(dataframe=df)
+            wandb.log({"data": tbl})
+            '''
             model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest="rcot")
             # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
             # skeleton = model_fci.create_graph_from_data(df)
@@ -331,7 +333,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
             wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            '''
+            
             # Match clusters to intervention targets
 
             counts = []
@@ -378,7 +380,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Pred clusters: avg FP"] = np.mean(fps)
             wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
-            '''
+            
 
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
@@ -417,7 +419,7 @@ def main(cfg: DictConfig):
             model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
             created_graph = model_pc.predict(df_target)
 
-            '''pred_adj_matrix = nx.to_numpy_array(created_graph)
+            pred_adj_matrix = nx.to_numpy_array(created_graph)
             # FN edges from context variables to intervention targets
             tps = 0
             fps = 0
@@ -437,7 +439,7 @@ def main(cfg: DictConfig):
             nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
                     edge_color=colors)
             wandb.log({"PC+context (target clusters), context graph": wandb.Image(plt)})
-            plt.close()'''
+            plt.close()
 
             created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
 
@@ -452,7 +454,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
             plt.close()
 
-            '''
+            
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))

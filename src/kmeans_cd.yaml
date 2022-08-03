@@ -1,4 +1,4 @@
 clustering: random
-group: rcot versus gaussian
+group: reproducibility test
 n_obs: 1000
 cluster_metric: euclidean

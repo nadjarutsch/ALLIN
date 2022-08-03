@@ -52,6 +52,7 @@ from data_generation.causal_graphs.graph_utils import *
 from data_generation.causal_graphs.graph_visualization import *
 from data_generation.causal_graphs.variable_distributions import *
 from data_generation.causal_graphs.graph_definition import *
+import utils
 
 
 def graph_from_adjmatrix(variable_names, dist_func, adj_matrix, latents=None):
@@ -479,8 +480,7 @@ def generate_continuous_graph(num_vars,
     sigma = 1.0 if sigma == None else sigma
         
     if seed >= 0:
-        np.random.seed(seed)
-        random.seed(seed)
+        utils.set_seed(seed)
     
     if num_vars <= 26:
         variable_names = [n for i, n in zip(range(1, num_vars+1), string.ascii_uppercase)]
