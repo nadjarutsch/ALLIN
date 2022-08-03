@@ -47,7 +47,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 3
-seeds = list(range(50))
+seeds = list(range(5))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -104,6 +104,7 @@ def main(cfg: DictConfig):
 
             ### DATA GENERATION ###
 
+            x = 5
             # generate graph
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'], seed=seed)
             variables = [v.name for v in dag.variables]
