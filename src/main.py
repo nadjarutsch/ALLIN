@@ -104,7 +104,10 @@ def main(cfg: DictConfig):
 
             ### DATA GENERATION ###
 
-            x = 5
+            x = torch.randint(low=0, high=5, size=(1,1))
+            y = np.random.randint(low=0, high=5)
+            z = random.randint(0, 5)
+
             # generate graph
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'], seed=seed)
             variables = [v.name for v in dag.variables]
