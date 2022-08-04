@@ -47,7 +47,7 @@ loss = mmlp.nll
 epochs = 5
 fit_epochs = 60
 stds = 3
-seeds = list(range(5))
+seeds = list(range(50))
 # seeds = [random.randint(0, 100)]
 NUM_VARS = 5
 true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
@@ -103,10 +103,6 @@ def main(cfg: DictConfig):
         with run:
 
             ### DATA GENERATION ###
-
-            x = torch.randint(low=0, high=5, size=(1,1))
-            y = np.random.randint(low=0, high=5)
-            z = random.randint(0, 5)
 
             # generate graph
             dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'], seed=seed)
@@ -216,7 +212,7 @@ def main(cfg: DictConfig):
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
                                                 targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            # obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
+            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
             # what happens if all data comes from the same (observational) distribution?
             # synth_dataset = obs_dataset
@@ -260,13 +256,13 @@ def main(cfg: DictConfig):
             # initial causal discovery (skeleton)
             df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
             # pc algorithm test on observational data only
-            # df = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
+            df_obs = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
 
             # logging
-            tbl = wandb.Table(dataframe=df)
-            wandb.log({"data": tbl})
-            '''
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest="rcot")
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"data": tbl})
+
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
             # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
             # skeleton = model_fci.create_graph_from_data(df)
             skeleton = model_pc.predict(df)
@@ -281,6 +277,23 @@ def main(cfg: DictConfig):
             wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(true_graph, skeleton, double_for_anticausal=False)
             wandb.run.summary["PC: SID"] = cdt.metrics.SID(true_graph, skeleton)
             wandb.run.summary["PC: CC"] = metrics.causal_correctness(true_graph, skeleton, mec)
+
+            # ON OBSERVATIONAL DATA
+            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
+            # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
+            # skeleton = model_fci.create_graph_from_data(df)
+            graph_obs = model_pc.predict(df_obs)
+
+            plt.figure(figsize=(6, 6))
+            colors = visual.get_colors(graph_obs)
+            nx.draw(graph_obs, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
+            wandb.log({"graph from obs data": wandb.Image(plt)})
+            plt.close()
+
+            wandb.run.summary["PC obs: SHD to MEC"] = cdt.metrics.SHD(mec, graph_obs, double_for_anticausal=False)
+            wandb.run.summary["PC obs: SHD"] = cdt.metrics.SHD(true_graph, graph_obs, double_for_anticausal=False)
+            wandb.run.summary["PC obs: SID"] = cdt.metrics.SID(true_graph, graph_obs)
+            wandb.run.summary["PC obs: CC"] = metrics.causal_correctness(true_graph, graph_obs, mec)
             
             
             # use inferred skeleton
@@ -339,7 +352,7 @@ def main(cfg: DictConfig):
 
             
             # Match clusters to intervention targets
-
+            '''
             counts = []
             int_targets = []
             for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
@@ -384,7 +397,7 @@ def main(cfg: DictConfig):
             wandb.run.summary["Pred clusters: avg FP"] = np.mean(fps)
             wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
             wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
-            
+            '''
 
             # putting everything together: PC with context variables
             synth_dataset.set_random_intervention_targets()
@@ -458,7 +471,7 @@ def main(cfg: DictConfig):
             wandb.log({"PC+context, target clusters": wandb.Image(plt)})
             plt.close()
 
-            
+            '''
             # JCI
             model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
             contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
