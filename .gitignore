@@ -174,5 +174,3 @@ wandb/
 .Rhistory
 .RData
 
-# misc
-plotting.py
