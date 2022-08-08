@@ -1,0 +1,6 @@
+clusterer:
+  _target_: clustering.utils.TargetClusterer
+  n_obs: ${dist.n_obs}
+  int_ratio: ${dist.int_ratio}
+  num_vars: ${graph.num_vars}
+name: target

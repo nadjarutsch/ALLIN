@@ -1,0 +1,30 @@
+defaults:
+  - causal_discovery: pc_gaussian
+  - clustering: hdbscan
+  - _self_
+wandb:
+  project: idiod_0.2
+  entity: nadjarutsch
+  group: HDBSCAN cd (unnormalized context vars)
+graph:
+  num_vars: 5
+  structure: random
+  e_n: 2
+dist:
+  n_obs: 1000
+  int_ratio: 1
+  obs_mean: 0.0
+  obs_std: 0.1
+  int_mean: 1.0
+  int_std: ${dist.obs_std}
+oracle:
+  n_int_targets: 5
+do:
+  oracle: False
+  cluster: True
+  cluster_discovery: False
+  causal_discovery: True
+  context_analysis: True
+n_seeds: 50
+seed: -1
+

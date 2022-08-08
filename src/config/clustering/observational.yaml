@@ -1,0 +1,4 @@
+clusterer:
+  _target_: clustering.utils.ObservationalClusterer
+  n_obs: ${dist.n_obs}
+name: observational

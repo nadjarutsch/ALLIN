@@ -1,4 +1,43 @@
 import numpy as np
+import causaldag
+import networkx as nx
+import random
+
+
+def get_interventional_graph(graph, int_idx=-1):
+    int_adj_matrix = nx.to_numpy_array(graph)
+    if int_idx >= 0:
+        int_adj_matrix[:, int_idx] = 0
+    #if int_targets[i] > 0:
+    #    int_adj_matrix[:, int_targets[i] - 1] = 0
+    true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
+    mapping = dict(zip(range(len(graph)), list(graph.nodes)))
+
+    return nx.relabel_nodes(true_int_graph, mapping)
+
+
+
+
+
+def add_context_vars(graph, n, vars, confounded):
+    context_vars = []
+    for var in random.sample(vars, n):
+        graph.add_node(f'I_{var}')
+        graph.add_edge(f'I_{var}', var)
+        context_vars.append(f'I_{var}')
+
+    if confounded:
+        graph.add_node('conf')
+        for var in context_vars:
+            graph.add_edge('conf', var)
+
+    return graph
+
+def dag_to_mec(graph):
+    adj_matrix, var_lst = causaldag.DAG.from_nx(graph).cpdag().to_amat()
+    mapping = dict(zip(range(len(var_lst)), var_lst))
+    mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
+    return nx.relabel_nodes(mec, mapping)
 
 
 def adj_matrix_to_edges(adj_matrix):

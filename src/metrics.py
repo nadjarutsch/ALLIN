@@ -12,6 +12,13 @@ import data_generation.datasets as data
 import data_generation.causal_graphs.graph_definition as graphs
 
 
+def log_cd_metrics(true_graph, pred_graph, mec, title):
+    pred_graph.remove_nodes_from(list(set(pred_graph) - set(true_graph)))
+    wandb.run.summary[f"{title}: SHD"] = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
+    # wandb.run.summary[f"{title}: SID"] = cdt.metrics.SID(true_graph, pred_graph)
+    wandb.run.summary[f"{title}: CC"] = causal_correctness(true_graph, pred_graph, mec)
+
+
 def causal_correctness(true_graph: nx.DiGraph,
                        pred_graph: nx.DiGraph,
                        mec: nx.DiGraph=None) -> int:

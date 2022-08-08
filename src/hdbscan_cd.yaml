@@ -1,4 +1,0 @@
-clustering: hdbscan
-group: comparison hdbscan and only observational
-n_obs: 1000
-cluster_metric: euclidean

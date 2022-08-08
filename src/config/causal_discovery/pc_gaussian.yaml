@@ -1,0 +1,5 @@
+model:
+  _target_: cdt.causality.graph.PC
+  CItest: gaussian
+  alpha: 0.00001
+name: PC

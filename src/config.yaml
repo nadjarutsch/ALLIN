@@ -1,8 +1,0 @@
-defaults:
-  - hdbscan_cd
-
-expected_N: 2
-int_mu: 1
-int_sigma: 0.1
-minpts: 5
-eps: 0.1

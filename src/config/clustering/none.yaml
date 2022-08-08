@@ -1,0 +1,3 @@
+clusterer:
+  _target_: clustering.utils.NoClusterer
+name: none

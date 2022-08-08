@@ -1,0 +1,5 @@
+clusterer:
+  _target_: sklearn.cluster.KMeans
+  init: k-means++
+  n_clusters: 6
+name: kmeans

@@ -65,7 +65,7 @@ class PartitionData(Dataset):
     def update_partitions(self, partitions: list[int]):
         """Creates new instances of PartitionData, according to the provided partitioning."""
         partitions_lst = []
-        for label in set(partitions):
+        for label in set(partitions) - set([-1]):
             indices = torch.nonzero(torch.tensor(partitions) == label).long().squeeze()
             partition_features = torch.index_select(self.features, 0, indices)
             partitions_lst.append(PartitionData(features=partition_features,

@@ -1,4 +1,0 @@
-clustering: random
-group: reproducibility test
-n_obs: 1000
-cluster_metric: euclidean

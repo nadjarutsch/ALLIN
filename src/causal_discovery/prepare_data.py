@@ -6,13 +6,14 @@ import data_generation.datasets as data
 
 
 
-def prepare_data(cd: str, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
-    if cd == "pc":
+def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+    if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
         
     
     
 def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+    data.set_random_intervention_targets()
     cols_int = ['I_%s' % i for i in range(len(data.partitions))]
     
     dfs = []

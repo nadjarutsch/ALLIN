@@ -1,0 +1,4 @@
+clusterer:
+  _target_: clustering.utils.RandomClusterer
+  n_clusters: 6
+name: random

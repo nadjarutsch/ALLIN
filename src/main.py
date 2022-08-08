@@ -4,90 +4,42 @@ import numpy as np
 import wandb
 from omegaconf import DictConfig, OmegaConf
 import hydra
+from hydra.utils import instantiate
+import copy
 
 import os
 if os.path.split(os.getcwd())[-1] != 'src':
     os.chdir('../src')
-    
-import matplotlib.pyplot as plt
+
 from collections import defaultdict
 
 import networkx as nx
-import causaldag 
+# import causaldag
 import cdt
 
 import data_generation.causal_graphs.graph_generation as graph_gen
-import data_generation.causal_graphs.graph_visualization as visual
+
 import data_generation.data_generation as data_gen
 import data_generation.datasets as data
-import models.multivar_mlp as mmlp
 import causal_discovery.prepare_data as cd
-import outlier_detection.model_based as ood
 import outlier_detection.depcon_kernel as depcon
 import metrics
-import clustering.dbscan as dbscan
-import clustering.kmeans as kmeans
 from fci import FCI
+from plotting import plot_graph
+from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph
+
 import sklearn
-from sklearn.cluster import DBSCAN
-from itertools import product
-from itertools import combinations
-import random
-import yaml
-# from clustering.dbscan_hparam import get_eps
+from sklearn.cluster import KMeans
+from clustering.utils import *
 import hdbscan
 
 
 
-N_OBS = 1000 # overwritten through hydra
-INT_RATIO = 1
-BATCH_SIZE = 128
-lr = 1e-3
-loss = mmlp.nll
-epochs = 5
-fit_epochs = 60
-stds = 3
-seeds = list(range(50))
-# seeds = [random.randint(0, 100)]
-NUM_VARS = 5
-true_target_indices = np.cumsum([N_OBS] + [INT_RATIO * N_OBS] * NUM_VARS)
-alpha_skeleton = 0.01
-alpha = 0.00001
-expected_N = 2
 
 # os.environ['WANDB_MODE'] = 'offline'
 
-
-@hydra.main(config_path=".", config_name="config")
+@hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
-    # wandb config for logging
-    config = dict(
-        n_obs = cfg.n_obs,
-        int_ratio = INT_RATIO,
-        batch_size = BATCH_SIZE,
-        lr = lr,
-        epochs = epochs,
-        fit_epochs = fit_epochs,
-        threshold = stds,
-        num_vars = NUM_VARS,
-        graph_structure = 'random',
-        edge_prob = cfg.expected_N / NUM_VARS,
-        E_N = cfg.expected_N,
-        mu = 0.0,
-        sigma = cfg.int_sigma,
-        minpts = cfg.minpts,
-        eps = cfg.eps,
-        citest = 'gaussian',
-        alpha_skeleton = alpha_skeleton,
-        alpha = alpha,
-        num_clus = NUM_VARS + 1,
-        int_mu = cfg.int_mu,
-        int_sigma = cfg.int_sigma,
-        clustering = cfg.clustering,
-        n_int_targets = NUM_VARS,
-        cluster_metric = cfg.cluster_metric
-    )
-    
     
     if torch.cuda.is_available():
         cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
@@ -97,422 +49,139 @@ def main(cfg: DictConfig):
         device = 'cpu'
 
     
-    for seed in seeds:
-        config['seed'] = seed
-        run = wandb.init(project="idiod", entity="nadjarutsch", group=cfg.group, notes='', tags=[], config=config, reinit=True)
+    for seed in range(cfg.n_seeds):
+        cfg.seed = seed
+        run = wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, group=cfg.wandb.group, notes='', tags=[], config=cfg, reinit=True)
         with run:
-
+            #######################
             ### DATA GENERATION ###
+            #######################
 
             # generate graph
-            dag = data_gen.generate_dag(num_vars=config['num_vars'], edge_prob=config['edge_prob'], fns='linear gaussian', mu=config['mu'], sigma=config['sigma'], seed=seed)
+            dag = data_gen.generate_dag(num_vars=cfg.graph.num_vars,
+                                        edge_prob=cfg.graph.e_n / cfg.graph.num_vars,
+                                        fns='linear gaussian',
+                                        mu=cfg.dist.obs_mean,
+                                        sigma=cfg.dist.obs_std,
+                                        seed=seed)
             variables = [v.name for v in dag.variables]
+            true_graph = dag.nx_graph
+            mec = dag_to_mec(true_graph)
+
+            # logging
+            plot_graph(true_graph, "true graph")
+            plot_graph(mec, "MEC")
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
 
-            # plot the true underlying causal graph
-            true_graph = dag.nx_graph
-            plt.figure(figsize=(6,6))
-            colors = visual.get_colors(true_graph)
-            nx.draw(true_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"true graph": wandb.Image(plt)})
-            plt.close()
+            # datasets
+            synth_dataset, interventions = data_gen.generate_data(dag=dag,
+                                                                  n_obs=cfg.dist.n_obs,
+                                                                  int_ratio=cfg.dist.int_ratio,
+                                                                  seed=seed,
+                                                                  int_mu=cfg.dist.int_mean,
+                                                                  int_sigma=cfg.dist.int_std)
 
-            # get true essential graph representing the MEC
-            adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
-            mapping = dict(zip(range(len(var_lst)), var_lst))
-            mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
-            mec = nx.relabel_nodes(mec, mapping)
-            visual.set_edge_attributes(mec)
-            # logging
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(mec)
-            nx.draw(mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
-            wandb.log({"essential graph": wandb.Image(plt)})
-            plt.close()
-
-            # generate data
-            synth_dataset, interventions = data_gen.generate_data(dag=dag, n_obs=config['n_obs'], int_ratio=INT_RATIO, seed=seed, int_mu=config['int_mu'], int_sigma=config['int_sigma'])
-
-
-            '''
-            ### ORACLE PC+CONTEXT ###
-
-            # create the PC+context graph
-            pc_context_graph = true_graph.copy()
-
-            context_vars = []
-            for var in random.sample(variables, config["n_int_targets"]):
-                pc_context_graph.add_node(f'I_{var}')
-                pc_context_graph.add_edge(f'I_{var}', var)
-                context_vars.append(f'I_{var}')
-
-            pc_context_graph.add_node('conf')
-            for var in context_vars:
-                pc_context_graph.add_edge('conf', var)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(pc_context_graph)
-            nx.draw(pc_context_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
-            wandb.log({"PC+context graph": wandb.Image(plt)})
-            plt.close()
-
-            # get essential graph of the PC+context graph
-            adj_matrix, var_lst = causaldag.DAG.from_nx(pc_context_graph).cpdag().to_amat()
-            mapping = dict(zip(range(len(var_lst)), var_lst))
-            pc_context_mec = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph)
-            pc_context_mec = nx.relabel_nodes(pc_context_mec, mapping)
-            visual.set_edge_attributes(pc_context_mec)
-            # logging
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(pc_context_mec)
-            nx.draw(pc_context_mec, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
-            wandb.log({"Oracle PC+context MEC": wandb.Image(plt)})
-            plt.close()
-
-            # remove context variables and compute metrics
-            pc_context_mec.remove_nodes_from(context_vars + ['conf'])
-            wandb.run.summary["Oracle PC+context: SHD"] = cdt.metrics.SHD(true_graph, pc_context_mec,
-                                                                   double_for_anticausal=False)
-            wandb.run.summary["Oracle PC+context: SID"] = cdt.metrics.SID(true_graph, pc_context_mec)
-            wandb.run.summary["Oracle PC+context: CC"] = metrics.causal_correctness(true_graph, pc_context_mec, mec)
-
-            ### FEATURE TRANSFORMATION ###
-
-            gnmodel = mmlp.GaussianNoiseModel(num_vars=config["num_vars"], hidden_dims=[])
-            optimizer = torch.optim.Adam(gnmodel.parameters(), lr=config["lr"])
-            loss = mmlp.nll
-            fit_adj_matrix = torch.ones((config["num_vars"], config["num_vars"]))
-            fit_adj_matrix.fill_diagonal_(0)
-
-            partitions = ood.cluster(synth_dataset,
-                                     gnmodel,
-                                     loss,
-                                     optimizer,
-                                     config["epochs"],
-                                     config["fit_epochs"],
-                                     fit_adj_matrix,
-                                     config["threshold"])
-            #ood.fit(synth_dataset.partitions[0], gnmodel, loss, optimizer, config["fit_epochs"], config["batch_size"], fit_adj_matrix)
-            for part in partitions:
-                print(len(part))
-
-            preds = gnmodel(synth_dataset.features[..., :-1], fit_adj_matrix)
-            losses = loss(preds, synth_dataset.features[..., :-1]).detach()
-
-            true_adj_matrix = nx.to_numpy_array(true_graph)
-            root_vars = torch.nonzero(torch.all(~torch.from_numpy(true_adj_matrix).bool(), dim=0))
-            cond_targets = [0 if label - 1 in root_vars else label for label in synth_dataset.targets]
-            clustering_dataset = data.PartitionData(features=losses, targets=cond_targets)
-            '''
-            clustering_dataset = synth_dataset
-
-            ### CAUSAL DISCOVERY BEFORE CLUSTERING ###
-
-            # correct partitions
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
                                                 targets=synth_dataset.targets)
             target_dataset.update_partitions(target_dataset.targets)
-            obs_dataset = data.PartitionData(features=target_dataset.partitions[0].features[...,:-1])
 
-            # what happens if all data comes from the same (observational) distribution?
-            # synth_dataset = obs_dataset
-            # clustering_dataset = obs_dataset # TODO: redundant, make nice
+            #########################
+            ### ORACLE PC+CONTEXT ###
+            #########################
 
-            '''
-            # PC on ground truth clusters
-            fps = []
-            fns = []
-            shds = []
-            for i, cluster in zip(set(target_dataset.targets), target_dataset.partitions):
-                cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
-                df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
+            if cfg.do.oracle:
+                pc_context_graph = add_context_vars(graph=true_graph.copy(),
+                                                    n=cfg.oracle.n_int_targets,
+                                                    vars=variables,
+                                                    confounded=True)
+                pc_context_mec = dag_to_mec(pc_context_graph)
 
-                model_pc = cdt.causality.graph.PC(CItest="gaussian", alpha=config["alpha"])
-                created_graph = model_pc.predict(df)
+                # logging
+                plot_graph(pc_context_graph, "PC+context graph")
+                plot_graph(pc_context_mec, "Oracle PC+context MEC")
+                metrics.log_cd_metrics(true_graph, pc_context_mec, mec, "Oracle PC+context")
 
-                plt.figure(figsize=(6, 6))
-                colors = visual.get_colors(created_graph)
-                nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                        edge_color=colors)
-                wandb.log({f"ground truth cluster {i}": wandb.Image(plt)})
-                plt.close()
-
-                # true graph of the matched interventional distribution
-                int_adj_matrix = nx.to_numpy_array(true_graph)
-                if i > 0:
-                    int_adj_matrix[:, i - 1] = 0
-                true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
-                true_int_graph = nx.relabel_nodes(true_int_graph, mapping)
-
-                fps.append(metrics.fp(created_graph, mec))
-                fns.append(metrics.fn(created_graph, mec))
-                shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
-
-            wandb.run.summary["Target clusters: avg FP"] = np.mean(fps)
-            wandb.run.summary["Target clusters: avg FN"] = np.mean(fns)
-            wandb.run.summary["Target clusters: SHD"] = np.mean(shds)
-            '''
-
-            # initial causal discovery (skeleton)
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
-            # pc algorithm test on observational data only
-            df_obs = cd.prepare_data(cd="pc", data=obs_dataset, variables=variables)
-
-            # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"data": tbl})
-
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
-            # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
-            # skeleton = model_fci.create_graph_from_data(df)
-            skeleton = model_pc.predict(df)
-            
-            plt.figure(figsize=(6,6))
-            colors = visual.get_colors(skeleton)
-            nx.draw(skeleton, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"skeleton": wandb.Image(plt)})
-            plt.close()
-
-            wandb.run.summary["PC: SHD to MEC"] = cdt.metrics.SHD(mec, skeleton, double_for_anticausal=False)
-            wandb.run.summary["PC: SHD"] = cdt.metrics.SHD(true_graph, skeleton, double_for_anticausal=False)
-            wandb.run.summary["PC: SID"] = cdt.metrics.SID(true_graph, skeleton)
-            wandb.run.summary["PC: CC"] = metrics.causal_correctness(true_graph, skeleton, mec)
-
-            # ON OBSERVATIONAL DATA
-            model_pc = cdt.causality.graph.PC(alpha=config["alpha"], CItest=config["citest"])
-            # model_fci = FCI(alpha=config["alpha_skeleton"], CItest=config["citest"])
-            # skeleton = model_fci.create_graph_from_data(df)
-            graph_obs = model_pc.predict(df_obs)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(graph_obs)
-            nx.draw(graph_obs, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
-            wandb.log({"graph from obs data": wandb.Image(plt)})
-            plt.close()
-
-            wandb.run.summary["PC obs: SHD to MEC"] = cdt.metrics.SHD(mec, graph_obs, double_for_anticausal=False)
-            wandb.run.summary["PC obs: SHD"] = cdt.metrics.SHD(true_graph, graph_obs, double_for_anticausal=False)
-            wandb.run.summary["PC obs: SID"] = cdt.metrics.SID(true_graph, graph_obs)
-            wandb.run.summary["PC obs: CC"] = metrics.causal_correctness(true_graph, graph_obs, mec)
-            
-            
-            # use inferred skeleton
-            # adj_matrix = torch.from_numpy(nx.to_numpy_array(skeleton))
-            
-            # use true skeleton
-            # adj_matrix = torch.from_numpy(nx.to_numpy_array(mec))
-
-
-            # intervention detection (ood)
-        #    print('Creating model...')
-        #    gnmodel = mmlp.GaussianNoiseModel(num_vars=dag.num_vars, hidden_dims=[])
-        #    optimizer = torch.optim.Adam(gnmodel.parameters(), lr=lr)
-        #    partitions_obs = ood.cluster(synth_dataset, gnmodel, loss, optimizer, epochs, fit_epochs, adj_matrix, stds, BATCH_SIZE)
-
-
+            ##################
             ### CLUSTERING ###
+            ##################
 
-            if config["clustering"] == "depcon kmeans":
-                # kernel K-means
-                labels = depcon.kernel_k_means(clustering_dataset.features[...,:-1], init='k-means++', num_clus=config['num_clus'], device=device)
+            if str(cfg.clustering.name) == "kmeans":
+                cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
+            clusterer = instantiate(cfg.clustering.clusterer)
+            labels = clusterer.fit(synth_dataset.features[...,:-1]).labels_
 
-            elif config["clustering"] == "kmeans":
-                # normal K-means
-                labels = kmeans.kmeans(clustering_dataset.features[...,:-1], init='k-means++', n_clusters=len(set(synth_dataset.targets))) # TODO: number of clusters automatically
-
-            elif config["clustering"] == "dbscan":
-                # DBSCAN clustering
-              #  kappa, gamma = depcon.dep_contrib_kernel(synth_dataset.features[...,:-1], device=device)
-              #  distance_matrix = torch.arccos(kappa).cpu().detach()
-              #  partitions = dbscan.dbscan(distance_matrix, minpts=config["minpts"], metric="precomputed")
-              #  synth_dataset.update_partitions(partitions)
-                labels = DBSCAN(eps=config["eps"], min_samples=config["minpts"]).fit(clustering_dataset.features[...,:-1]).labels_
-
-            elif config["clustering"] == "hdbscan":
-                # HDBSCAN*
-                labels = hdbscan.HDBSCAN(min_cluster_size=config["minpts"], metric=config["cluster_metric"]).fit(clustering_dataset.features[...,:-1]).labels_  #, VI=torch.linalg.inv(torch.cov(clustering_dataset.features[...,:-1].T)).T).fit(clustering_dataset.features[...,:-1]).labels_
-
-            elif config["clustering"] == "random":
-                labels = torch.randint(low=0, high=config["num_clus"], size=(len(synth_dataset.features),1)).squeeze().tolist()
-            
             synth_dataset.update_partitions(labels)
             wandb.log({"cluster sizes": wandb.Histogram(labels)})
-
-            # cluster analysis
-            # (1) avg sample likelihood
-            # metrics.joint_log_prob(dataset=synth_dataset, dag=dag, interventions=interventions, title="K-means clusters")
-
-            # likelihood evaluation for ground truth partitions (optimal)
-            # metrics.joint_log_prob(dataset=target_dataset, dag=dag, interventions=interventions, title="Ground truth distributions")
-
-            # (2) ARI, AMI, NMI (standard cluster evaluation metrics)
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
-            wandb.run.summary["NMI"] = sklearn.metrics.normalized_mutual_info_score(synth_dataset.targets, labels)
 
-            
-            # Match clusters to intervention targets
-            '''
-            counts = []
-            int_targets = []
-            for cluster, target in product(synth_dataset.partitions, target_dataset.partitions):
-                # compare equal elements
-                count = len(set(cluster.features[..., -1].tolist()) & set(target.features[..., -1].tolist()))
-                counts.append(count)
-                if len(counts) == len(target_dataset.partitions):
-                    int_targets.append(list(set(synth_dataset.targets))[np.argmax(counts)])
-                    counts = []
-            
-
+            ########################
             ### CAUSAL DISCOVERY ###
-            
-            # PC on each partition separately
+            ########################
 
-            shds = []
-            fps = []
-            fns = []
-            for i, cluster in enumerate(synth_dataset.partitions):
-                cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
-                df = cd.prepare_data(cd="pc", data=cluster_dataset, variables=variables)
-                model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
-                created_graph = model_pc.predict(df)
+            if cfg.do.causal_discovery:
+                cd_model = instantiate(cfg.causal_discovery.model)
+                df = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+                pred_graph = cd_model.predict(df)
+                context_graph = pred_graph.copy()
 
-                plt.figure(figsize=(6, 6))
-                colors = visual.get_colors(created_graph)
-                nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black', edge_color=colors)
-                wandb.log({f"predicted graph, cluster {i}": wandb.Image(plt)})
-                plt.close()
+                # logging
+                # tbl = wandb.Table(dataframe=df)
+                # wandb.log({"clustered data": tbl})
 
-                # true graph of the matched interventional distribution
-                int_adj_matrix = nx.to_numpy_array(true_graph)
-                if i > 0:
-                    int_adj_matrix[:,int_targets[i]-1] = 0
-                true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
-                true_int_graph = nx.relabel_nodes(true_int_graph, mapping)
+                metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+                plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
 
-                fps.append(metrics.fp(created_graph, mec))
-                fns.append(metrics.fn(created_graph, mec))
-                shds.append(cdt.metrics.SHD(true_int_graph, created_graph, double_for_anticausal=False))
+            #########################
+            ### CLUSTER DISCOVERY ###
+            #########################
 
-            wandb.run.summary["Pred clusters: avg FP"] = np.mean(fps)
-            wandb.run.summary["Pred clusters: avg FN"] = np.mean(fns)
-            wandb.run.summary["Pred clusters: SHD"] = np.mean(shds)
-            '''
+            if cfg.do.cluster_discovery:
+                # Match pred and target clusters via the highest count
+                int_targets = [i-1 for i in match_clusters(synth_dataset, target_dataset)]
 
-            # putting everything together: PC with context variables
-            synth_dataset.set_random_intervention_targets()
-            df = cd.prepare_data(cd="pc", data=synth_dataset, variables=variables)
+                shds = []
+                for i, cluster in enumerate(synth_dataset.partitions):
+                    cd_model = instantiate(cfg.causal_discovery.model)
+                    cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
+                    df = cd.prepare_data(cfg=cfg, data=cluster_dataset, variables=variables)
+                    pred_cluster_graph = cd_model.predict(df)
+                    plot_graph(pred_cluster_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, cluster {i}")
 
-            # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"clustered data": tbl})
-    
-            # for node in list(df.columns.values[config['num_vars']:]):
-            #    skeleton.add_node(node)
-            #    skeleton.add_edge(node, node.replace("I_",""))
-    
-            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
-            created_graph = model_pc.predict(df)
-            created_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:])) # TODO: doublecheck
+                    # interventional graph of the matched interventional distribution
+                    true_int_graph = get_interventional_graph(true_graph, int_targets[i])
+                    shds.append(cdt.metrics.SHD(true_int_graph, pred_cluster_graph, double_for_anticausal=False))
 
-            wandb.run.summary["PC+context: SHD to MEC"] = cdt.metrics.SHD(mec, created_graph, double_for_anticausal=False)
-            wandb.run.summary["PC+context: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            wandb.run.summary["PC+context: SID"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["PC+context: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
-    
-            plt.figure(figsize=(6,6))
-            colors = visual.get_colors(created_graph)
-            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors ='black', edge_color=colors)
-            wandb.log({"PC+context, pred clusters": wandb.Image(plt)})
-            plt.close()
+                wandb.run.summary["Pred clusters: SHD (avg)"] = np.mean(shds)
 
-            # target partitions
-            target_dataset.set_random_intervention_targets()
-            df_target = cd.prepare_data(cd="pc", data=target_dataset, variables=variables)
+            ################
+            ### ANALYSIS ###
+            ################
 
-            # tbl = wandb.Table(dataframe=df_target)
-            # wandb.log({"clustered data (target)": tbl})
+            if cfg.do.context_analysis:
+                if cfg.clustering.name == "target":
+                    # FN edges from context variables to intervention targets
+                    tps = 0
+                    fps = 0
+                    pred_adj_matrix = nx.to_numpy_array(context_graph)
+                    for i in range(cfg.graph.num_vars):
+                        tps += pred_adj_matrix[cfg.graph.num_vars + i + 1, i] == 1 # +1 because the first cluster (index 0) is observational
+                        temp_matrix = pred_adj_matrix.copy()
+                        temp_matrix[cfg.graph.num_vars + i + 1, i] = 0 # remove edge from context to target variable
+                        temp_matrix[i, cfg.graph.num_vars + i + 1] = 0 # remove edge from target to context variable
+                        fps += np.sum(temp_matrix[cfg.graph.num_vars + i + 1,:]) + np.sum(temp_matrix[:,cfg.graph.num_vars + i + 1])
 
-            model_pc = cdt.causality.graph.PC(CItest=config["citest"], alpha=config["alpha"])
-            created_graph = model_pc.predict(df_target)
+                    tps /= cfg.graph.num_vars
+                    fps /= cfg.graph.num_vars
 
-            pred_adj_matrix = nx.to_numpy_array(created_graph)
-            # FN edges from context variables to intervention targets
-            tps = 0
-            fps = 0
-            for i in range(config['num_vars']):
-                tps += pred_adj_matrix[config['num_vars'] + i + 1, i] == 1
-                temp_matrix = pred_adj_matrix.copy()
-                temp_matrix[config['num_vars'] + i + 1, i] = 0
-                temp_matrix[i, config['num_vars'] + i + 1] = 0
-                fps += np.sum(temp_matrix[config['num_vars'] + i + 1,:]) + np.sum(temp_matrix[:,config['num_vars'] + i + 1])
+                    wandb.run.summary["PC+context target: TPs context vars"] = tps
+                    wandb.run.summary["PC+context target: FPs context vars"] = fps
 
+                plot_graph(context_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, context graph")
 
-            wandb.run.summary["PC+context target: TPs context vars"] = tps / config['num_vars']
-            wandb.run.summary["PC+context target: FPs context vars"] = fps / config['num_vars']
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(created_graph)
-            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                    edge_color=colors)
-            wandb.log({"PC+context (target clusters), context graph": wandb.Image(plt)})
-            plt.close()
-
-            created_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
-
-            wandb.run.summary["PC+context target: SHD"] = cdt.metrics.SHD(true_graph, created_graph, double_for_anticausal=False)
-            wandb.run.summary["PC+context target: SID"] = cdt.metrics.SID(true_graph, created_graph)
-            wandb.run.summary["PC+context target: CC"] = metrics.causal_correctness(true_graph, created_graph, mec)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(created_graph)
-            nx.draw(created_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                    edge_color=colors)
-            wandb.log({"PC+context, target clusters": wandb.Image(plt)})
-            plt.close()
-
-            '''
-            # JCI
-            model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
-            contextvars = range(len(variables), len(variables) + len(synth_dataset.partitions))
-            jci_graph = model_jci.predict(df, jci="123", contextvars=contextvars)
-            jci_graph.remove_nodes_from(list(df.columns.values[config['num_vars']:]))  # TODO: doublecheck
-
-            wandb.run.summary["JCI pred: SHD"] = cdt.metrics.SHD(true_graph, jci_graph, double_for_anticausal=False)
-            wandb.run.summary["JCI pred: SID"] = cdt.metrics.SID(true_graph, jci_graph)
-            wandb.run.summary["JCI pred: CC"] = metrics.causal_correctness(true_graph, jci_graph, mec)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(jci_graph)
-            nx.draw(jci_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                    edge_color=colors)
-            wandb.log({"JCI, pred clusters": wandb.Image(plt)})
-            plt.close()
-
-
-            model_jci = FCI(alpha=config["alpha"], CItest=config["citest"])
-            jci_target_graph = model_jci.predict(df_target, jci="123", contextvars=list(
-                range(len(variables), len(variables) + len(target_dataset.partitions))))
-            jci_target_graph.remove_nodes_from(list(df_target.columns.values[config['num_vars']:]))  # TODO: doublecheck
-
-            wandb.run.summary["JCI target: SHD"] = cdt.metrics.SHD(true_graph, jci_target_graph, double_for_anticausal=False)
-            wandb.run.summary["JCI target: SID"] = cdt.metrics.SID(true_graph, jci_target_graph)
-            wandb.run.summary["JCI target: CC"] = metrics.causal_correctness(true_graph, jci_target_graph, mec)
-
-            plt.figure(figsize=(6, 6))
-            colors = visual.get_colors(jci_target_graph)
-            nx.draw(jci_target_graph, with_labels=True, node_size=1000, node_color='w', edgecolors='black',
-                    edge_color=colors)
-            wandb.log({"JCI, target clusters": wandb.Image(plt)})
-            plt.close()
-
-            '''
             wandb.finish()
 
 
 
 if __name__ == '__main__':
     main()
-    # sweep_config = yaml.safe_load(open('sweep.yaml', 'r'))
-    # sweep_id = wandb.sweep(sweep_config, project="idiod")
-    # wandb.agent(sweep_id, main, count=800)
