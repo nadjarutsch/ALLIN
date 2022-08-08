@@ -5,7 +5,7 @@ defaults:
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: HDBSCAN cd (unnormalized context vars)
+  group: HDBSCAN cd (normalized context vars, LISA)
 graph:
   num_vars: 5
   structure: random
