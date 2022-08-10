@@ -1,11 +1,11 @@
 defaults:
   - causal_discovery: pc_gaussian
-  - clustering: target
+  - clustering: hdbscan
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: cluster membership values
+  group: soft clustering, normalized
 graph:
   num_vars: 5
   structure: random

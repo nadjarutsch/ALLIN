@@ -116,7 +116,8 @@ def main(cfg: DictConfig):
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
 
             if cfg.do.soft_clustering and cfg.clustering.name == "hdbscan":
-                synth_dataset.memberships = hdbscan.all_points_membership_vectors(clusterer)
+                memberships = hdbscan.all_points_membership_vectors(clusterer)
+                synth_dataset.memberships = memberships / np.sum(memberships,axis=1,keepdims=True)
 
             ########################
             ### CAUSAL DISCOVERY ###
