@@ -24,8 +24,9 @@ class TargetClusterer():
        # for i in range(1, self.num_vars + 1):
          #   true_target_labels[i * self.n_int, (i+1) * self.n_int]
          #   true_target_labels.extend([i] * self.n_int)
+
         for i in range(self.num_vars):
-            true_target_labels[self.n_obs + i * self.n_int] = i+1
+            true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i+1
 
         self.labels_ = true_target_labels
         return self
@@ -38,7 +39,7 @@ class ObservationalClusterer():
     def fit(self, features):
         #self.labels_ = [0] * self.n_obs + [-1] * (len(features) - self.n_obs)
         labels = np.zeros(shape=len(features))
-        labels[self.n_obs, len(features)] = -1
+        labels[self.n_obs:len(features)] = -1
         self.labels_ = labels
         return self
 
@@ -65,5 +66,5 @@ def match_clusters(pred, target):
     return int_targets
 
 
-def labels_to_one_hot(labels: np.array, max_label: int) -> np.array:
-    return np.eye(max_label)[labels]
+def labels_to_one_hot(labels: np.array, max_label: np.array) -> np.array:
+    return np.eye(int(max_label))[labels.astype(int)]

@@ -66,7 +66,7 @@ def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, save_to_file=F
         interventions.append(intervention_dict)
         
     # create dataset from observational and interventional data 
-    synth_dataset = data.PartitionData(features=features, targets=true_target_labels)
+    synth_dataset = data.PartitionData(features=features, targets=np.array(true_target_labels))
     
     # save dataset to disk and add the dataset to overview (json file)
     if save_to_file:
