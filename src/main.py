@@ -115,6 +115,9 @@ def main(cfg: DictConfig):
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, labels)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, labels)
 
+            if cfg.do.soft_clustering:
+                synth_dataset.memberships = hdbscan.all_points_membership_vectors(clusterer)
+
             ########################
             ### CAUSAL DISCOVERY ###
             ########################

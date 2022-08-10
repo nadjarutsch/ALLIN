@@ -5,7 +5,7 @@ defaults:
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: HDBSCAN cd (normalized context vars, LISA)
+  group: cluster membership values
 graph:
   num_vars: 5
   structure: random
@@ -25,6 +25,7 @@ do:
   cluster_discovery: False
   causal_discovery: True
   context_analysis: True
+  soft_clustering: True
 n_seeds: 50
 seed: -1
 

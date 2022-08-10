@@ -15,29 +15,28 @@ def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.Data
 def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
     data.set_random_intervention_targets()
     cols_int = ['I_%s' % i for i in range(len(data.partitions))]
-    
-    dfs = []
-    for partition, target in zip(data.partitions, data.intervention_targets): # if no intervention targets were explicitly set, data.intervention_targets consists of only one list with zeros
-    #    df_data = partition.features[...,:-1].reshape((-1,len(variables),1)).expand((-1,len(variables),2)).clone().numpy()
-    #    print(df_data[...,1].shape)
-    #    df_data[...,1] = np.broadcast_to(target, (df_data.shape[0], len(data.partitions)))
-    #    print(np.broadcast_to(target, (df_data.shape[0], len(data.partitions))))
-    #    df_data = df_data.reshape(-1, len(variables) * len(data.partitions))
-    #    df = pd.DataFrame(df_data)
-    #    print(df)
-    #    dfs.append(rename_df_cols(df, variables))
-         df_data = partition.features[...,:-1].clone().numpy()
-         df = pd.DataFrame(df_data)
-         # df = (df - df.mean()) / df.std()  # normalize
 
-         df.columns = variables
-         df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions)).clone().numpy()
+    if data.memberships is None:
+        dfs = []
+        for partition, target in zip(data.partitions, data.intervention_targets): # if no intervention targets were explicitly set, data.intervention_targets consists of only one list with zeros
+             df_data = partition.features[...,:-1].clone().numpy()
+             df = pd.DataFrame(df_data)
+             df = (df - df.mean()) / df.std()  # normalize
 
-         df = (df - df.mean()) / df.std()  # normalize
+             df.columns = variables
+             df[cols_int] = target.expand(partition.features.shape[0], len(data.partitions)).clone().numpy()
 
-         dfs.append(df)
-    
-    df = pd.concat(dfs)
+             # df = (df - df.mean()) / df.std()  # normalize
+
+             dfs.append(df)
+
+        df = pd.concat(dfs)
+    # use membership attribute in data object
+    else:
+        df = pd.DataFrame(data.features[...,:-1].clone().numpy())
+        df = (df - df.mean()) / df.std()  # normalize
+        df.columns = variables
+        df[cols_int] = data.memberships
     # drop data points without inferred intervention target
  #   drop_indices = ((df[cols_int] == 1).sum(axis=1) == 0).index[((df[cols_int] == 1).sum(axis=1) == 0)]
  #   df.drop(drop_indices)

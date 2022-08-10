@@ -7,6 +7,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from clustering.utils import *
+
 
 
 class PartitionData(Dataset):
@@ -40,6 +42,7 @@ class PartitionData(Dataset):
             self.partitions = [PartitionData(features=self.features, 
                                              targets=self.targets, 
                                              ispartition=True)]
+        self.memberships = None
             
         
 
@@ -50,19 +53,8 @@ class PartitionData(Dataset):
     def __getitem__(self, idx: int):
         """Returns the features and id of a single datapoint."""
         return self.features[idx,:-1], self.features[idx,-1].int().item()
-    
-    #def update_partitions(self, partitions: list[list[int]]):
-    #    """Creates new instances of PartitionData, according to the provided partitioning."""
-    #    partitions_lst = []
-    #    for lst in partitions:
-    #        indices = torch.tensor(lst).long()
-    #        partition_features = torch.index_select(self.features, 0, indices)
-    #        partitions_lst.append(PartitionData(features=partition_features,
-    #                                            targets=self.targets,
-    #                                            ispartition=True))
-    #    self.partitions = partitions_lst
 
-    def update_partitions(self, partitions: list[int]):
+    def update_partitions(self, partitions: np.array):
         """Creates new instances of PartitionData, according to the provided partitioning."""
         partitions_lst = []
         for label in set(partitions) - set([-1]):
@@ -72,6 +64,8 @@ class PartitionData(Dataset):
                                                 targets=self.targets,
                                                 ispartition=True))
         self.partitions = partitions_lst
+        self.features = self.features[partitions >= 0] # drop datapoints with negative labels (outliers)
+        self.memberships = labels_to_one_hot(partitions[partitions >= 0], np.max(partitions) + 1)
     
     def save_to_file(self, directory: str) -> str:
         """Saves the Dataset to a file, using a randomly generated unique identifier.
@@ -86,7 +80,7 @@ class PartitionData(Dataset):
         torch.save(self, os.path.join('..', 'data', directory, filename))
         return filename
     
-    def set_true_intervention_targets(self, ground_truth: list[int]): # TODO: deprecated, was only used for prototype
+    '''def set_true_intervention_targets(self, ground_truth: list[int]): # TODO: deprecated, was only used for prototype
         # lists of indices that belong to each cluster, 0-th cluster corresponds to observational data
         partitions = []
         num_vars = self.features.shape[-1] - 1
@@ -103,7 +97,7 @@ class PartitionData(Dataset):
     
         partitions.append(list(set(self.partitions[1].features[...,1][self.partitions[1].features[...,1] < ground_truth[0]].flatten().tolist())))
         self.intervention_targets.append(torch.ones(num_vars)) # set false positives to 1-vector
-        self.update_partitions(partitions)
+        self.update_partitions(partitions)''' # deprecated
 
     def set_random_intervention_targets(self):
         if len(self.partitions) > 1:
