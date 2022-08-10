@@ -33,6 +33,8 @@ def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFra
         df = pd.concat(dfs)
     # use membership attribute in data object
     else:
+        if len(data.features) != len(data.memberships):
+            data.features = data.features[data.labels >= 0]
         df = pd.DataFrame(data.features[...,:-1].clone().numpy())
         df = (df - df.mean()) / df.std()  # normalize
         df.columns = variables

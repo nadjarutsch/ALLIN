@@ -2,4 +2,5 @@ clusterer:
   _target_: hdbscan.HDBSCAN
   min_cluster_size: 5
   metric: euclidean
+  prediction_data: True
 name: hdbscan

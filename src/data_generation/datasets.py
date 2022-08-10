@@ -43,6 +43,7 @@ class PartitionData(Dataset):
                                              targets=self.targets, 
                                              ispartition=True)]
         self.memberships = None
+        self.labels = None
             
         
 
@@ -64,7 +65,8 @@ class PartitionData(Dataset):
                                                 targets=self.targets,
                                                 ispartition=True))
         self.partitions = partitions_lst
-        self.features = self.features[partitions >= 0] # drop datapoints with negative labels (outliers)
+        self.labels = partitions
+        #self.features = self.features[partitions >= 0] # drop datapoints with negative labels (outliers)
         self.memberships = labels_to_one_hot(partitions[partitions >= 0], np.max(partitions) + 1)
     
     def save_to_file(self, directory: str) -> str:
