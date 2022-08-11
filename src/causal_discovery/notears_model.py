@@ -28,7 +28,7 @@ class Notears():
                                self.rho_max,
                                self.w_threshold)
 
-        A_est = W_est > 0
+        A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
