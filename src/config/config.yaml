@@ -1,17 +1,17 @@
 defaults:
-  - causal_discovery: pc_gaussian
-  - clustering: target
+  - causal_discovery: notears
+  - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: soft clustering, normalized
+  group: notears test
 graph:
   num_vars: 5
   structure: random
   e_n: 2
 dist:
-  n_obs: 1000
+  n_obs: 10000
   int_ratio: 1
   obs_mean: 0.0
   obs_std: 0.1
@@ -21,10 +21,10 @@ oracle:
   n_int_targets: 5
 do:
   oracle: False
-  cluster: True
+  cluster: False
   cluster_discovery: False
   causal_discovery: True
-  context_analysis: True
+  context_analysis: False
   soft_clustering: False
 n_seeds: 50
 seed: -1
