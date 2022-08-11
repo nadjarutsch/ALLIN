@@ -125,8 +125,8 @@ def main(cfg: DictConfig):
 
             if cfg.do.causal_discovery:
                 cd_model = instantiate(cfg.causal_discovery.model)
-                df = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-                pred_graph = cd_model.predict(df)
+                data = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+                pred_graph = cd_model.predict(data)
                 context_graph = pred_graph.copy()
 
                 # logging
