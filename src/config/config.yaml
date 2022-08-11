@@ -5,7 +5,7 @@ defaults:
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: debug
+  group: soft clustering, normalized
 graph:
   num_vars: 5
   structure: random
