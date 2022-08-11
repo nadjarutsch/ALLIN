@@ -9,6 +9,8 @@ import data_generation.datasets as data
 def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
     if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
+    elif cfg.causal_discovery.name == "notears":
+        return variables, data.features[...,:-1].clone().numpy()
         
     
     
