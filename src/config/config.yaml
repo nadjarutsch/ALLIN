@@ -7,7 +7,7 @@ wandb:
   entity: nadjarutsch
   group: 20 variables
 graph:
-  num_vars: 5
+  num_vars: 20
   structure: random
   e_n: 2
 dist:
