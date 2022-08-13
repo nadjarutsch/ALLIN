@@ -67,7 +67,7 @@ class PartitionData(Dataset):
         self.partitions = partitions_lst
         self.labels = partitions
         #self.features = self.features[partitions >= 0] # drop datapoints with negative labels (outliers)
-        self.memberships = labels_to_one_hot(partitions[partitions >= 0], np.max(partitions) + 1)
+        #self.memberships = labels_to_one_hot(partitions[partitions >= 0], np.max(partitions) + 1)
     
     def save_to_file(self, directory: str) -> str:
         """Saves the Dataset to a file, using a randomly generated unique identifier.

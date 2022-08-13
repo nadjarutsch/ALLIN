@@ -1,11 +1,11 @@
 defaults:
-  - causal_discovery: notears
-  - clustering: none
+  - causal_discovery: pc_gaussian
+  - clustering: gmm
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: notears test
+  group: 20 variables
 graph:
   num_vars: 5
   structure: random
@@ -21,11 +21,10 @@ oracle:
   n_int_targets: 5
 do:
   oracle: False
-  cluster: False
+  cluster: True
   cluster_discovery: False
   causal_discovery: True
-  context_analysis: False
-  soft_clustering: False
+  context_analysis: True
 n_seeds: 50
 seed: -1
 

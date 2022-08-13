@@ -1,0 +1,5 @@
+clusterer:
+  _target_: clustering.gmm.GMM_soft
+  n_components: 6
+  random_state: ${seed}
+name: gmm_soft

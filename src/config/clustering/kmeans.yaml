@@ -1,5 +1,6 @@
 clusterer:
-  _target_: sklearn.cluster.KMeans
+  _target_: clustering.kmeans.Kmeans
   init: k-means++
   n_clusters: 6
+  soft: False
 name: kmeans

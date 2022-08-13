@@ -8,8 +8,10 @@ class RandomClusterer():
     def __init__(self, n_clusters):
         self.n_clusters = n_clusters
         self.labels_ = None
+        self.memberships_ = None
     def fit(self, features):
         self.labels_ = np.random.randint(low=0, high=self.n_clusters, size=len(features))
+        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
@@ -29,6 +31,7 @@ class TargetClusterer():
             true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i+1
 
         self.labels_ = true_target_labels
+        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
@@ -41,6 +44,7 @@ class ObservationalClusterer():
         labels = np.zeros(shape=len(features))
         labels[self.n_obs:len(features)] = -1
         self.labels_ = labels
+        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
@@ -49,6 +53,7 @@ class NoClusterer():
         self.labels_ = None
     def fit(self, features):
         self.labels_ = np.zeros(shape=len(features))
+        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
@@ -68,3 +73,4 @@ def match_clusters(pred, target):
 
 def labels_to_one_hot(labels: np.array, max_label: np.array) -> np.array:
     return np.eye(int(max_label))[labels.astype(int)]
+
