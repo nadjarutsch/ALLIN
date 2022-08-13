@@ -36,7 +36,7 @@ import hdbscan
 
 
 
-os.environ['WANDB_MODE'] = 'offline'
+# os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
