@@ -115,7 +115,7 @@ class CausalDAG(object):
         Parameters
         ----------
         interventions : dict
-                        Dictionary for specifing interventions that should be considered when sampling.
+                        Dictionary for specifying interventions that should be considered when sampling.
                         The keys should be variable names on which we intervene, and values can be
                         distributions in case of imperfect interventions, and values like a numpy array
                         otherwise. 
@@ -150,8 +150,7 @@ class CausalDAG(object):
         elif not isinstance(var_vals[0], np.ndarray):
             var_vals = np.array(var_vals)
         else:
-            for val in var_vals:
-                var_vals = np.stack(var_vals, axis=1)
+            var_vals = np.stack(tuple(var_vals), axis=-1)
         return var_vals
 
     def get_intervened_graph(self, interventions):

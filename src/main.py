@@ -107,7 +107,7 @@ def main(cfg: DictConfig):
 
             if str(cfg.clustering.name) == "kmeans": # TODO: with resolver (hydra)
                 cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
-            if str(cfg.clustering.name) == "gmm":
+            if "gmm" in str(cfg.clustering.name):
                 cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
 
             clusterer = instantiate(cfg.clustering.clusterer)
@@ -118,10 +118,6 @@ def main(cfg: DictConfig):
             wandb.log({"cluster sizes": wandb.Histogram(clusterer.labels_)})
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, clusterer.labels_)
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(synth_dataset.targets, clusterer.labels_)
-
-           # if cfg.do.soft_clustering and cfg.clustering.name == "hdbscan":
-           #     memberships = hdbscan.all_points_membership_vectors(clusterer)
-           #     synth_dataset.memberships = memberships / np.sum(memberships,axis=1,keepdims=True)
 
             ########################
             ### CAUSAL DISCOVERY ###
