@@ -51,6 +51,10 @@ def main(cfg: DictConfig):
     
     for seed in range(cfg.n_seeds):
         cfg.seed = seed
+        if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
+            cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
+        if "gmm" in str(cfg.clustering.name):
+            cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
         run = wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, group=cfg.wandb.group, notes='', tags=[], config=cfg, reinit=True)
         with run:
             #######################
@@ -104,11 +108,6 @@ def main(cfg: DictConfig):
             ##################
             ### CLUSTERING ###
             ##################
-
-            if str(cfg.clustering.name) == "kmeans": # TODO: with resolver (hydra)
-                cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
-            if "gmm" in str(cfg.clustering.name):
-                cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
 
             clusterer = instantiate(cfg.clustering.clusterer)
             clusterer.fit(synth_dataset.features[..., :-1])
