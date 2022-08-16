@@ -1,0 +1,10 @@
+model:
+  _target_: causal_discovery.pc.PC
+  alpha: 0.00001
+  indep_test: fisherz
+  stable: True
+  uc_rule: 1
+  uc_priority: 1
+  verbose: False
+  show_progress: True
+name: PC

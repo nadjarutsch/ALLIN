@@ -101,7 +101,7 @@ class PartitionData(Dataset):
         self.intervention_targets.append(torch.ones(num_vars)) # set false positives to 1-vector
         self.update_partitions(partitions)''' # deprecated
 
-    def set_random_intervention_targets(self):
+    def set_random_intervention_targets(self): # TODO: rename into set_unknown_context_vars
         if len(self.partitions) > 1:
             self.intervention_targets = []
 
