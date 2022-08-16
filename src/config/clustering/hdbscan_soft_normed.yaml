@@ -1,0 +1,6 @@
+clusterer:
+  _target_: clustering.hdbscan.HDBSCAN
+  min_cluster_size: 5
+  metric: euclidean
+  prediction_data: True
+name: hdbscan_soft_normed

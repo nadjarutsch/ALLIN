@@ -36,7 +36,7 @@ import hdbscan
 
 
 
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
@@ -112,6 +112,8 @@ def main(cfg: DictConfig):
             clusterer = instantiate(cfg.clustering.clusterer)
             clusterer.fit(synth_dataset.features[..., :-1])
             synth_dataset.memberships = clusterer.memberships_
+            if cfg.clustering.clusterer.name == "hdbscan_soft_normed":
+                synth_dataset.memberships = synth_dataset.memberships / np.sum(synth_dataset.memberships, axis=1, keepdims=True)
 
             synth_dataset.update_partitions(clusterer.labels_)
             wandb.log({"cluster sizes": wandb.Histogram(clusterer.labels_)})
