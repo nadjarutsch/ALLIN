@@ -10,7 +10,11 @@ def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.Data
     if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
     elif cfg.causal_discovery.name == "notears":
-        return variables, data.features[...,:-1].clone().numpy()
+        if not cfg.causal_discovery.normalized:
+            return variables, data.features[...,:-1].clone().numpy()
+        else:
+            features = data.features[...,:-1].clone().numpy()
+            return variables, (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
         
     
     
