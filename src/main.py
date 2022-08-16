@@ -49,7 +49,7 @@ def main(cfg: DictConfig):
         device = 'cpu'
 
     
-    for seed in range(cfg.n_seeds):
+    for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
         if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
             cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
