@@ -7,4 +7,3 @@ model:
   rho_max: 1e+16
   w_threshold: 0.3
 name: notears
-normalize: False
