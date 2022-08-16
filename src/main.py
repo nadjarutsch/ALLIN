@@ -112,7 +112,7 @@ def main(cfg: DictConfig):
             clusterer = instantiate(cfg.clustering.clusterer)
             clusterer.fit(synth_dataset.features[..., :-1])
             synth_dataset.memberships = clusterer.memberships_
-            if cfg.clustering.clusterer.name == "hdbscan_soft_normed":
+            if cfg.clustering.name == "hdbscan_soft_normed":
                 synth_dataset.memberships = synth_dataset.memberships / np.sum(synth_dataset.memberships, axis=1, keepdims=True)
 
             synth_dataset.update_partitions(clusterer.labels_)
