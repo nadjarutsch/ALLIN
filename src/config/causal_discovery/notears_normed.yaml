@@ -6,5 +6,5 @@ model:
   h_tol: 1e-8
   rho_max: 1e+16
   w_threshold: 0.3
-name: notears
+name: notears normed
 normalize: True
