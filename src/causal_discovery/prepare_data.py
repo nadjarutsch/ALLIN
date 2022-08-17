@@ -10,10 +10,17 @@ def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.Data
     if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
     elif cfg.causal_discovery.name == "notears":
-        return variables, data.features[...,:-1].clone().numpy()
+        X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
+        return variables, X
     elif cfg.causal_discovery.name == "notears normed":
         features = data.features[...,:-1].clone().numpy()
-        return variables, (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
+        features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
+        X = np.concatenate((features, data.memberships), axis=1)
+        return variables, X
+    elif cfg.causal_discovery.name == "PC known context":
+        # first cluster is observational, set all context vars to 0
+        data.memberships[data.memberships[:,0] == 1.0][:,0] = 0
+        return prepare_for_pc(data, variables)
         
     
     

@@ -1,13 +1,13 @@
 defaults:
-  - causal_discovery: pc_gaussian
-  - clustering: gmm
+  - causal_discovery: notears
+  - clustering: target
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: 20 variables
+  group: notears
 graph:
-  num_vars: 20
+  num_vars: 5
   structure: random
   e_n: 2
 dist:
