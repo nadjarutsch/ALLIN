@@ -5,7 +5,7 @@ defaults:
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: notears
+  group: test
 graph:
   num_vars: 5
   structure: random

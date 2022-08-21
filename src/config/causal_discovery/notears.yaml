@@ -3,7 +3,7 @@ model:
   lambda1: 0.1
   loss_type: l2c
   max_iter: 100000
-  h_tol: 1e-30
-  rho_max: 1e+30
+  h_tol: 1e-8
+  rho_max: 1e+15
   w_threshold: 0.3
 name: notears

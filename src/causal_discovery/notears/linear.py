@@ -38,17 +38,16 @@ def notears_linear(X, lambda1, loss_type, num_vars, max_iter=1000, h_tol=1e-8, r
             M = (X_in * sigmoid(C @ V)) @ U # TODO: check order
             R = X_in - M
             loss = 0.5 / X.shape[0] * (R ** 2).sum()
-         #   G_loss = - 1.0 / X.shape[0] * X.T @ R
             G_loss_U = - 1.0 / X.shape[0] * (X_in * sigmoid(C @ V)).T @ R
-            G_loss_V = - 1.0 / X.shape[0] * np.einsum('kl,l->kl', C.T @ (R * X_in * _sigmoid_der(C @ V)), U @ np.ones(num_vars))
+            G_loss_V = - 1.0 / X.shape[0] * C.T @ (X_in * sigmoid_der(C @ V) * (R @ U.T))
+            #G_loss_V = - 1.0 / X.shape[0] * np.einsum('kl,dl->kl', C.T @ (R * X_in), U)
          #   G_loss = np.concatenate((G_loss_U, G_loss_V), axis=1)
-           # G_loss[:num_vars,:num_vars] = G_loss_U
-           # G_loss[num_vars:,:num_vars] = G_loss_V
+
         else:
             raise ValueError('unknown loss type')
         return loss, G_loss_U, G_loss_V
 
-    def _sigmoid_der(X):
+    def sigmoid_der(X):
         return sigmoid(X) * (1 - sigmoid(X))
 
     def _h(W):
