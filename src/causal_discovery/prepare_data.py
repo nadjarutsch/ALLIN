@@ -9,7 +9,18 @@ import data_generation.datasets as data
 def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
     if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
-    elif cfg.causal_discovery.name == "notears":
+    elif cfg.causal_discovery.name == "pc_old":
+        return prepare_for_pc(data, variables)
+    elif cfg.causal_discovery.name == "pc_new":
+        if len(data.features) != len(data.memberships):
+            data.features = data.features[data.labels >= 0]
+        features = data.features[..., :-1].clone().numpy()
+        features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
+        #memberships = (data.memberships - np.mean(data.memberships, axis=0, keepdims=True)) / np.std(data.memberships, axis=0, keepdims=True)
+        memberships = data.memberships
+        X = np.concatenate((features, memberships), axis=1)
+        return variables, X
+    elif cfg.causal_discovery.name == "notears" or cfg.causal_discovery.name == "notears context":
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
         return variables, X
     elif cfg.causal_discovery.name == "notears normed":
