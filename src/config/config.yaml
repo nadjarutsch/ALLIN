@@ -1,5 +1,5 @@
 defaults:
-  - causal_discovery: notears
+  - causal_discovery: notears_context
   - clustering: target
   - _self_
 wandb:
