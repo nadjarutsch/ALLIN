@@ -64,7 +64,7 @@ class NotearsContext(Notears):
         C = np.eye(data.shape[1] - len(variables))
         A_est = np.zeros((data.shape[1], data.shape[1]))
         A_est[:len(variables), :len(variables)] = U_est != 0
-        A_est[len(variables):, :len(variables)] = sigmoid(C @ V_est) > self.v_threshold
+        A_est[len(variables):, :len(variables)] = sigmoid(C @ V_est) < self.v_threshold
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
