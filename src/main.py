@@ -35,7 +35,7 @@ import hdbscan
 
 
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
+# os.environ['HYDRA_FULL_ERROR'] = '1'
 # os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
