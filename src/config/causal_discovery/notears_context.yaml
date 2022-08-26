@@ -6,4 +6,4 @@ model:
   rho_max: 1e+16
   w_threshold: 0.3
   v_threshold: 0.3
-name: notears context
+name: notears context optimal V

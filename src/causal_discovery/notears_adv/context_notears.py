@@ -27,8 +27,9 @@ def context_notears_linear(X,
         """Evaluate value and gradient of loss."""
 
         #M = (X_in * sigmoid(C @ V)) @ U
-        CV = np.tensordot(C, V, axes=([1,0]))
-        M = np.einsum('nv,nvd->nd', X_in, sigmoid(CV) * W[None, :, :])
+        CV = np.tensordot(C, V, axes=([1, 0]))
+        gates = sigmoid(CV)
+        M = np.einsum('nv,nvd->nd', X_in, gates * W[None, :, :])
         #M = np.einsum('nv,nvd->nd', X_in, np.ones_like(sigmoid(CV)) * W[None, :, :])
 
         R = X_in - M
@@ -37,7 +38,7 @@ def context_notears_linear(X,
         #G_loss_V = - 1.0 / X.shape[0] * C.T @ (X_in * sigmoid_der(C @ V) * (R @ U.T))
         #G_loss_V = - 1.0 / X.shape[0] * np.einsum('kl,dl->kl', C.T @ (R * X_in), U)
      #   G_loss = np.concatenate((G_loss_U, G_loss_V), axis=1)
-        G_loss_W = - 1.0 / X.shape[0] * np.sum(R[:,None,:] * X_in[:,:,None] * sigmoid(CV), axis=0)
+        G_loss_W = - 1.0 / X.shape[0] * np.sum(R[:,None,:] * X_in[:,:,None] * gates, axis=0)
 
         #G_loss_W = - 1.0 / X.shape[0] * np.sum(R[:, None, :] * X_in[:, :, None] * np.ones_like(sigmoid(CV)), axis=0)
         '''

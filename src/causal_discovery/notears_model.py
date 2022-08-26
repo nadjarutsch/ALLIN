@@ -53,7 +53,7 @@ class NotearsContext(Notears):
     def predict(self, cd_input: tuple):
 
         variables, data = cd_input
-        U_est, V_est = context_notears_linear(X=data,
+        W_est = context_notears_linear(X=data,
                                               lambda1=self.lambda1,
                                               num_vars=len(variables),
                                               max_iter=self.max_iter,
@@ -61,10 +61,10 @@ class NotearsContext(Notears):
                                               rho_max=self.rho_max,
                                               w_threshold=self.w_threshold)
 
-        C = np.eye(data.shape[1] - len(variables))
-        A_est = np.zeros((data.shape[1], data.shape[1]))
-        A_est[:len(variables), :len(variables)] = U_est != 0
-        A_est[len(variables):, :len(variables)] = sigmoid(C @ V_est) < self.v_threshold
+      #  C = np.eye(data.shape[1] - len(variables))
+       # A_est = np.zeros((data.shape[1], data.shape[1]))
+        A_est = W_est != 0
+      #  A_est[len(variables):, :len(variables)] = sigmoid(C @ V_est) < self.v_threshold
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
