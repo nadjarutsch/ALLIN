@@ -279,7 +279,7 @@ def run_discover(makeup, device, data, use_wandb=False, debug=False):
 
         model.eval()
 
-        delta_constraint, data = constraint_eval(model)
+        delta_constraint, model_outputs = constraint_eval(model)
 
         with torch.no_grad():
             model.update( 
