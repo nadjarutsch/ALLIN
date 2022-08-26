@@ -23,28 +23,42 @@ def context_notears_linear(X,
     Returns:
         W_est (np.ndarray): [d, d] estimated DAG
     """
-    def _loss(U,V):
+    def _loss(W,V):
         """Evaluate value and gradient of loss."""
-        M = (X_in * sigmoid(C @ V)) @ U # TODO: check order
+
+        #M = (X_in * sigmoid(C @ V)) @ U
+        CV = np.tensordot(C, V, axes=([1,0]))
+        M = np.einsum('nv,nvd->nd', X_in, sigmoid(CV) * W[None, :, :])
+        #M = np.einsum('nv,nvd->nd', X_in, np.ones_like(sigmoid(CV)) * W[None, :, :])
+
         R = X_in - M
         loss = 0.5 / X.shape[0] * (R ** 2).sum()
-        G_loss_U = - 1.0 / X.shape[0] * (X_in * sigmoid(C @ V)).T @ R
-        G_loss_V = - 1.0 / X.shape[0] * C.T @ (X_in * sigmoid_der(C @ V) * (R @ U.T))
+        #G_loss_U = - 1.0 / X.shape[0] * (X_in * sigmoid(C @ V)).T @ R
+        #G_loss_V = - 1.0 / X.shape[0] * C.T @ (X_in * sigmoid_der(C @ V) * (R @ U.T))
         #G_loss_V = - 1.0 / X.shape[0] * np.einsum('kl,dl->kl', C.T @ (R * X_in), U)
      #   G_loss = np.concatenate((G_loss_U, G_loss_V), axis=1)
+        G_loss_W = - 1.0 / X.shape[0] * np.sum(R[:,None,:] * X_in[:,:,None] * sigmoid(CV), axis=0)
 
-        return loss, G_loss_U, G_loss_V
+        #G_loss_W = - 1.0 / X.shape[0] * np.sum(R[:, None, :] * X_in[:, :, None] * np.ones_like(sigmoid(CV)), axis=0)
+        '''
+        M = X_in @ W
 
-    def sigmoid_der(X):
-        return sigmoid(X) * (1 - sigmoid(X))
+        R = X_in - M
+        loss = 0.5 / X.shape[0] * (R ** 2).sum()
+        G_loss_W = - 1.0 / X.shape[0] * X_in.T @ R
+        '''
+
+        return loss, G_loss_W
+
+    def sigmoid_der(x):
+        return sigmoid(x) * (1 - sigmoid(x))
 
     def _h(W):
         """Evaluate value and gradient of acyclicity constraint."""
-     #   U, V = W[:num_vars, :num_vars], W[num_vars:, :num_vars]
         E = slin.expm(W * W)  # (Zheng et al. 2018)
-        h = np.trace(E) - d
+        h = np.trace(E) - num_vars
         #     # A different formulation, slightly faster at the cost of numerical stability
-        #     M = np.eye(d) + U * U / d  # (Yu et al. 2019)
+        #     M = np.eye(d) + W * W / d  # (Yu et al. 2019)
         #     E = np.linalg.matrix_power(M, d - 1)
         #     h = (E.T * M).sum() - d
         G_h = E.T * W * 2
@@ -56,30 +70,29 @@ def context_notears_linear(X,
 
     def _func(w):
         """Evaluate value and gradient of augmented Lagrangian for doubled variables ([2 d^2] array)."""
-        u,v = w[:2 * num_vars * num_vars], w[2 * num_vars * num_vars:]
-        U,V = _adj(u, dim1=num_vars, dim2=num_vars), _adj(v, dim1=d-num_vars, dim2=num_vars) #v.reshape([d-num_vars, num_vars])
-        loss, G_loss_U, G_loss_V = _loss(U, V)
-        h, G_h = _h(U)
-        obj = loss + 0.5 * rho * h * h + alpha * h + lambda1 * u.sum()
-       # temp = np.zeros_like(G_loss_U)
-      #  temp =
-        G_smooth_U = G_loss_U + (rho * h + alpha) * G_h
-        G_U = np.concatenate((G_smooth_U + lambda1, - G_smooth_U + lambda1), axis=None)
-        G_V = np.concatenate((G_loss_V + lambda1, - G_loss_V + lambda1), axis=None)
+      #  u,v = w[:2 * num_vars * num_vars], w[2 * num_vars * num_vars:]
+      #  U,V = _adj(u, dim1=num_vars, dim2=num_vars), _adj(v, dim1=d-num_vars, dim2=num_vars) #v.reshape([d-num_vars, num_vars])
+        W = _adj(w, dim1=num_vars, dim2=num_vars)
+        loss, G_loss_W = _loss(W, V)
+        h, G_h = _h(W)
+        obj = loss + 0.5 * rho * h * h + alpha * h + lambda1 * w.sum()
+        G_smooth_W = G_loss_W + (rho * h + alpha) * G_h
+        g_obj = np.concatenate((G_smooth_W + lambda1, - G_smooth_W + lambda1), axis=None)
+        # G_V = np.concatenate((G_loss_V + lambda1, - G_loss_V + lambda1), axis=None)
         # G_V = G_loss_V.flatten()
-        g_obj = np.concatenate((G_U, G_V))
+        # g_obj = np.concatenate((G_U, G_V))
         return obj, g_obj
 
     X_in, C = X[:, :num_vars], X[:, num_vars:]
-    n, d = X.shape # TODO: add dimension?
+    n, d = X.shape
+    V = np.ones((d - num_vars, num_vars, num_vars)) * 10 # all gates open for test
+    V[list(range(1, num_vars+1)), ..., list(range(num_vars))] = -10
    # d1, d2 = num_vars, d - num_vars
 
-    u_est, rho, alpha, h = np.random.normal(loc=0.0, scale=0.1, size=(2*num_vars*num_vars)), 1.0, 0.0, np.inf
-    v_est = np.random.normal(loc=1.0, size=(2 * (d - num_vars) * num_vars))
-    # w_est, rho, alpha, h = np.random.normal(size=(2 * d * d)), 1.0, 0.0, np.inf  # double w_est into (w_pos, w_neg)
-    w_est = np.concatenate((u_est, v_est))
+    w_est, rho, alpha, h = np.zeros(2*num_vars*num_vars), 1.0, 0.0, np.inf
+   # v_est = np.random.normal(loc=1.0, size=(2 * (d - num_vars) * num_vars))
     bnds = [(0, 0) if i == j else (0, None) for _ in range(2) for i in range(num_vars) for j in range(num_vars)]
-    bnds.extend([(None, None) for _ in range(2) for i in range(d - num_vars) for j in range(num_vars)])
+   # bnds.extend([(None, None) for _ in range(2) for i in range(d - num_vars) for j in range(num_vars)])
 
     X_in = X_in - np.mean(X_in, axis=0, keepdims=True) # normalize input (zero-center)
     for _ in range(max_iter):
@@ -87,7 +100,7 @@ def context_notears_linear(X,
         while rho < rho_max:
             sol = sopt.minimize(_func, w_est, method='L-BFGS-B', jac=True, bounds=bnds)
             w_new = sol.x
-            h_new, _ = _h(_adj(w_new[:2 * num_vars * num_vars], dim1=num_vars, dim2=num_vars))
+            h_new, _ = _h(_adj(w_new, dim1=num_vars, dim2=num_vars))
             if h_new > 0.25 * h:
                 rho *= 10
             else:
@@ -97,10 +110,10 @@ def context_notears_linear(X,
         if h <= h_tol or rho >= rho_max:
             break
 
-    U_est = _adj(w_new[:2 * num_vars * num_vars], dim1=num_vars, dim2=num_vars)
+    W_est = _adj(w_est, dim1=num_vars, dim2=num_vars)
     # V_est = w_new[2*num_vars*num_vars:].reshape([d-num_vars,num_vars])
-    V_est = _adj(w_new[2 * num_vars * num_vars:], dim1=d-num_vars, dim2=num_vars)
-    U_est[np.abs(U_est) < w_threshold] = 0
-    # V_est[np.abs(V_est) < w_threshold] = 0
-    return U_est, V_est
+    #V_est = _adj(w_new[2 * num_vars * num_vars:], dim1=d-num_vars, dim2=num_vars)
+    W_est[np.abs(W_est) < w_threshold] = 0
+
+    return W_est
 

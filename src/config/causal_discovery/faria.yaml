@@ -1,0 +1,7 @@
+model:
+  _target_: causal_discovery.faria_model.Faria
+  modeltype: linear
+  device: ${device}
+  seed: ${seed}
+  batch_size: 128
+name: faria

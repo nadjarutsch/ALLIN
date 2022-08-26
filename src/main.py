@@ -35,7 +35,7 @@ import hdbscan
 
 
 
-
+os.environ['HYDRA_FULL_ERROR'] = '1'
 # os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
@@ -43,10 +43,10 @@ def main(cfg: DictConfig):
     
     if torch.cuda.is_available():
         cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
-        device = 'cuda:0'
+        cfg.device = 'cuda:0'
     else:
         cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
-        device = 'cpu'
+        cfg.device = 'cpu'
 
     
     for seed in range(cfg.start_seed, cfg.end_seed):

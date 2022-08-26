@@ -1,16 +1,21 @@
 import pandas as pd
 import numpy as np
 
-import data_generation.datasets as data
+from data_generation.datasets import *
 
 
 
 
-def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
     if cfg.causal_discovery.name == "PC":
         return prepare_for_pc(data, variables)
+
+    elif cfg.causal_discovery.name == "faria":
+        return variables, OnlyFeatures(features=data.features[..., :-1])
+
     elif cfg.causal_discovery.name == "pc_old":
         return prepare_for_pc(data, variables)
+
     elif cfg.causal_discovery.name == "pc_new":
         if len(data.features) != len(data.memberships):
             data.features = data.features[data.labels >= 0]
@@ -20,14 +25,17 @@ def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.Data
         memberships = data.memberships
         X = np.concatenate((features, memberships), axis=1)
         return variables, X
-    elif cfg.causal_discovery.name == "notears" or cfg.causal_discovery.name == "notears context":
+
+    elif cfg.causal_discovery.name == "notears" or "notears context" in cfg.causal_discovery.name:
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
         return variables, X
+
     elif cfg.causal_discovery.name == "notears normed":
         features = data.features[...,:-1].clone().numpy()
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
         X = np.concatenate((features, data.memberships), axis=1)
         return variables, X
+
     elif cfg.causal_discovery.name == "PC known context":
         # first cluster is observational, set all context vars to 0
         data.memberships[data.memberships[:,0] == 1.0][:,0] = 0
@@ -35,7 +43,7 @@ def prepare_data(cfg, data: data.PartitionData, variables: list[str]) -> pd.Data
         
     
     
-def prepare_for_pc(data: data.PartitionData, variables: list[str]) -> pd.DataFrame:
+def prepare_for_pc(data: PartitionData, variables: list[str]) -> pd.DataFrame:
     data.set_random_intervention_targets()
     cols_int = ['I_%s' % i for i in range(len(data.partitions))]
 

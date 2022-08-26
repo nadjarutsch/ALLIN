@@ -1,17 +1,17 @@
 defaults:
-  - causal_discovery: notears_context
-  - clustering: target
+  - causal_discovery: faria
+  - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: test
+  group: faria test
 graph:
   num_vars: 5
   structure: random
   e_n: 2
 dist:
-  n_obs: 10000
+  n_obs: 2000
   int_ratio: 1
   obs_mean: 0.0
   obs_std: 0.1
@@ -24,8 +24,8 @@ do:
   cluster: True
   cluster_discovery: False
   causal_discovery: True
-  context_analysis: True
+  context_analysis: False
 end_seed: 50
 start_seed: 0
 seed: -1
-
+device: cpu

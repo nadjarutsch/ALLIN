@@ -10,6 +10,16 @@ from torch.utils.data import Dataset
 from clustering.utils import *
 
 
+class OnlyFeatures(Dataset):
+    def __init__(self, features: torch.Tensor):
+        self.features = features
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, idx):
+        return self.features[idx, ...]
+
 
 class PartitionData(Dataset):
     """Dataset that can be partitioned into subsets. Initially, the dataset is 
