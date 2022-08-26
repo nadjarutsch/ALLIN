@@ -3,8 +3,8 @@ model:
   alpha: 0.00001
   indep_test: fisherz
   stable: True
-  uc_rule: 1
+  uc_rule: 0
   uc_priority: 1
   verbose: False
   show_progress: True
-name: PC
+name: pc_python

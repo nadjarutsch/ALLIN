@@ -13,13 +13,11 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
     elif cfg.causal_discovery.name == "faria":
         return variables, OnlyFeatures(features=data.features[..., :-1])
 
-    elif cfg.causal_discovery.name == "pc_old":
-        return prepare_for_pc(data, variables)
-
-    elif cfg.causal_discovery.name == "pc_new":
+    elif cfg.causal_discovery.name == "pc_python":
         if len(data.features) != len(data.memberships):
             data.features = data.features[data.labels >= 0]
         features = data.features[..., :-1].clone().numpy()
+        # normalize
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
         #memberships = (data.memberships - np.mean(data.memberships, axis=0, keepdims=True)) / np.std(data.memberships, axis=0, keepdims=True)
         memberships = data.memberships

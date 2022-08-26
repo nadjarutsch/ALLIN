@@ -1,11 +1,11 @@
 defaults:
-  - causal_discovery: notears
+  - causal_discovery: pc_gaussian
   - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: notears+context same mean
+  group: causallearn test
 graph:
   num_vars: 5
   structure: random
@@ -14,8 +14,8 @@ dist:
   n_obs: 2000
   int_ratio: 1
   obs_mean: 0.0
-  obs_std: 0.5
-  int_mean: 0.0
+  obs_std: 0.1
+  int_mean: 1.0
   int_std: ${dist.obs_std}
 oracle:
   n_int_targets: 5

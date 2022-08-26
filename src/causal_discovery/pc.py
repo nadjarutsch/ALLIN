@@ -3,6 +3,7 @@ from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 import numpy as np
 from typing import Union
+import networkx as nx
 
 
 class PC:
@@ -23,9 +24,10 @@ class PC:
         self.show_progress = show_progress
 
     def predict(self,
-                data: np.ndarray,
+                cd_input: tuple,
                 background_knowledge: Union[BackgroundKnowledge, None] = None):
 
+        variables, data = cd_input
         pred_graph = pc(data=data,
                         alpha=self.alpha,
                         indep_test=self.indep_test,
@@ -36,4 +38,7 @@ class PC:
                         verbose=self.verbose,
                         show_progress=self.show_progress)
 
-        return pred_graph.nx_graph
+        pred_graph.to_nx_graph()
+        mapping = dict(zip(range(len(variables)), variables))
+
+        return nx.relabel_nodes(pred_graph.nx_graph, mapping)
