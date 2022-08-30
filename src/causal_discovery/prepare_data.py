@@ -13,7 +13,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
     elif cfg.causal_discovery.name == "faria":
         return variables, OnlyFeatures(features=data.features[..., :-1])
 
-    elif cfg.causal_discovery.name == "pc_causallearn":
+    elif "pc_causallearn" in cfg.causal_discovery.name:
         if len(data.features) != len(data.memberships):
             data.features = data.features[data.labels >= 0]
         features = data.features[..., :-1].clone().numpy()
