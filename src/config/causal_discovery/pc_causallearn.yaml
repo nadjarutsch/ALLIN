@@ -7,4 +7,4 @@ model:
   uc_priority: 1
   verbose: False
   show_progress: True
-name: pc_python
+name: pc_causallearn

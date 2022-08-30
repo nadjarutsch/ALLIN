@@ -1,13 +1,13 @@
 defaults:
-  - causal_discovery: pc_gaussian
+  - causal_discovery: pc_causallearn
   - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: causallearn test
+  group: causallearn vs pcalg
 graph:
-  num_vars: 5
+  num_vars: 10
   structure: random
   e_n: 2
 dist:

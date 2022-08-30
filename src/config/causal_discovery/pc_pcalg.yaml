@@ -1,0 +1,11 @@
+model:
+  _target_: causal_discovery.pc_pcalg.PC
+  CItest: gaussian
+  alpha: 0.00001
+  m_max: Inf
+  u2pd: relaxed
+  skel_method: stable
+  conservative: False
+  maj_rule: True
+  solve_confl: True
+name: pc_pcalg
