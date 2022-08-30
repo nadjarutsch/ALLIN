@@ -21,7 +21,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
         #memberships = (data.memberships - np.mean(data.memberships, axis=0, keepdims=True)) / np.std(data.memberships, axis=0, keepdims=True)
         memberships = data.memberships
-        X = (np.concatenate((features, memberships), axis=1)).astype(np.double)
+        X = np.concatenate((features, memberships), axis=1, dtype=double)
         return variables, X
 
     elif cfg.causal_discovery.name == "notears" or "notears context" in cfg.causal_discovery.name:
