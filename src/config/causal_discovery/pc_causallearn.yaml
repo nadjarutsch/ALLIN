@@ -8,3 +8,4 @@ model:
   verbose: False
   show_progress: True
 name: pc_causallearn
+background_knowledge: True

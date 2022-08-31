@@ -1,6 +1,6 @@
 defaults:
   - causal_discovery: pc_causallearn
-  - clustering: none
+  - clustering: target
   - _self_
 wandb:
   project: idiod_0.2

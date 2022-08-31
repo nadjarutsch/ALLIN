@@ -24,19 +24,21 @@ class PC:
         self.show_progress = show_progress
 
     def predict(self,
-                cd_input: tuple,
-                background_knowledge: Union[BackgroundKnowledge, None] = None):
+                cd_input: tuple):
 
-        variables, data = cd_input
+        variables, data, bk = cd_input
+        int_vars = ['I_%s' % i for i in range(data.shape[1] - len(variables))]
+
         pred_graph = pc(data=data,
                         alpha=self.alpha,
                         indep_test=self.indep_test,
                         stable=self.stable,
                         uc_rule=self.uc_rule,
                         uc_priority=self.uc_priority,
-                        background_knowledge=background_knowledge,
+                        background_knowledge=bk,
                         verbose=self.verbose,
-                        show_progress=self.show_progress)
+                        show_progress=self.show_progress,
+                        node_names=variables+int_vars)
 
         pred_graph.to_nx_graph()
         mapping = dict(zip(range(len(variables)), variables))

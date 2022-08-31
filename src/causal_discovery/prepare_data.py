@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from data_generation.datasets import *
-
+from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
 
@@ -19,10 +19,16 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         features = data.features[..., :-1].clone().numpy()
         # normalize
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
-        #memberships = (data.memberships - np.mean(data.memberships, axis=0, keepdims=True)) / np.std(data.memberships, axis=0, keepdims=True)
+        # memberships = (data.memberships - np.mean(data.memberships, axis=0, keepdims=True)) / np.std(data.memberships, axis=0, keepdims=True)
         memberships = data.memberships
         X = np.concatenate((features, memberships), axis=1, dtype=np.double)
-        return variables, X
+
+        if cfg.causal_discovery.background_knowledge:
+            bk = BackgroundKnowledge()
+            bk.add_forbidden_by_pattern(".*", "I_.*")
+            return variables, X, bk
+        else:
+            return variables, X, None
 
     elif cfg.causal_discovery.name == "notears" or "notears context" in cfg.causal_discovery.name:
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
