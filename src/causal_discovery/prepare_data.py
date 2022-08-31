@@ -26,6 +26,12 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         if cfg.causal_discovery.background_knowledge:
             bk = BackgroundKnowledge()
             bk.add_forbidden_by_pattern(".*", "I_.*")
+
+            if cfg.causal_discovery.known_targets:
+                assert cfg.clustering.name == "target", f"Known intervention targets only available for target clustering. Clustering is {cfg.clustering.name}."
+                for idx, var in enumerate(variables):
+                    bk.add_required_by_pattern(f"I_{idx+1}", var)
+
             return variables, X, bk
         else:
             return variables, X, None
