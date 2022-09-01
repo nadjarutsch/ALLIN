@@ -4,7 +4,7 @@ model:
   alpha: 0.00001
   m_max: Inf
   u2pd: relaxed
-  skel_method: stable
+  skel_method: stable.fast
   conservative: False
   maj_rule: True
   solve_confl: True

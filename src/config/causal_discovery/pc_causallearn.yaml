@@ -4,7 +4,7 @@ model:
   indep_test: fisherz
   stable: True
   uc_rule: 0
-  uc_priority: 1
+  uc_priority: 4
   verbose: False
   show_progress: True
 name: pc_causallearn
