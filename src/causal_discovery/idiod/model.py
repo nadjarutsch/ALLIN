@@ -17,9 +17,9 @@ class IDIOD(nn.Module):
                  w_threshold=0.3,
                  batch_size=128,
                  max_epochs=10,
-                 device='cuda:0'):
+                 device='cpu'):
         super().__init__()
-        self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ))).to(device)
+        self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ))).to('cuda:0')
         self.lambda1 = lambda1
         self.loss_type = loss_type
         self.max_iter = max_iter
