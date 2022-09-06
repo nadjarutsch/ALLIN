@@ -93,9 +93,9 @@ class IDIOD(nn.Module):
 
             for i, x in enumerate(dataloader):
                 optimizer.zero_grad()
-                W = torch.zeros(size=(self.d, self.d), requires_grad=False)
-                W[torch.tril(torch.ones_like(W, requires_grad=False), diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
-                W[torch.triu(torch.ones_like(W, requires_grad=False), diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
+                W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
+                W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
+                W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
                 x = x.to(self.device)
                 loss = self._loss(x, W)
                 h = self._h(W)
