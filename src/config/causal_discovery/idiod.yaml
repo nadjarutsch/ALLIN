@@ -1,0 +1,12 @@
+model:
+  _target_: causal_discovery.idiod.model.IDIOD
+  d: ${graph.num_vars}
+  lambda1: 0.1
+  loss_type: l2
+  max_iter: 100
+  h_tol: 1e-8
+  rho_max: 1e+16
+  w_threshold: 0.5
+  max_epochs: 100
+  device: ${device}
+name: notears pytorch

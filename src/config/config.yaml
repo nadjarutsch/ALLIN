@@ -1,11 +1,11 @@
 defaults:
-  - causal_discovery: pc_causallearn
+  - causal_discovery: idiod
   - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: causallearn vs pcalg
+  group: notears pytorch
 graph:
   num_vars: 10
   structure: random
@@ -14,7 +14,7 @@ dist:
   n_obs: 2000
   int_ratio: 1
   obs_mean: 0.0
-  obs_std: 0.1
+  obs_std: 0.7
   int_mean: 1.0
   int_std: ${dist.obs_std}
 oracle:
@@ -24,7 +24,7 @@ do:
   cluster: True
   cluster_discovery: False
   causal_discovery: True
-  context_analysis: False
+  context_analysis: True
 end_seed: 50
 start_seed: 0
 seed: -1
