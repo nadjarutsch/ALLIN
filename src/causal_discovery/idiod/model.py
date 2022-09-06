@@ -82,7 +82,7 @@ class IDIOD(nn.Module):
         for _ in range(self.max_epochs):
           #  print(_)
 
-            W = torch.zeros(size=(self.d, self.d), requires_grad=False)
+            W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
             W[torch.tril(torch.ones_like(W, requires_grad=False), diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
             W[torch.triu(torch.ones_like(W, requires_grad=False), diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
             loss_old = self._loss(dataset.features, W)
