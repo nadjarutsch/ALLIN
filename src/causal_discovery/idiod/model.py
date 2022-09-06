@@ -44,6 +44,7 @@ class IDIOD(nn.Module):
         if self.loss_type == 'l2':
             data = data - torch.mean(data, axis=0, keepdims=True)
 
+        data = data.to(self.device) # TODO: later in eval, batch-wise
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
