@@ -19,7 +19,7 @@ class IDIOD(nn.Module):
                  max_epochs=10,
                  device='cpu'):
         super().__init__()
-        self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), )).to(device))
+        self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), )))
      #   self.w_est = self.w_est.to(device)
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -83,9 +83,10 @@ class IDIOD(nn.Module):
         for _ in range(self.max_epochs):
           #  print(_)
 
-            W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
+            W = torch.zeros(size=(self.d, self.d), requires_grad=False)
             W[torch.tril(torch.ones_like(W, requires_grad=False), diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
             W[torch.triu(torch.ones_like(W, requires_grad=False), diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
+            W = W.to(self.device)
             loss_old = self._loss(dataset.features, W)
             obj_old = loss_old + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             self.train()
