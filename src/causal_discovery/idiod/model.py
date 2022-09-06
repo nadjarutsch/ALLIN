@@ -62,7 +62,7 @@ class IDIOD(nn.Module):
         W_est[torch.abs(W_est) < self.w_threshold] = 0
     #    print(W_est)
         A_est = W_est != 0
-        pred_graph = nx.from_numpy_array(A_est.detach().numpy(), create_using=nx.DiGraph)
+        pred_graph = nx.from_numpy_array(A_est.detach().cpu()numpy(), create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
         return nx.relabel_nodes(pred_graph, mapping)
