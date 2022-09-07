@@ -200,7 +200,7 @@ class IDIOD(nn.Module):
         # pretrain
         print("\n Starting pretraining...")
         optimizer = optim.Adam(self.parameters(), lr=0.001)
-        rho, alpha, h = self.optimize_lagrangian(data, optimizer, self._loss, rho, alpha, h)
+        rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h, optimizer)
 
         # learn distribution assignments
         print("\n Searching for interventional data...")
@@ -209,7 +209,7 @@ class IDIOD(nn.Module):
 
         optimizer = optim.Adam(list(self.w_est), lr=0.001)
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
-        rho, alpha, h = self.optimize_lagrangian(data, optimizer, self._idiod_loss, rho, alpha, h)
+        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, optimizer)
 
         W_est = self.w_est.detach().cpu().numpy()
         W_est[np.abs(W_est) < self.w_threshold] = 0
