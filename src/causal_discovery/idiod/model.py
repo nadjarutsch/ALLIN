@@ -189,6 +189,9 @@ class IDIOD(nn.Module):
         self.bias_obs = nn.Parameter(torch.zeros(size=(d, ), device=device))
         self.bias_int = nn.Parameter(torch.zeros(size=(d, ), device=device))
 
+       # self.mlp.state_dict()
+        list(self.mlp.state_dict().values())[-1].copy_(torch.ones_like(self.bias_obs) * 10)
+
     def predict(self, cd_input: tuple):
         variables, data = cd_input
 
