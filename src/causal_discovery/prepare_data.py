@@ -10,7 +10,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
 
-    elif "notears pytorch" in cfg.causal_discovery.name:
+    elif "notears pytorch" or "idiod" in cfg.causal_discovery.name:
         return variables, data.features[..., :-1]
 
     elif cfg.causal_discovery.name == "faria":

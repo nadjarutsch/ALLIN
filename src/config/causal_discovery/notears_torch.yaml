@@ -1,5 +1,5 @@
 model:
-  _target_: causal_discovery.idiod.model.IDIOD
+  _target_: causal_discovery.idiod.model.NOTEARSTorch
   d: ${graph.num_vars}
   lambda1: 0.1
   loss_type: l2
@@ -10,4 +10,4 @@ model:
   max_epochs: 100
   device: ${device}
   patience: 10
-name: idiod
+name: notears torch
