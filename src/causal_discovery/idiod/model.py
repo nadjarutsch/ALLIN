@@ -20,6 +20,7 @@ class IDIOD(nn.Module):
                  batch_size=128,
                  max_epochs=10,
                  device='cpu',
+                 patience=10,
                  path=os.path.join('causal_discovery', 'idiod', 'saved_models')):
         super().__init__()
         #self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ), device=device))
@@ -38,6 +39,7 @@ class IDIOD(nn.Module):
         self.register_buffer('weight_update_mask', torch.ones_like(self.w_fixed, dtype=torch.bool).fill_diagonal_(0))
         self.path = os.path.join(path, str(uuid.uuid1()))
         os.makedirs(self.path)
+        self.patience = patience
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -115,7 +117,7 @@ class IDIOD(nn.Module):
             else:
                 stop_count += 1
         #    pbar.set_description(f"Loss: {obj_new}")
-            if stop_count >= 5:
+            if stop_count >= self.patience:
                 break
 
         self.w_est = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['w_est'].to(self.device))
