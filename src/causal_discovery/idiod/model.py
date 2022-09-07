@@ -37,8 +37,6 @@ class IDIOD(nn.Module):
     def predict(self, cd_input: tuple):
         variables, data = cd_input
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
-   #     rho = rho.detach()
-   #     alpha = alpha.detach()
 
         self.eval()
         if self.loss_type == 'l2':
@@ -67,26 +65,19 @@ class IDIOD(nn.Module):
 
         return nx.relabel_nodes(pred_graph, mapping)
 
-    #def init_params(self, d):
-     #   self.w_est = torch.zeros(2 * d * d)  # double w_est into (w_pos, w_neg)
-
     def optimize(self, rho, h, alpha, data):
-      #  self.train()
         dataset = OnlyFeatures(features=data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-      #  optimizer = optim.LBFGS(self.parameters(), lr=1)
         optimizer = optim.Adam(self.parameters(), lr=0.001)
-      #  scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.999)
+        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
       #  pbar = tqdm(range(self.max_epochs))
-        patience = 0
+        train_losses = []
+        best_epoch, stop_count = 0
+
         for _ in range(self.max_epochs):
           #  print(_)
             W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
-        #    W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
-         #   bool_mat = torch.ones_like(W, requires_grad=False, device=self.device)
-         #   W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
-         #   W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
             loss_old = self._loss(dataset.features, W)
             obj_old = loss_old + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             self.train()
@@ -94,9 +85,6 @@ class IDIOD(nn.Module):
             for i, x in enumerate(dataloader):
                 optimizer.zero_grad()
                 W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
-          #      W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
-          #      W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
-          #      W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
                 x = x.to(self.device)
                 loss = self._loss(x, W)
                 h = self._h(W)
@@ -105,19 +93,18 @@ class IDIOD(nn.Module):
                 obj.backward()
                 optimizer.step()
 
-
-          #  scheduler.step()
+            scheduler.step()
 
             self.eval()
             loss_new = self._loss(dataset.features, W)
             obj_new = loss_new + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
         #    pbar.set_description(f"Loss: {obj_new}")
             if obj_old - obj_new < 1e-3 * obj_old:
-                patience += 1
-                if patience >= 5:
+                stop_count += 1
+                if stop_count >= 5:
                     break
             else:
-                patience = 0
+                stop_count = 0
 
 
         return W
