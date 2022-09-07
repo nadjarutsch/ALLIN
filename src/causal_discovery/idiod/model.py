@@ -19,8 +19,8 @@ class IDIOD(nn.Module):
                  max_epochs=10,
                  device='cpu'):
         super().__init__()
-        self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), )).to(device))
-     #   self.w_est = self.w_est.to(device)
+        #self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ), device=device))
+        self.w_est = nn.Parameter(torch.zeros(size=(d, d), device=device))
         self.lambda1 = lambda1
         self.loss_type = loss_type
         self.max_iter = max_iter
@@ -31,8 +31,8 @@ class IDIOD(nn.Module):
         self.max_epochs = max_epochs
         self.d = d
         self.device = device
-
-
+        self.w_fixed = torch.zeros(size=(d, d), requires_grad=False, device=device)
+        self.register_buffer('weight_update_mask', torch.ones_like(self.w_fixed, dtype=torch.bool).fill_diagonal_(0))
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -82,20 +82,21 @@ class IDIOD(nn.Module):
         patience = 0
         for _ in range(self.max_epochs):
           #  print(_)
-
-            W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
-            bool_mat = torch.ones_like(W, requires_grad=False, device=self.device)
-            W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
-            W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
+            W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
+        #    W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
+         #   bool_mat = torch.ones_like(W, requires_grad=False, device=self.device)
+         #   W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
+         #   W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
             loss_old = self._loss(dataset.features, W)
             obj_old = loss_old + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             self.train()
 
             for i, x in enumerate(dataloader):
                 optimizer.zero_grad()
-                W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
-                W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
-                W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
+                W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
+          #      W = torch.zeros(size=(self.d, self.d), requires_grad=False).to(self.device)
+          #      W[torch.tril(bool_mat, diagonal=-1).to(dtype=bool)] = self.w_est[:int(self.d * (self.d - 1) / 2)]
+          #      W[torch.triu(bool_mat, diagonal=1).to(dtype=bool)] = self.w_est[int(self.d * (self.d - 1) / 2):]
                 x = x.to(self.device)
                 loss = self._loss(x, W)
                 h = self._h(W)
