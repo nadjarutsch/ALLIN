@@ -99,7 +99,7 @@ class IDIOD(nn.Module):
                 obj.backward()
                 optimizer.step()
 
-            scheduler.step()
+            # scheduler.step()
 
             self.eval()
             loss = self._loss(dataset.features, W)

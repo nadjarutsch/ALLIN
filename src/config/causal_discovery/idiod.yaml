@@ -9,4 +9,4 @@ model:
   w_threshold: 0.5
   max_epochs: 100
   device: ${device}
-name: notears pytorch scheduler
+name: notears pytorch no scheduler
