@@ -5,6 +5,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from data_generation.datasets import *
 from tqdm import tqdm
+import os
+import uuid
 
 class IDIOD(nn.Module):
     def __init__(self,
@@ -17,7 +19,8 @@ class IDIOD(nn.Module):
                  w_threshold=0.3,
                  batch_size=128,
                  max_epochs=10,
-                 device='cpu'):
+                 device='cpu',
+                 path=os.path.join('causal_discovery', 'idiod', 'saved_models')):
         super().__init__()
         #self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ), device=device))
         self.w_est = nn.Parameter(torch.zeros(size=(d, d), device=device))
@@ -33,6 +36,8 @@ class IDIOD(nn.Module):
         self.device = device
         self.w_fixed = torch.zeros(size=(d, d), requires_grad=False, device=device)
         self.register_buffer('weight_update_mask', torch.ones_like(self.w_fixed, dtype=torch.bool).fill_diagonal_(0))
+        self.path = os.path.join(path, str(uuid.uuid1()))
+        os.makedirs(self.path)
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -57,10 +62,11 @@ class IDIOD(nn.Module):
             if h <= self.h_tol or rho >= self.rho_max:
                 break
 
-        W_est[torch.abs(W_est) < self.w_threshold] = 0
+        W_est = W_est.detach().cpu().numpy()
+        W_est[np.abs(W_est) < self.w_threshold] = 0
     #    print(W_est)
         A_est = W_est != 0
-        pred_graph = nx.from_numpy_array(A_est.detach().cpu().numpy(), create_using=nx.DiGraph)
+        pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
         return nx.relabel_nodes(pred_graph, mapping)
@@ -73,9 +79,9 @@ class IDIOD(nn.Module):
 
       #  pbar = tqdm(range(self.max_epochs))
         train_losses = []
-        best_epoch, stop_count = 0
+        best_epoch, stop_count = 0, 0
 
-        for _ in range(self.max_epochs):
+        for epoch in range(self.max_epochs):
           #  print(_)
             W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
             loss_old = self._loss(dataset.features, W)
@@ -96,19 +102,24 @@ class IDIOD(nn.Module):
             scheduler.step()
 
             self.eval()
-            loss_new = self._loss(dataset.features, W)
-            obj_new = loss_new + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
-        #    pbar.set_description(f"Loss: {obj_new}")
-            if obj_old - obj_new < 1e-3 * obj_old:
-                stop_count += 1
-                if stop_count >= 5:
-                    break
-            else:
+            loss = self._loss(dataset.features, W)
+            obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
+            train_losses.append(obj)
+            print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
+
+            if len(train_losses) == 1 or obj < train_losses[best_epoch]:
+                print("\t   (New best performance, saving model...)")
+                torch.save(self.state_dict(), os.path.join(self.path, 'model.pt'))
+                best_epoch = epoch
                 stop_count = 0
+            else:
+                stop_count += 1
+        #    pbar.set_description(f"Loss: {obj_new}")
+            if stop_count >= 5:
+                break
 
-
-        return W
-
+        self.w_est = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['w_est'].to(self.device))
+        return self.w_est
 
     def _loss(self, X, W):
         """Evaluate value and gradient of loss."""
