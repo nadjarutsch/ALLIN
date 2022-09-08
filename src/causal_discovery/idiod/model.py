@@ -8,6 +8,7 @@ from tqdm import tqdm
 import os
 import uuid
 from models.mlp import MLP
+from itertools import chain
 
 class NOTEARSTorch(nn.Module):
     def __init__(self,
@@ -199,16 +200,20 @@ class IDIOD(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h)
+        params = [self.w_est]
+       # params = self.parameters()
+        rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h, params)
 
         # learn distribution assignments
         print("\n Searching for interventional data...")
-        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h)
+        params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
+        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, params)
 
         # train
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
         print("\n Adjusting weights...")
-        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h)
+        params = [self.w_est]
+        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, params)
 
         W_est = self.w_est.detach().cpu().numpy()
         W_est[np.abs(W_est) < self.w_threshold] = 0
@@ -219,10 +224,10 @@ class IDIOD(nn.Module):
 
         return nx.relabel_nodes(pred_graph, mapping)
 
-    def optimize(self, rho, h, alpha, data, loss_fn):
+    def optimize(self, rho, h, alpha, data, loss_fn, params):
         dataset = OnlyFeatures(features=data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        optimizer = optim.Adam(self.parameters(), lr=0.001)
+        optimizer = optim.Adam(params, lr=0.001)
 
         train_losses = []
         best_epoch, stop_count = 0, 0
@@ -242,6 +247,7 @@ class IDIOD(nn.Module):
                 optimizer.step()
 
             self.eval()
+
             loss = loss_fn(dataset.features, W)
             obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             train_losses.append(obj)
@@ -258,7 +264,12 @@ class IDIOD(nn.Module):
             if stop_count >= self.patience:
                 break
 
-        self.w_est = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['w_est'].to(self.device))
+      #  self.w_est = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['w_est'].to(self.device))
+     #   print(self.state_dict())
+      #  self.mlp.load_state_dict(torch.load(os.path.join(self.path, 'model.pt')))
+      #  self.bias_obs = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['bias_obs'].to(self.device))
+      #  self.bias_int = nn.Parameter(torch.load(os.path.join(self.path, 'model.pt'))['bias_int'].to(self.device))
+        self.load_state_dict(torch.load(os.path.join(self.path, 'model.pt')))
         return self.w_est
 
     def _loss(self, X, W):
@@ -298,7 +309,7 @@ class IDIOD(nn.Module):
     def _idiod_loss_int(self, X, W):
         return (X - self.bias_int[None, :]) ** 2
 
-    def optimize_lagrangian(self, data, loss_fn, rho, alpha, h):
+    def optimize_lagrangian(self, data, loss_fn, rho, alpha, h, params):
         self.eval()
         if self.loss_type == 'l2':
             data = data - torch.mean(data, axis=0, keepdims=True)
@@ -307,7 +318,11 @@ class IDIOD(nn.Module):
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
-                W_new = self.optimize(rho, h, alpha, data, loss_fn)
+                W_new = self.optimize(rho, h, alpha, data, loss_fn, params)
+                if isinstance(params, list):    # hacky af, pls change
+                    params = [self.w_est]
+                else:
+                    params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
                 h_new = self._h(W_new)
                 if h_new > 0.25 * h:
                     rho *= 10
