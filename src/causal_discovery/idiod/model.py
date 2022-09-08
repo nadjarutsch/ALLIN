@@ -209,6 +209,7 @@ class IDIOD(nn.Module):
         params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
         rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, params)
 
+        self.w_est = nn.Parameter(torch.zeros(size=(d, d), device=device))
         # train
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
         print("\n Adjusting weights...")
