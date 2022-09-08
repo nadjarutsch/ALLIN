@@ -199,17 +199,16 @@ class IDIOD(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        optimizer = optim.Adam(self.parameters(), lr=0.001)
-        rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h, optimizer)
+        rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h)
 
         # learn distribution assignments
         print("\n Searching for interventional data...")
-        optimizer = optim.Adam(list(self.mlp.parameters(), self.bias_int, self.bias_obs), lr=0.001)
-        self.optimize(rho, h, alpha, data, self._idiod_loss, optimizer)
+        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h)
 
-        optimizer = optim.Adam(list(self.w_est), lr=0.001)
+        # train
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
-        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, optimizer)
+        print("\n Adjusting weights...")
+        rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h)
 
         W_est = self.w_est.detach().cpu().numpy()
         W_est[np.abs(W_est) < self.w_threshold] = 0
@@ -220,9 +219,10 @@ class IDIOD(nn.Module):
 
         return nx.relabel_nodes(pred_graph, mapping)
 
-    def optimize(self, rho, h, alpha, data, loss_fn, optimizer):
+    def optimize(self, rho, h, alpha, data, loss_fn):
         dataset = OnlyFeatures(features=data)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        optimizer = optim.Adam(self.parameters(), lr=0.001)
 
         train_losses = []
         best_epoch, stop_count = 0, 0
@@ -298,7 +298,7 @@ class IDIOD(nn.Module):
     def _idiod_loss_int(self, X, W):
         return (X - self.bias_int[None, :]) ** 2
 
-    def optimize_lagrangian(self, data, loss_fn, rho, alpha, h, optimizer):
+    def optimize_lagrangian(self, data, loss_fn, rho, alpha, h):
         self.eval()
         if self.loss_type == 'l2':
             data = data - torch.mean(data, axis=0, keepdims=True)
@@ -307,7 +307,7 @@ class IDIOD(nn.Module):
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
-                W_new = self.optimize(rho, h, alpha, data, loss_fn, optimizer)
+                W_new = self.optimize(rho, h, alpha, data, loss_fn)
                 h_new = self._h(W_new)
                 if h_new > 0.25 * h:
                     rho *= 10
