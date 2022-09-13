@@ -1,5 +1,5 @@
 defaults:
-  - causal_discovery: idiod
+  - causal_discovery: notears_torch
   - clustering: none
   - _self_
 wandb:
