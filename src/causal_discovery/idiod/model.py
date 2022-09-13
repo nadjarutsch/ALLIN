@@ -10,6 +10,8 @@ import os
 import uuid
 from models.mlp import MLP
 from itertools import chain
+import wandb
+
 
 class NOTEARSTorch(nn.Module):
     def __init__(self,
@@ -26,7 +28,6 @@ class NOTEARSTorch(nn.Module):
                  patience=10,
                  path=os.path.join('causal_discovery', 'idiod', 'saved_models')):
         super().__init__()
-        #self.w_est = nn.Parameter(torch.zeros(size=(d * (d - 1), ), device=device))
         self.w_est = nn.Parameter(torch.zeros(size=(d, d), device=device))
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -88,11 +89,6 @@ class NOTEARSTorch(nn.Module):
         best_epoch, stop_count = 0, 0
 
         for epoch in range(self.max_epochs):
-          #  print(_)
-        #    W = torch.where(self.weight_update_mask, self.w_est, self.w_zeros)
-        #    loss_old = self._loss(dataset.features, W)
-        #    obj_old = loss_old + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
-        #    self.train()
 
             for i, x in enumerate(dataloader):
                 optimizer.zero_grad()
@@ -149,10 +145,7 @@ class NOTEARSTorch(nn.Module):
         #     M = np.eye(d) + W * W / d  # (Yu et al. 2019)
         #     E = np.linalg.matrix_power(M, d - 1)
         #     h = (E.T * M).sum() - d
-     #   G_h = E.T * W * 2
         return h
-
-
 
 
 class IDIOD(nn.Module):
@@ -409,6 +402,7 @@ class IDIOD_old(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.bias_obs = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
         self.bias_int = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
+        self.step = 0   # for logging assignment probabilities
 
         list(self.mlp.state_dict().values())[-1].copy_(torch.ones_like(self.bias_obs) * 10)
 
@@ -502,6 +496,8 @@ class IDIOD_old(nn.Module):
 
     def _idiod_loss(self, X, W):
         p = self.sigmoid(self.mlp(X))   # N x |V|
+        wandb.log({'p_obs': torch.mean(p)}, step=self.step)
+        self.step += 1
         loss = 0.5 / X.shape[0] * torch.sum(self._idiod_loss_obs(X, W) * p + self._idiod_loss_int(X, W) * (1 - p))
         return loss
 
