@@ -382,6 +382,7 @@ class IDIOD_old(nn.Module):
                  patience=10,
                  path=os.path.join('causal_discovery', 'idiod', 'saved_models')):
         super().__init__()
+        self.d = d
         self.w_est = nn.Parameter(torch.zeros(size=(self.d, self.d), device=device))
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -391,7 +392,6 @@ class IDIOD_old(nn.Module):
         self.w_threshold = w_threshold
         self.batch_size = batch_size
         self.max_epochs = max_epochs
-        self.d = d
         self.device = device
         self.w_fixed = torch.zeros(size=(d, d), requires_grad=False, device=device)
         self.register_buffer('weight_update_mask', torch.ones_like(self.w_fixed, dtype=torch.bool).fill_diagonal_(0))
