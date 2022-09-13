@@ -1,5 +1,5 @@
 model:
-  _target_: causal_discovery.idiod.model.IDIOD
+  _target_: causal_discovery.idiod.model.IDIOD_old
   d: ${graph.num_vars}
   lambda1: 0.1
   loss_type: l2
@@ -10,7 +10,7 @@ model:
   max_epochs: 100
   device: ${device}
   patience: 10
-  lr: 0.001
-  relearn_iter: 1
-  name: ${causal_discovery.name}
-name: idiod rewritten
+#  lr: 0.001
+#  relearn_iter: 1
+#  name: ${causal_discovery.name}
+name: idiod old
