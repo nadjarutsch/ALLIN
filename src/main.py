@@ -35,8 +35,8 @@ import hdbscan
 
 
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
-os.environ['WANDB_MODE'] = 'offline'
+#os.environ['HYDRA_FULL_ERROR'] = '1'
+#os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
@@ -124,18 +124,17 @@ def main(cfg: DictConfig):
             ### CAUSAL DISCOVERY ###
             ########################
 
-            if cfg.do.causal_discovery:
-                cd_model = instantiate(cfg.causal_discovery.model)
-                cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-                pred_graph = cd_model.predict(cd_input)
-                context_graph = pred_graph.copy()
+            cd_model = instantiate(cfg.causal_discovery.model)
+            cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+            pred_graph = cd_model.predict(cd_input)
+            context_graph = pred_graph.copy()
 
-                # logging
-                # tbl = wandb.Table(dataframe=df)
-                # wandb.log({"clustered data": tbl})
+            # logging
+            # tbl = wandb.Table(dataframe=df)
+            # wandb.log({"clustered data": tbl})
 
-                metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
-                plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+            metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+            plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
 
             #########################
             ### CLUSTER DISCOVERY ###
