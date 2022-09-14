@@ -437,6 +437,7 @@ class IDIOD_old(nn.Module):
         return nx.relabel_nodes(pred_graph, mapping)
 
     def optimize(self, rho, h, alpha, data, loss_fn, params):
+        data.features = data.features.to(self.device)
      #   dataset = OnlyFeatures(features=data)
         dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(params, lr=0.001)
