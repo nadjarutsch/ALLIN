@@ -169,7 +169,7 @@ def main(cfg: DictConfig):
                     fps = 0
                     pred_adj_matrix = nx.to_numpy_array(context_graph)
                     for i in range(cfg.graph.num_vars):
-                        tps += pred_adj_matrix[cfg.graph.num_vars + i + 1, i] == 1 # +1 because the first cluster (index 0) is observational
+                        tps += pred_adj_matrix[cfg.graph.num_vars + i + 1, i] == 1  # +1 because the first cluster (index 0) is observational
                         temp_matrix = pred_adj_matrix.copy()
                         temp_matrix[cfg.graph.num_vars + i + 1, i] = 0 # remove edge from context to target variable
                         temp_matrix[i, cfg.graph.num_vars + i + 1] = 0 # remove edge from target to context variable

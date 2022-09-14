@@ -10,6 +10,7 @@ model:
   max_epochs: 100
   device: ${device}
   patience: 10
+  clustering: ${clustering.name}
 #  lr: 0.001
 #  relearn_iter: 1
 #  name: ${causal_discovery.name}

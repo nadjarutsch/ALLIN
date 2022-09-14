@@ -11,7 +11,11 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         return prepare_for_pc(data, variables)
 
     elif "notears pytorch" or "idiod" in cfg.causal_discovery.name:
-        return variables, data.features[..., :-1]
+        features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
+        if cfg.clustering.name == "target":
+            return variables, OnlyFeatures(features=features, memberships=data.memberships)
+        else:
+            return variables, OnlyFeatures(features=features)
 
     elif cfg.causal_discovery.name == "faria":
         return variables, OnlyFeatures(features=data.features[..., :-1])

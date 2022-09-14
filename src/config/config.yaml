@@ -24,7 +24,7 @@ do:
   cluster: True
   cluster_discovery: False
   causal_discovery: True
-  context_analysis: True
+  context_analysis: False
 end_seed: 50
 start_seed: 0
 seed: -1

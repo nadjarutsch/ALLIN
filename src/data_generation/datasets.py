@@ -11,14 +11,18 @@ from clustering.utils import *
 
 
 class OnlyFeatures(Dataset):
-    def __init__(self, features: torch.Tensor):
+    def __init__(self, features: torch.Tensor, memberships: np.ndarray = None):
         self.features = features
+        self.memberships = torch.from_numpy(memberships) if memberships is not None else None
 
     def __len__(self):
         return len(self.features)
 
     def __getitem__(self, idx):
-        return self.features[idx, ...]
+        if self.memberships is None:
+            return self.features[idx, ...]
+        else:
+            return self.features[idx, ...], self.memberships[idx, ...]
 
 
 class PartitionData(Dataset):

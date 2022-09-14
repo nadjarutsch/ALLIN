@@ -380,7 +380,8 @@ class IDIOD_old(nn.Module):
                  max_epochs=10,
                  device='cpu',
                  patience=10,
-                 path=os.path.join('causal_discovery', 'idiod', 'saved_models')):
+                 path=os.path.join('causal_discovery', 'idiod', 'saved_models'),
+                 clustering='none'):
         super().__init__()
         self.d = d
         self.w_est = nn.Parameter(torch.zeros(size=(self.d, self.d), device=device))
@@ -403,6 +404,8 @@ class IDIOD_old(nn.Module):
         self.bias_obs = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
         self.bias_int = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
         self.step = 0   # for logging assignment probabilities
+        self.clustering = clustering
+        self.p = None
 
         list(self.mlp.state_dict().values())[-1].copy_(torch.ones_like(self.bias_obs) * 10)
 
@@ -434,16 +437,20 @@ class IDIOD_old(nn.Module):
         return nx.relabel_nodes(pred_graph, mapping)
 
     def optimize(self, rho, h, alpha, data, loss_fn, params):
-        dataset = OnlyFeatures(features=data)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+     #   dataset = OnlyFeatures(features=data)
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(params, lr=0.001)
         train_losses = []
         best_epoch, stop_count = 0, 0
         for epoch in range(self.max_epochs):
             self.train()
-            for i, x in enumerate(dataloader):
+            for i, batch in enumerate(dataloader):
                 optimizer.zero_grad()
                 W = torch.where(self.weight_update_mask, self.w_est, self.w_fixed)
+                if self.clustering == 'target':
+                    x, self.p = batch
+                else:
+                    x = batch
                 x = x.to(self.device)
                 loss = loss_fn(x, W)
                 h = self._h(W)
@@ -451,7 +458,9 @@ class IDIOD_old(nn.Module):
                 obj.backward()
                 optimizer.step()
             self.eval()
-            loss = loss_fn(dataset.features, W)
+            if self.clustering == 'target':
+                self.p = data.memberships
+            loss = loss_fn(data.features, W)
             obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             train_losses.append(obj)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
@@ -495,8 +504,13 @@ class IDIOD_old(nn.Module):
         return h
 
     def _idiod_loss(self, X, W):
-        p = self.sigmoid(self.mlp(X))   # N x |V|
+        if self.clustering == 'target':
+            p = 1 - self.p[..., 1:]
+        else:
+            p = self.sigmoid(self.mlp(X))  # N x |V|
         wandb.log({'p_obs': torch.mean(p)}, step=self.step)
+        wandb.log({'bias_obs': torch.mean(self.bias_obs)}, step=self.step)
+        wandb.log({'bias_int': torch.mean(self.bias_int)}, step=self.step)
         self.step += 1
         loss = 0.5 / X.shape[0] * torch.sum(self._idiod_loss_obs(X, W) * p + self._idiod_loss_int(X, W) * (1 - p))
         return loss
@@ -509,9 +523,9 @@ class IDIOD_old(nn.Module):
 
     def optimize_lagrangian(self, data, loss_fn, rho, alpha, h, params):
         self.eval()
-        if self.loss_type == 'l2':
-            data = data - torch.mean(data, axis=0, keepdims=True)
-        data = data.to(self.device)  # TODO: later in eval, batch-wise
+    #    if self.loss_type == 'l2':
+    #        data = data - torch.mean(data, axis=0, keepdims=True)
+      #  data = data.to(self.device)  # TODO: later in eval, batch-wise
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
