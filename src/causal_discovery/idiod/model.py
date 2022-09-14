@@ -370,6 +370,7 @@ class LinearFixedParams(nn.Linear):
 class IDIOD_old(nn.Module):
     def __init__(self,
                  d,
+                 mixture_model,
                  lambda1,
                  loss_type="l2",
                  max_iter=100,
@@ -399,7 +400,7 @@ class IDIOD_old(nn.Module):
         self.path = os.path.join(path, str(uuid.uuid1()))
         os.makedirs(self.path)
         self.patience = patience
-        self.mlp = MLP(self.d, [128, 64, 32], self.d).to(device)
+        self.mlp = mixture_model.to(device)
         self.sigmoid = nn.Sigmoid()
         self.bias_obs = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
         self.bias_int = nn.Parameter(torch.zeros(size=(self.d, ), device=device))
