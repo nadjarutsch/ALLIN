@@ -507,6 +507,7 @@ class IDIOD_old(nn.Module):
     def _idiod_loss(self, X, W):
         if self.clustering == 'target':
             p = 1 - self.p[..., 1:]
+            p = p.to(self.device)
         else:
             p = self.sigmoid(self.mlp(X))  # N x |V|
         wandb.log({'p_obs': torch.mean(p)}, step=self.step)
