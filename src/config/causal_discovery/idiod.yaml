@@ -19,4 +19,4 @@ model:
 #  lr: 0.001
 #  relearn_iter: 1
 #  name: ${causal_discovery.name}
-name: idiod old learn bias later
+name: idiod old init p 0.5
