@@ -408,7 +408,7 @@ class IDIOD_old(nn.Module):
         self.clustering = clustering
         self.p = None
 
-        list(self.mlp.state_dict().values())[-1].copy_(torch.ones_like(self.bias_obs) * 10)
+        list(self.mlp.state_dict().values())[-1].copy_(torch.zeros_like(self.bias_obs))
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
