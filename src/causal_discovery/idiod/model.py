@@ -420,14 +420,14 @@ class IDIOD_old(nn.Module):
         rho, alpha, h = self.optimize_lagrangian(data, self._loss, rho, alpha, h, params)
         # learn distribution assignments
         print("\n Searching for interventional data...")
-        params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
+        params = self.mlp.parameters()
         rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, params)
 
         self.w_est = nn.Parameter(torch.zeros(size=(self.d, self.d), device=self.device))
         # train
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
         print("\n Adjusting weights...")
-        params = [self.w_est]
+        params = [self.w_est, self.bias_obs, self.bias_int]
         rho, alpha, h = self.optimize_lagrangian(data, self._idiod_loss, rho, alpha, h, params)
         W_est = self.w_est.detach().cpu().numpy()
         W_est[np.abs(W_est) < self.w_threshold] = 0
