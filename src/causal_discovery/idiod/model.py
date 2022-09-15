@@ -50,10 +50,10 @@ class NOTEARSTorch(nn.Module):
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
 
         self.eval()
-        if self.loss_type == 'l2':
-            data = data - torch.mean(data, axis=0, keepdims=True)
+    #    if self.loss_type == 'l2':
+    #        data = data - torch.mean(data, axis=0, keepdims=True)
 
-        data = data.to(self.device) # TODO: later in eval, batch-wise
+    #    data = data.to(self.device) # TODO: later in eval, batch-wise
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
@@ -79,8 +79,9 @@ class NOTEARSTorch(nn.Module):
         return nx.relabel_nodes(pred_graph, mapping)
 
     def optimize(self, rho, h, alpha, data):
-        dataset = OnlyFeatures(features=data)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        data.features = data.features.to(self.device)
+        #   dataset = OnlyFeatures(features=data)
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(self.parameters(), lr=0.001)
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
 
@@ -104,7 +105,7 @@ class NOTEARSTorch(nn.Module):
             # scheduler.step()
 
             self.eval()
-            loss = self._loss(dataset.features, W)
+            loss = self._loss(data.features, W)
             obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
             train_losses.append(obj)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
