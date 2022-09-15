@@ -16,15 +16,15 @@ import data_generation.causal_graphs.variable_distributions as dists
 def generate_dag(num_vars: int,
                  edge_prob: float,
                  fns: str = 'linear gaussian',
+           #      negative: bool = False,
                  **kwargs
                  ) -> graphs.CausalDAG:
     if fns == "linear gaussian":
         return graph_gen.generate_continuous_graph(num_vars=num_vars,
-                                                    graph_func=graph_gen.generate_random_dag,
-                                                    p=edge_prob,
-                                                    **kwargs)
-
-
+                                                   graph_func=graph_gen.generate_random_dag,
+                                                   p=edge_prob,
+                                          #         negative=negative,
+                                                   **kwargs)
 
 
 def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, save_to_file=False, properties={}):

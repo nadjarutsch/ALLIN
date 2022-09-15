@@ -1,6 +1,6 @@
 defaults:
-  - causal_discovery: notears_torch
-  - clustering: observational
+  - causal_discovery: idiod
+  - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
@@ -17,6 +17,7 @@ dist:
   obs_std: 0.7
   int_mean: 1.0
   int_std: ${dist.obs_std}
+  negative: True
 oracle:
   n_int_targets: 5
 do:

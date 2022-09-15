@@ -67,6 +67,7 @@ def main(cfg: DictConfig):
                                         fns='linear gaussian',
                                         mu=cfg.dist.obs_mean,
                                         sigma=cfg.dist.obs_std,
+                                        negative=cfg.dist.negative,
                                         seed=seed)
             variables = [v.name for v in dag.variables]
             true_graph = dag.nx_graph

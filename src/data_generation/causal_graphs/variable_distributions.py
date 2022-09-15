@@ -348,23 +348,18 @@ def get_random_gaussian(input_names, num_coeff=4, **kwargs):
 	return GaussianDist(mu_func, sigma_func, **kwargs)
 
 
-def get_linear_gaussian(input_names, mu, sigma):
-    if len(input_names) > 0:
-  #      mu_funcs = {}
-        
-      #  for name in input_names:
-       #     mu_funcs[name] = lambda x : sum([val for val in x])
-        mu_func = lambda inputs : sum([inputs[n] for n in input_names]) + mu
-        #mu_func = lambda x : np.random.normal(loc=0.0, scale=1.0) + sum([val for val in x])
-   #     sigma_func = lambda inputs : sigma
-    else:
-   #     mu, sigma = 0.0, sigma
-        mu_func = lambda inputs : mu
-    #    sigma_func = lambda inputs : sigma
-    
-    sigma_func = lambda inputs : sigma
-        
-    return GaussianDist(mu_func, sigma_func)
+def get_linear_gaussian(input_names, mu, sigma, negative=False):
+	if len(input_names) > 0:
+		if negative:
+			mu_func = lambda inputs: sum([-inputs[n] for n in input_names]) + mu
+		else:
+			mu_func = lambda inputs: sum([inputs[n] for n in input_names]) + mu
+	else:
+		mu_func = lambda inputs: mu
+
+	sigma_func = lambda inputs: sigma
+
+	return GaussianDist(mu_func, sigma_func)
 
 
 

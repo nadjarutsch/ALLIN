@@ -469,6 +469,7 @@ def generate_continuous_graph(num_vars,
                               mu=None,
                               sigma=None,
                               equations=None,
+                              negative=False,
                               **kwargs):
     
   #  if mus is None:
@@ -488,7 +489,7 @@ def generate_continuous_graph(num_vars,
         variable_names = [r"$X_{%s}$" % i for i in range(1, num_vars+1)]
 
     def dist_func(input_names, name):
-        dist = get_linear_gaussian(input_names=input_names, mu=mu, sigma=sigma)
+        dist = get_linear_gaussian(input_names=input_names, mu=mu, sigma=sigma, negative=negative)
         return dist
 
     return graph_func(variable_names, dist_func, **kwargs)
