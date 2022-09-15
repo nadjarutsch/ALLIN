@@ -533,10 +533,10 @@ class IDIOD_old(nn.Module):
             W_new, h_new = None, None
             while rho < self.rho_max:
                 W_new = self.optimize(rho, h, alpha, data, loss_fn, params)
-                if isinstance(params, list):    # hacky af, pls change
-                    params = [self.w_est]
-                else:
-                    params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
+            #    if isinstance(params, list):    # hacky af, pls change
+            #        params = [self.w_est]
+            #    else:
+            #        params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
                 h_new = self._h(W_new)
                 if h_new > 0.25 * h:
                     rho *= 10
