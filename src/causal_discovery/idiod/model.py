@@ -10,6 +10,7 @@ import os
 import uuid
 from models.mlp import MLP
 import wandb
+from itertools import chain
 
 
 class IDIOD(nn.Module):
@@ -51,16 +52,19 @@ class IDIOD(nn.Module):
                                            mask=torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
                                            fixed_params=torch.zeros((self.d, self.d)),
                                            device=self.device)
-        self.model_obs.weight = nn.Parameter(torch.zeros((self.d, self.d), device=self.device))
-        self.model_obs.bias = nn.Parameter(torch.zeros((self.d,), device=self.device), requires_grad=False)     # freeze bias for pretraining
         self.model_int = nn.Linear(in_features=d, out_features=d, device=self.device)
-        self.model_int.weight = nn.Parameter(torch.zeros((self.d, self.d), device=self.device), requires_grad=False)    # fix zero weights
-        self.model_int.bias = nn.Parameter(torch.zeros((self.d,), device=self.device))
         self.mixture = nn.Sequential(
             mixture_model.to(self.device),
             nn.Sigmoid()
         )
-        list(self.mixture.state_dict().values())[-1].copy_(torch.zeros((self.d,)))
+
+        # init params
+        for param in chain(self.model_obs.parameters(), self.model_int_parameters(), [self.mixture.layer[-2].bias]):
+            nn.init.constant_(param, 0)
+
+        # freeze weights
+        self.model_obs.bias.requires_grad = False   # for pretraining
+        self.model_int.weight.requires_grad = False
 
         # early stopping
         self.path = os.path.join('causal_discovery', name, 'saved_models', str(uuid.uuid1()))
@@ -156,8 +160,15 @@ class IDIOD(nn.Module):
                     loss = probs * loss + (1 - probs) * loss_int
 
                     wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
-                    wandb.log({'bias_obs': torch.mean(self.model_obs.bias)}, step=self.step)
-                    wandb.log({'bias_int': torch.mean(self.model_int.bias)}, step=self.step)
+                    names_obs = iter(["bias_obs_" + str(i) for i in range(len(self.model_obs.bias))])
+                    names_int = iter(["bias_int_" + str(i) for i in range(len(self.model_int.bias))])
+                    bias_obs_dict = dict(zip(names_obs, self.model_obs.bias.detach().cpu().tolist()))
+                    bias_int_dict = dict(zip(names_int, self.model_int.bias.detach().cpu().tolist()))
+                    wandb.log(bias_obs_dict, step=self.step)
+                    wandb.log(bias_int_dict, step=self.step)
+
+                 #   wandb.log({'bias_obs': torch.mean(self.model_obs.bias)}, step=self.step)
+                 #   wandb.log({'bias_int': torch.mean(self.model_int.bias)}, step=self.step)
 
 
                 loss = 0.5 / x.shape[0] * torch.sum(loss)  # equivalent to original numpy implementation
