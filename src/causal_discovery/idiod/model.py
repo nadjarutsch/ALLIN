@@ -59,7 +59,7 @@ class IDIOD(nn.Module):
         )
 
         # init params
-        for param in chain(self.model_obs.parameters(), self.model_int_parameters(), [self.mixture.layer[-2].bias]):
+        for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture.layer[-2].bias]):
             nn.init.constant_(param, 0)
 
         # freeze weights
