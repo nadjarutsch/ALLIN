@@ -178,7 +178,7 @@ class IDIOD(nn.Module):
         self.lr = lr
         self.d = d
         self.device = device
-        self.relearn_iter = relearn_iter
+        self.relearn_iter = relearn_iter    # alternating between learning assignments and obs / int models
         self.step = 0   # for logging
 
         # models
@@ -188,23 +188,21 @@ class IDIOD(nn.Module):
                                            mask=torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
                                            fixed_params=torch.zeros((self.d, self.d)),
                                            device=self.device)
-        self.model_obs.weight = nn.Parameter(torch.zeros((self.d, self.d)))
-        self.model_obs.bias = nn.Parameter(torch.zeros((self.d,)), requires_grad=False)     # freeze bias for pretraining
+        self.model_obs.weight = nn.Parameter(torch.zeros((self.d, self.d), device=self.device))
+        self.model_obs.bias = nn.Parameter(torch.zeros((self.d,), device=self.device), requires_grad=False)     # freeze bias for pretraining
         self.model_int = nn.Linear(in_features=d, out_features=d, device=self.device)
-        self.model_int.weight = nn.Parameter(torch.zeros((self.d, self.d)), requires_grad=False)    # fix zero weights
-        self.model_int.bias = nn.Parameter(torch.zeros((self.d,)))
-
+        self.model_int.weight = nn.Parameter(torch.zeros((self.d, self.d), device=self.device), requires_grad=False)    # fix zero weights
+        self.model_int.bias = nn.Parameter(torch.zeros((self.d,), device=self.device))
         self.mixture = nn.Sequential(
             mixture_model.to(self.device),
             nn.Sigmoid()
         )
+        list(self.mixture.state_dict().values())[-1].copy_(torch.zeros((self.d,)))
 
         # early stopping
         self.path = os.path.join('causal_discovery', name, 'saved_models', str(uuid.uuid1()))
         os.makedirs(self.path)
         self.patience = patience
-
-        list(self.mixture.state_dict().values())[-1].copy_(torch.zeros((self.d, )))
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -366,10 +364,11 @@ class LinearFixedParams(nn.Linear):
                  device=None,
                  dtype=None) -> None:
         super(LinearFixedParams, self).__init__(in_features, out_features, bias, device, dtype)
-        self.device = device
+        mask = mask.to(device)
         self.register_buffer('mask', mask)
-        fixed_params.requires_grad = False
-        self.fixed = fixed_params.to(self.device)
+        fixed_params = fixed_params.to(device)
+        self.register_buffer('fixed', fixed_params)
+
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         weight = torch.where(self.mask, self.weight, self.fixed)
