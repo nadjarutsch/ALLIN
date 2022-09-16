@@ -152,6 +152,7 @@ class NOTEARSTorch(nn.Module):
 class IDIOD(nn.Module):
     def __init__(self,
                  d,
+                 mixture_model,
                  lambda1,
                  loss_type="l2",
                  max_iter=100,
@@ -178,6 +179,7 @@ class IDIOD(nn.Module):
         self.d = d
         self.device = device
         self.relearn_iter = relearn_iter
+        self.step = 0   # for logging
 
         # models
         self.loss = nn.MSELoss(reduction='none')
@@ -186,12 +188,14 @@ class IDIOD(nn.Module):
                                            mask=torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
                                            fixed_params=torch.zeros((self.d, self.d)),
                                            device=self.device)
-        self.model_obs.weight = nn.Parameter(torch.zeros((self.d, self.d)), requires_grad=True)
-        self.model_obs.bias = nn.Parameter(torch.zeros((self.d,)), requires_grad=False)
+        self.model_obs.weight = nn.Parameter(torch.zeros((self.d, self.d)))
+        self.model_obs.bias = nn.Parameter(torch.zeros((self.d,)), requires_grad=False)     # freeze bias for pretraining
         self.model_int = nn.Linear(in_features=d, out_features=d, device=self.device)
-        self.model_int.weight = nn.Parameter(torch.zeros((self.d, self.d)), requires_grad=False)
+        self.model_int.weight = nn.Parameter(torch.zeros((self.d, self.d)), requires_grad=False)    # fix zero weights
+        self.model_int.bias = nn.Parameter(torch.zeros((self.d,)))
+
         self.mixture = nn.Sequential(
-            MLP(self.d, [128, 64, 32], self.d).to(device),
+            mixture_model.to(self.device),
             nn.Sigmoid()
         )
 
@@ -200,19 +204,13 @@ class IDIOD(nn.Module):
         os.makedirs(self.path)
         self.patience = patience
 
-        list(self.mixture.state_dict().values())[-1].copy_(torch.ones((self.d, )) * 10)    # start with observational assignments
+        list(self.mixture.state_dict().values())[-1].copy_(torch.zeros((self.d, )))
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
-        data = data - torch.mean(data, axis=0, keepdims=True)
-
-        dataset = OnlyFeatures(features=data)
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-
-        rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
-        optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
-        optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
+        rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
 
         # pretrain
         print("\n Starting pretraining...")
@@ -223,38 +221,57 @@ class IDIOD(nn.Module):
                                                  optimizers=[optimizer_obs],
                                                  mixture=False)
 
+        self.model_obs.bias.requires_grad = True
+
         for _ in range(self.relearn_iter):
             # learn distribution assignments
             print("\n Searching for interventional data...")
-         #   self.model_obs.weight.requires_grad = False
-         #   self.model_obs.bias.requires_grad = True
+            optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
             rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
                                                      rho=rho,
                                                      alpha=alpha,
                                                      h=h,
-                                                     optimizers=[optimizer_int, optimizer_mix],
+                                                     optimizers=[optimizer_mix],
                                                      mixture=True)
 
             # relearn weights
             print("\n Adjusting weights...")
             self.model_obs.weight = nn.Parameter(torch.zeros(size=(self.d, self.d), device=self.device))
-        #    self.model_obs.weight.requires_grad = True
-        #    self.model_obs.bias.requires_grad = True
+            optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
+            optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
+
             rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
             rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
                                                      rho=rho,
                                                      alpha=alpha,
                                                      h=h,
-                                                     optimizers=[optimizer_obs],
+                                                     optimizers=[optimizer_obs, optimizer_int],
                                                      mixture=True)
 
-        W_est = self.model_obs.weight.detach().cpu().numpy()
+        W_est = self.model_obs.weight.detach().cpu().numpy().T
         W_est[np.abs(W_est) < self.w_threshold] = 0
         A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
         return nx.relabel_nodes(pred_graph, mapping)
+
+    def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
+        self.eval()
+        for _ in range(self.max_iter):
+            h_new = None
+            while rho < self.rho_max:
+                self.optimize(dataloader, rho, h, alpha, optimizers, mixture)
+                h_new = self._h(self.model_obs.weight)
+                if h_new > 0.25 * h:
+                    rho *= 10
+                else:
+                    break
+
+            h = h_new.detach()
+            alpha += rho * h
+            if h <= self.h_tol or rho >= self.rho_max:
+                return rho, alpha, h
 
     def optimize(self, dataloader, rho, h, alpha, optimizers, mixture):
 
@@ -275,12 +292,21 @@ class IDIOD(nn.Module):
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
                     probs = self.mixture(x)
-                    loss = torch.sum(probs * loss + (1 - probs) * loss_int)
+                    loss = probs * loss + (1 - probs) * loss_int
+
+                    wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
+                    wandb.log({'bias_obs': torch.mean(self.model_obs.bias)}, step=self.step)
+                    wandb.log({'bias_int': torch.mean(self.model_int.bias)}, step=self.step)
+
 
                 loss = 0.5 / x.shape[0] * torch.sum(loss)  # equivalent to original numpy implementation
                 h = self._h(self.model_obs.weight)
                 obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
                 obj.backward()
+
+                wandb.log({'loss (unconstrained)': loss}, step=self.step)
+                wandb.log({'loss (Lagrange)': obj}, step=self.step)
+                self.step += 1
 
                 for optimizer in optimizers:
                     optimizer.step()
@@ -297,11 +323,10 @@ class IDIOD(nn.Module):
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
                     probs = self.mixture(x)
-                    loss = torch.sum(probs * loss + (1 - probs) * loss_int)
+                    loss = probs * loss + (1 - probs) * loss_int
 
-                loss_all += torch.sum(loss)  # equivalent to original numpy implementation
+                loss_all += torch.sum(loss)
                 h = self._h(self.model_obs.weight)
-            #    obj += loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
 
             obj = 0.5 / len(dataloader.dataset) * loss_all + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
             train_losses.append(obj)
@@ -329,23 +354,6 @@ class IDIOD(nn.Module):
         #     E = np.linalg.matrix_power(M, d - 1)
         #     h = (E.T * M).sum() - d
         return h
-
-    def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
-
-        for _ in range(self.max_iter):
-            h_new = None
-            while rho < self.rho_max:
-                self.optimize(dataloader, rho, h, alpha, optimizers, mixture)
-                h_new = self._h(self.model_obs.weight)
-                if h_new > 0.25 * h:
-                    rho *= 10
-                else:
-                    break
-
-            h = h_new.detach()
-            alpha += rho * h
-            if h <= self.h_tol or rho >= self.rho_max:
-                return rho, alpha, h
 
 
 class LinearFixedParams(nn.Linear):

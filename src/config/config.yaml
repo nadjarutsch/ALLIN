@@ -17,7 +17,7 @@ dist:
   obs_std: 0.7
   int_mean: 1.0
   int_std: ${dist.obs_std}
-  negative: True
+  negative: False
 oracle:
   n_int_targets: 5
 do:

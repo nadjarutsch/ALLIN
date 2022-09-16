@@ -1,5 +1,5 @@
 model:
-  _target_: causal_discovery.idiod.model.IDIOD_old
+  _target_: causal_discovery.idiod.model.IDIOD
   d: ${graph.num_vars}
   mixture_model:
     _target_: models.mlp.MLP
@@ -15,8 +15,8 @@ model:
   max_epochs: 100
   device: ${device}
   patience: 10
-  clustering: ${clustering.name}
-#  lr: 0.001
-#  relearn_iter: 1
-#  name: ${causal_discovery.name}
+  #clustering: ${clustering.name}
+  lr: 0.001
+  relearn_iter: 1
+  name: ${causal_discovery.name}
 name: idiod old init p 0.5
