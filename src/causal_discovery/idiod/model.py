@@ -369,7 +369,6 @@ class LinearFixedParams(nn.Linear):
         fixed_params = fixed_params.to(device)
         self.register_buffer('fixed', fixed_params)
 
-
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         weight = torch.where(self.mask, self.weight, self.fixed)
         return F.linear(input, weight, self.bias)
@@ -534,17 +533,10 @@ class IDIOD_old(nn.Module):
 
     def optimize_lagrangian(self, data, loss_fn, rho, alpha, h, params):
         self.eval()
-    #    if self.loss_type == 'l2':
-    #        data = data - torch.mean(data, axis=0, keepdims=True)
-      #  data = data.to(self.device)  # TODO: later in eval, batch-wise
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
                 W_new = self.optimize(rho, h, alpha, data, loss_fn, params)
-            #    if isinstance(params, list):    # hacky af, pls change
-            #        params = [self.w_est]
-            #    else:
-            #        params = chain(self.mlp.parameters(), [self.bias_obs, self.bias_int])
                 h_new = self._h(W_new)
                 if h_new > 0.25 * h:
                     rho *= 10
