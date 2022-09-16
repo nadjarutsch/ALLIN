@@ -34,9 +34,8 @@ from clustering.utils import *
 import hdbscan
 
 
-
-os.environ['HYDRA_FULL_ERROR'] = '1'
-os.environ['WANDB_MODE'] = 'offline'
+#os.environ['HYDRA_FULL_ERROR'] = '1'
+#os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
@@ -48,7 +47,6 @@ def main(cfg: DictConfig):
         cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
         cfg.device = 'cpu'
 
-    
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
         if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
@@ -172,9 +170,9 @@ def main(cfg: DictConfig):
                     for i in range(cfg.graph.num_vars):
                         tps += pred_adj_matrix[cfg.graph.num_vars + i + 1, i] == 1  # +1 because the first cluster (index 0) is observational
                         temp_matrix = pred_adj_matrix.copy()
-                        temp_matrix[cfg.graph.num_vars + i + 1, i] = 0 # remove edge from context to target variable
-                        temp_matrix[i, cfg.graph.num_vars + i + 1] = 0 # remove edge from target to context variable
-                        fps += np.sum(temp_matrix[cfg.graph.num_vars + i + 1,:]) + np.sum(temp_matrix[:,cfg.graph.num_vars + i + 1])
+                        temp_matrix[cfg.graph.num_vars + i + 1, i] = 0  # remove edge from context to target variable
+                        temp_matrix[i, cfg.graph.num_vars + i + 1] = 0  # remove edge from target to context variable
+                        fps += np.sum(temp_matrix[cfg.graph.num_vars + i + 1, :]) + np.sum(temp_matrix[:, cfg.graph.num_vars + i + 1])
 
                     tps /= cfg.graph.num_vars
                     fps /= cfg.graph.num_vars
@@ -185,7 +183,6 @@ def main(cfg: DictConfig):
                 plot_graph(context_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, context graph")
 
             wandb.finish()
-
 
 
 if __name__ == '__main__':

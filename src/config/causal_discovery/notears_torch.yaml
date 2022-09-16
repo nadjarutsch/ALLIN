@@ -1,5 +1,5 @@
 model:
-  _target_: causal_discovery.idiod.model.NOTEARSTorch
+  _target_: causal_discovery.notears_model.NOTEARSTorch
   d: ${graph.num_vars}
   lambda1: 0.1
   loss_type: l2
