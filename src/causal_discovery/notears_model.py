@@ -106,6 +106,7 @@ class NOTEARSTorch(nn.Module):
         return nx.relabel_nodes(pred_graph, mapping)
 
     def optimize(self, rho, h, alpha, data):
+        nn.init.constant_(self.w_est, 0)    # reinitialize
         data.features = data.features.to(self.device)
         dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(self.parameters(), lr=0.001)
@@ -131,7 +132,7 @@ class NOTEARSTorch(nn.Module):
 
             self.eval()
             loss = self._loss(data.features, W)
-            obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * self.w_est.sum()
+            obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.w_est.sum()))
             train_losses.append(obj)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
 
