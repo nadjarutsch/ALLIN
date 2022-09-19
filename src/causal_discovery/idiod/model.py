@@ -29,7 +29,8 @@ class IDIOD(nn.Module):
                  patience=10,
                  lr=0.001,
                  relearn_iter=1,
-                 name='idiod'):
+                 name='idiod',
+                 clustering='none'):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -70,6 +71,10 @@ class IDIOD(nn.Module):
         self.path = os.path.join('causal_discovery', name, 'saved_models', str(uuid.uuid1()))
         os.makedirs(self.path)
         self.patience = patience
+
+        # clustering (optional)
+        self.clustering = clustering
+        self.p = None
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -139,6 +144,9 @@ class IDIOD(nn.Module):
                 return rho, alpha, h
 
     def optimize(self, dataloader, rho, h, alpha, optimizers, mixture):
+        # init params
+        for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
+            nn.init.constant_(param, 0)
 
         train_losses = []
         best_epoch, stop_count = 0, 0
@@ -146,9 +154,14 @@ class IDIOD(nn.Module):
         for epoch in range(self.max_epochs):
             self.train()
 
-            for _, x in enumerate(dataloader):
+            for _, batch in enumerate(dataloader):
                 for optimizer in optimizers:
                     optimizer.zero_grad()
+
+                if self.clustering == 'target':
+                    x, probs = batch
+                else:
+                    x = batch
                 x = x.to(self.device)
                 preds_obs = self.model_obs(x)
                 loss = self.loss(x, preds_obs)
@@ -156,7 +169,11 @@ class IDIOD(nn.Module):
                 if mixture:
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
-                    probs = self.mixture(x)
+                    if self.clustering == 'target':
+                        probs = 1 - probs[..., 1:]
+                        probs = probs.to(self.device)
+                    else:
+                        probs = self.mixture(x)
                     loss = probs * loss + (1 - probs) * loss_int
 
                     wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
@@ -186,7 +203,11 @@ class IDIOD(nn.Module):
             # evaluate performance on whole dataset
             self.eval()
             loss_all = 0
-            for _, x in enumerate(dataloader):
+            for _, batch in enumerate(dataloader):
+                if self.clustering == 'target':
+                    x, probs = batch
+                else:
+                    x = batch
                 x = x.to(self.device)
                 preds_obs = self.model_obs(x)
                 loss = self.loss(x, preds_obs)
@@ -194,7 +215,11 @@ class IDIOD(nn.Module):
                 if mixture:
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
-                    probs = self.mixture(x)
+                    if self.clustering == 'target':
+                        probs = 1 - probs[..., 1:]
+                        probs = probs.to(self.device)
+                    else:
+                        probs = self.mixture(x)
                     loss = probs * loss + (1 - probs) * loss_int
 
                 loss_all += torch.sum(loss)
@@ -248,6 +273,7 @@ class LinearFixedParams(nn.Linear):
         return F.linear(input, weight, self.bias)
 
 
+'''
 class IDIOD_old(nn.Module):
     def __init__(self,
                  d,
@@ -420,3 +446,4 @@ class IDIOD_old(nn.Module):
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
+'''

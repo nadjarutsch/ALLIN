@@ -8,14 +8,19 @@ def get_interventional_graph(graph, int_idx=-1):
     int_adj_matrix = nx.to_numpy_array(graph)
     if int_idx >= 0:
         int_adj_matrix[:, int_idx] = 0
-    #if int_targets[i] > 0:
-    #    int_adj_matrix[:, int_targets[i] - 1] = 0
+
     true_int_graph = nx.from_numpy_array(int_adj_matrix, create_using=nx.DiGraph)
     mapping = dict(zip(range(len(graph)), list(graph.nodes)))
 
     return nx.relabel_nodes(true_int_graph, mapping)
 
 
+def get_root_nodes(graph: nx.DiGraph) -> list:
+    root_nodes = []
+    for n in graph:
+        if graph.in_degree(n) == 0:
+            root_nodes.append(n)
+    return root_nodes
 
 
 

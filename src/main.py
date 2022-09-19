@@ -26,7 +26,7 @@ import outlier_detection.depcon_kernel as depcon
 import metrics
 from fci import FCI
 from plotting import plot_graph
-from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph
+from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph, get_root_nodes
 
 import sklearn
 from sklearn.cluster import KMeans
@@ -53,6 +53,7 @@ def main(cfg: DictConfig):
             cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
         if "gmm" in str(cfg.clustering.name):
             cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
+
         run = wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, group=cfg.wandb.group, notes='', tags=[], config=cfg, reinit=True)
         with run:
             #######################
@@ -69,6 +70,8 @@ def main(cfg: DictConfig):
                                         seed=seed)
             variables = [v.name for v in dag.variables]
             true_graph = dag.nx_graph
+            if str(cfg.clustering.name) == "target_non_roots":
+                cfg.clustering.clusterer.roots = [variables.index(n) for n in get_root_nodes(true_graph)]
             mec = dag_to_mec(true_graph)
 
             # logging

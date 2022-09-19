@@ -5,7 +5,7 @@ defaults:
 wandb:
   project: idiod_0.2
   entity: nadjarutsch
-  group: notears pytorch
+  group: idiod analysis
 graph:
   num_vars: 10
   structure: random

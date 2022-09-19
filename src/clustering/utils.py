@@ -4,41 +4,45 @@ import numpy as np
 
 
 
-class RandomClusterer():
+class RandomClusterer:
     def __init__(self, n_clusters):
         self.n_clusters = n_clusters
         self.labels_ = None
         self.memberships_ = None
+
     def fit(self, features):
         self.labels_ = np.random.randint(low=0, high=self.n_clusters, size=len(features))
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
-class TargetClusterer():
-    def __init__(self, n_obs, int_ratio, num_vars):
+class TargetClusterer:
+    def __init__(self, n_obs, int_ratio, num_vars, roots=None):
         self.labels_ = None
         self.n_obs = n_obs
         self.n_int = int(n_obs * int_ratio)
         self.num_vars = num_vars
+        self.roots = roots
+
     def fit(self, features):
         true_target_labels = np.zeros(shape=len(features))
-       # for i in range(1, self.num_vars + 1):
-         #   true_target_labels[i * self.n_int, (i+1) * self.n_int]
-         #   true_target_labels.extend([i] * self.n_int)
 
         for i in range(self.num_vars):
-            true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i+1
+            if i in self.roots:
+                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 1
+            else:
+                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i+1
 
         self.labels_ = true_target_labels
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         return self
 
 
-class ObservationalClusterer():
+class ObservationalClusterer:
     def __init__(self, n_obs):
         self.labels_ = None
         self.n_obs = n_obs
+
     def fit(self, features):
         #self.labels_ = [0] * self.n_obs + [-1] * (len(features) - self.n_obs)
         labels = np.zeros(shape=len(features))
@@ -48,9 +52,10 @@ class ObservationalClusterer():
         return self
 
 
-class NoClusterer():
+class NoClusterer:
     def __init__(self):
         self.labels_ = None
+
     def fit(self, features):
         self.labels_ = np.zeros(shape=len(features))
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
