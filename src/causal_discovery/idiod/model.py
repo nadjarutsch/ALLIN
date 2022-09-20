@@ -128,25 +128,27 @@ class IDIOD(nn.Module):
 
     def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
         self.eval()
+        W_init = self.w_est
         for _ in range(self.max_iter):
             h_new = None
             while rho < self.rho_max:
-                self.optimize(dataloader, rho, h, alpha, optimizers, mixture)
+                self.optimize(dataloader, rho, h, alpha, optimizers, mixture, W_init)
                 h_new = self._h(self.model_obs.weight)
                 if h_new > 0.25 * h:
                     rho *= 10
                 else:
                     break
 
-            h = h_new.detach()
+            h, W_init = h_new.detach(), self.model_obs.weight
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
 
-    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture):
+    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, W_init):
         # init params
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
-            nn.init.constant_(param, 0)
+            param.data.copy_(W_init)
+        #    nn.init.constant_(param, 0)
 
         train_losses = []
         best_epoch, stop_count = 0, 0
