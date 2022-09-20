@@ -28,7 +28,7 @@ class TargetClusterer:
         true_target_labels = np.zeros(shape=len(features))
 
         for i in range(self.num_vars):
-            if self.roots is not None:
+            if isinstance(self.roots, list):
                 if i in self.roots:
                     true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 0
                     continue
