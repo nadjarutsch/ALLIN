@@ -81,10 +81,11 @@ class NOTEARSTorch(nn.Module):
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
 
         self.eval()
+        W_est = self.w_est
         for _ in range(self.max_iter):
             W_new, h_new = None, None
             while rho < self.rho_max:
-                self.optimize(rho, h, alpha, data)
+                self.optimize(rho, h, alpha, data, W_est)
                 W_new = self.w_est
                 h_new = self._h(W_new)
                 if h_new > 0.25 * h:
@@ -105,8 +106,8 @@ class NOTEARSTorch(nn.Module):
 
         return nx.relabel_nodes(pred_graph, mapping)
 
-    def optimize(self, rho, h, alpha, data):
-        nn.init.constant_(self.w_est, 0)    # reinitialize
+    def optimize(self, rho, h, alpha, data, W_init):
+        nn.init.constant_(self.w_est, W_init)    # reinitialize
         data.features = data.features.to(self.device)
         dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(self.parameters(), lr=0.001)
