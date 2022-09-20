@@ -34,8 +34,8 @@ from clustering.utils import *
 import hdbscan
 
 
-#os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['WANDB_MODE'] = 'offline'
+os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
@@ -49,6 +49,7 @@ def main(cfg: DictConfig):
 
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
+        cfg.clustering.clusterer.roots = None
         if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
             cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
         if "gmm" in str(cfg.clustering.name):

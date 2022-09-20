@@ -1,6 +1,6 @@
 defaults:
-  - causal_discovery: notears_torch
-  - clustering: none
+  - causal_discovery: idiod
+  - clustering: target_non_roots
   - _self_
 wandb:
   project: idiod_0.2

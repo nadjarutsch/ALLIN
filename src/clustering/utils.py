@@ -29,9 +29,9 @@ class TargetClusterer:
 
         for i in range(self.num_vars):
             if i in self.roots:
-                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 1
+                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 0
             else:
-                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i+1
+                true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i + 1
 
         self.labels_ = true_target_labels
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
