@@ -107,7 +107,8 @@ class NOTEARSTorch(nn.Module):
         return nx.relabel_nodes(pred_graph, mapping)
 
     def optimize(self, rho, h, alpha, data, W_init):
-        nn.init.constant_(self.w_est, W_init)    # reinitialize
+        self.w_est.data.copy_(W_init)
+     #   nn.init.constant_(self.w_est, W_init)    # reinitialize
         data.features = data.features.to(self.device)
         dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
         optimizer = optim.Adam(self.parameters(), lr=0.001)
