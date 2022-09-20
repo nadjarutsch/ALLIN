@@ -128,26 +128,27 @@ class IDIOD(nn.Module):
 
     def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
         self.eval()
-        W_init = self.model_obs.weight
+        params_init = [self.model_obs.weight.detach().clone(), self.model_obs.bias.detach.clone(), self.model_int.weight.detach().clone(), self.model_int.bias.detach().clone()]
         for _ in range(self.max_iter):
             h_new = None
             while rho < self.rho_max:
-                self.optimize(dataloader, rho, h, alpha, optimizers, mixture, W_init)
+                self.optimize(dataloader, rho, h, alpha, optimizers, mixture, params_init)
                 h_new = self._h(self.model_obs.weight)
                 if h_new > 0.25 * h:
                     rho *= 10
                 else:
                     break
 
-            h, W_init = h_new.detach(), self.model_obs.weight
+            h = h_new.detach()
+            params_init = [self.model_obs.weight.detach().clone(), self.model_obs.bias.detach.clone(), self.model_int.weight.detach().clone(), self.model_int.bias.detach().clone()]
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
 
-    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, W_init):
+    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, params_init):
         # init params
-        for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
-            param.data.copy_(W_init)
+        for param, init in zip(chain(self.model_obs.parameters(), self.model_int.parameters()), params_init):
+            param.data.copy_(init)
         #    nn.init.constant_(param, 0)
 
         train_losses = []

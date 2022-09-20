@@ -56,7 +56,13 @@ def main(cfg: DictConfig):
         if "gmm" in str(cfg.clustering.name):
             cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
 
-        run = wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, group=cfg.wandb.group, notes='', tags=[], config=cfg, reinit=True)
+        run = wandb.init(project=cfg.wandb.project,
+                         entity=cfg.wandb.entity,
+                         group=cfg.wandb.group,
+                         notes='',
+                         tags=[],
+                         config=OmegaConf.to_container(cfg, resolve=True),
+                         reinit=True)
         with run:
             #######################
             ### DATA GENERATION ###

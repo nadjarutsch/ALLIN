@@ -81,23 +81,22 @@ class NOTEARSTorch(nn.Module):
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
 
         self.eval()
-        W_est = self.w_est
+        W_init = self.w_est.detach().clone()
         for _ in range(self.max_iter):
-            W_new, h_new = None, None
+            h_new = None
             while rho < self.rho_max:
-                self.optimize(rho, h, alpha, data, W_est)
-                W_new = self.w_est
-                h_new = self._h(W_new)
+                self.optimize(rho, h, alpha, data, W_init)
+                h_new = self._h(self.w_est)
                 if h_new > 0.25 * h:
                     rho *= 10
                 else:
                     break
-            W_est, h = W_new, h_new.detach()
+            W_init, h = self.w_est.detach().clone(), h_new.detach()
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 break
 
-        W_est = W_est.detach().cpu().numpy()
+        W_est = self.w_est.detach().cpu().numpy()
         W_est[np.abs(W_est) < self.w_threshold] = 0
     #    print(W_est)
         A_est = W_est != 0
