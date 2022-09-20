@@ -128,7 +128,10 @@ class IDIOD(nn.Module):
 
     def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
         self.eval()
-        params_init = [self.model_obs.weight.detach().clone(), self.model_obs.bias.detach.clone(), self.model_int.weight.detach().clone(), self.model_int.bias.detach().clone()]
+        params_init = [self.model_obs.weight.data.detach().clone(),
+                       self.model_obs.bias.data.detach.clone(),
+                       self.model_int.weight.data.detach().clone(),
+                       self.model_int.bias.data.detach().clone()]
         for _ in range(self.max_iter):
             h_new = None
             while rho < self.rho_max:
@@ -140,7 +143,10 @@ class IDIOD(nn.Module):
                     break
 
             h = h_new.detach()
-            params_init = [self.model_obs.weight.detach().clone(), self.model_obs.bias.detach.clone(), self.model_int.weight.detach().clone(), self.model_int.bias.detach().clone()]
+            params_init = [self.model_obs.weight.data.detach().clone(),
+                           self.model_obs.bias.data.detach.clone(),
+                           self.model_int.weight.data.detach().clone(),
+                           self.model_int.bias.data.detach().clone()]
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
