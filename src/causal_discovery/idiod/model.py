@@ -167,7 +167,7 @@ class IDIOD(nn.Module):
                 for optimizer in optimizers:
                     optimizer.zero_grad()
 
-                if self.clustering == 'target':
+                if 'target' in self.clustering:
                     x, probs = batch
                 else:
                     x = batch
@@ -178,7 +178,7 @@ class IDIOD(nn.Module):
                 if mixture:
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
-                    if self.clustering == 'target':
+                    if 'target' in self.clustering:
                         probs = 1 - probs[..., 1:]
                         probs = probs.to(self.device)
                     else:
@@ -213,7 +213,7 @@ class IDIOD(nn.Module):
             self.eval()
             loss_all = 0
             for _, batch in enumerate(dataloader):
-                if self.clustering == 'target':
+                if 'target' in self.clustering:
                     x, probs = batch
                 else:
                     x = batch
@@ -224,7 +224,7 @@ class IDIOD(nn.Module):
                 if mixture:
                     preds_int = self.model_int(x)
                     loss_int = self.loss(x, preds_int)
-                    if self.clustering == 'target':
+                    if 'target' in self.clustering:
                         probs = 1 - probs[..., 1:]
                         probs = probs.to(self.device)
                     else:
