@@ -128,7 +128,7 @@ class IDIOD(nn.Module):
 
     def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
         self.eval()
-        W_init = self.w_est
+        W_init = self.model_obs.weight
         for _ in range(self.max_iter):
             h_new = None
             while rho < self.rho_max:
