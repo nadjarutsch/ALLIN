@@ -1,6 +1,6 @@
 defaults:
   - causal_discovery: idiod
-  - clustering: target_non_roots
+  - clustering: none
   - _self_
 wandb:
   project: idiod_0.2
