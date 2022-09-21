@@ -300,6 +300,7 @@ class LinearThreshold(nn.Module):
         else:
             weight = self.layer.weight.clone()
 
+
         weight[torch.abs(self.layer.weight) < self.threshold] = 0
         return F.linear(input, weight, self.layer.bias)
 
