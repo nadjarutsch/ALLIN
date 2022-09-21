@@ -64,7 +64,8 @@ class Faria:
                          debug=False,
                          use_wandb=False)
 
-        print(G)
+        #print(G)
+        G = G.detach().cpu().numpy()
 
         pred_graph = nx.from_numpy_array(G, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
