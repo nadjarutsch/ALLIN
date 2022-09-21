@@ -30,7 +30,8 @@ class IDIOD(nn.Module):
                  lr=0.001,
                  relearn_iter=1,
                  name='idiod',
-                 clustering='none'):
+                 clustering='none',
+                 apply_threshold=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -59,6 +60,8 @@ class IDIOD(nn.Module):
             nn.Sigmoid()
         )
 
+        self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
+
         # init params
         for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture[0].layers[-1].bias]):
             nn.init.constant_(param, 0)
@@ -75,6 +78,8 @@ class IDIOD(nn.Module):
         # clustering (optional)
         self.clustering = clustering
         self.p = None
+
+        self.apply_threshold = apply_threshold
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -102,7 +107,8 @@ class IDIOD(nn.Module):
                                                      alpha=alpha,
                                                      h=h,
                                                      optimizers=[optimizer_mix],
-                                                     mixture=True)
+                                                     mixture=True,
+                                                     apply_threshold=self.apply_threshold)
 
             # relearn weights
             print("\n Adjusting weights...")
@@ -126,7 +132,7 @@ class IDIOD(nn.Module):
 
         return nx.relabel_nodes(pred_graph, mapping)
 
-    def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture):
+    def optimize_lagrangian(self, dataloader, rho, alpha, h, optimizers, mixture, apply_threshold=False):
         self.eval()
         params_init = [self.model_obs.weight.detach().clone(),
                        self.model_obs.bias.detach().clone(),
@@ -135,7 +141,7 @@ class IDIOD(nn.Module):
         for _ in range(self.max_iter):
             h_new = None
             while rho < self.rho_max:
-                self.optimize(dataloader, rho, h, alpha, optimizers, mixture, params_init)
+                self.optimize(dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold)
                 h_new = self._h(self.model_obs.weight)
                 if h_new > 0.25 * h:
                     rho *= 10
@@ -151,7 +157,7 @@ class IDIOD(nn.Module):
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
 
-    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, params_init):
+    def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold):
         # init params
         for param, init in zip(chain(self.model_obs.parameters(), self.model_int.parameters()), params_init):
             param.data.copy_(init)
@@ -172,7 +178,7 @@ class IDIOD(nn.Module):
                 else:
                     x = batch
                 x = x.to(self.device)
-                preds_obs = self.model_obs(x)
+                preds_obs = self.model_obs_threshold(x) if apply_threshold else self.model_obs(x)
                 loss = self.loss(x, preds_obs)
 
                 if mixture:
@@ -209,7 +215,7 @@ class IDIOD(nn.Module):
                 for optimizer in optimizers:
                     optimizer.step()
 
-            # evaluate performance on whole dataset
+            # evaluate performance on whole dataset (always without thresholding W_est)
             self.eval()
             loss_all = 0
             for _, batch in enumerate(dataloader):
@@ -281,6 +287,21 @@ class LinearFixedParams(nn.Linear):
         weight = torch.where(self.mask, self.weight, self.fixed)
         return F.linear(input, weight, self.bias)
 
+
+class LinearThreshold(nn.Module):
+    def __init__(self, layer: Union[nn.Linear, LinearFixedParams], threshold: float):
+        super().__init__()
+        self.layer = layer
+        self.threshold = threshold
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        if isinstance(self.layer, LinearFixedParams):
+            weight = torch.where(self.layer.mask, self.layer.weight, self.layer.fixed)
+        else:
+            weight = self.layer.weight
+
+        weight[np.abs(self.layer.weight) < self.threshold] = 0
+        return F.linear(input, weight, self.layer.bias)
 
 '''
 class IDIOD_old(nn.Module):
