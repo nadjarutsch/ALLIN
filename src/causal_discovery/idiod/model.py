@@ -298,9 +298,9 @@ class LinearThreshold(nn.Module):
         if isinstance(self.layer, LinearFixedParams):
             weight = torch.where(self.layer.mask, self.layer.weight, self.layer.fixed)
         else:
-            weight = self.layer.weight
+            weight = self.layer.weight.clone()
 
-        weight[np.abs(self.layer.weight) < self.threshold] = 0
+        weight[torch.abs(self.layer.weight) < self.threshold] = 0
         return F.linear(input, weight, self.layer.bias)
 
 '''
