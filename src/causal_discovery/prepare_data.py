@@ -8,7 +8,7 @@ from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
     if cfg.normalize:
-        data.features[..., :-1] = (data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)) / torch.std(data.features, dim=0, keepdim=True)
+        data.features[..., :-1] = (data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)) / torch.std(data.features[..., :-1], dim=0, keepdim=True)
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
 
