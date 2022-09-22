@@ -9,10 +9,11 @@ from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
     if cfg.normalize:
         data.features[..., :-1] = (data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)) / torch.std(data.features[..., :-1], dim=0, keepdim=True)
+
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
 
-    elif "notears pytorch" or "idiod" in cfg.causal_discovery.name:
+    elif "notears pytorch" in cfg.causal_discovery.name or "idiod" in cfg.causal_discovery.name:
         features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
         if "target" in cfg.clustering.name:
             return variables, OnlyFeatures(features=features, memberships=data.memberships)
