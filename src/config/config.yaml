@@ -31,3 +31,4 @@ end_seed: 50
 start_seed: 0
 seed: -1
 device: cpu
+normalize: False
