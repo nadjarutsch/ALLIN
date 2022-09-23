@@ -54,7 +54,7 @@ class Faria:
 
         variables, data = cd_input
         self.hparams['n'] = len(variables)
-        self.hparams['i'] = len(variables) + 1 # this assumes the number of intervention targets as known
+        self.hparams['i'] = len(variables) + 1  # this assumes the number of intervention targets as known
 
         dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
 
