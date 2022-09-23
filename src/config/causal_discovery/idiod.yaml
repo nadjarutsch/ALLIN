@@ -19,5 +19,5 @@ model:
   lr: 0.001
   relearn_iter: 1
   name: ${causal_discovery.name}
-  apply_threshold: False
+  apply_threshold: True
 name: idiod
