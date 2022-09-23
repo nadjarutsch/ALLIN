@@ -33,9 +33,13 @@ from sklearn.cluster import KMeans
 from clustering.utils import *
 import hdbscan
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib
 
-#os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['WANDB_MODE'] = 'offline'
+
+os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ['WANDB_MODE'] = 'offline'
 
 @hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
@@ -134,17 +138,18 @@ def main(cfg: DictConfig):
             ### CAUSAL DISCOVERY ###
             ########################
 
-            cd_model = instantiate(cfg.causal_discovery.model)
-            cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-            pred_graph = cd_model.predict(cd_input)
-            context_graph = pred_graph.copy()
+            if cfg.do.causal_discovery:
+                cd_model = instantiate(cfg.causal_discovery.model)
+                cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+                pred_graph = cd_model.predict(cd_input)
+                context_graph = pred_graph.copy()
 
-            # logging
-            # tbl = wandb.Table(dataframe=df)
-            # wandb.log({"clustered data": tbl})
+                # logging
+                # tbl = wandb.Table(dataframe=df)
+                # wandb.log({"clustered data": tbl})
 
-            metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
-            plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+                metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+                plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
 
             #########################
             ### CLUSTER DISCOVERY ###
@@ -192,6 +197,27 @@ def main(cfg: DictConfig):
                     wandb.run.summary["PC+context target: FPs context vars"] = fps
 
                 plot_graph(context_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, context graph")
+
+            if cfg.do.plot_marginals:
+                for i in range(cfg.graph.num_vars):
+                    mask = np.ones(len(synth_dataset.features), dtype=bool)
+                    mask[list(range(cfg.dist.n_obs + i * cfg.dist.n_obs * cfg.dist.int_ratio, cfg.dist.n_obs + (i + 1) * cfg.dist.n_obs * cfg.dist.int_ratio))] = False
+                    obs_data = synth_dataset.features[..., i][mask]
+                    obs_data = obs_data - torch.mean(synth_dataset.features[..., i])
+                    int_data = synth_dataset.features[..., i][~mask]
+                    int_data = int_data - torch.mean(synth_dataset.features[..., i])
+                    palette_obs = matplotlib.colors.hex2color("#ef476f")
+                    palette_int = matplotlib.colors.hex2color("#06d6a0")
+                    sns.kdeplot(data=obs_data, color=palette_obs, fill=True, label="observational").set(title=f"Marginal of {variables[i]}")
+                    sns.kdeplot(data=int_data, color=palette_int, fill=True, label="interventional")
+
+                    if cfg.do.causal_discovery and "idiod" in cfg.causal_discovery.name:
+                        plt.axvline(wandb.run.summary[f"bias_obs_{i}"], 0, 1, color=palette_obs)
+                        plt.axvline(wandb.run.summary[f"bias_int_{i}"], 0, 1, color=palette_int)
+
+                    plt.legend()
+                    plt.savefig(f"marginal_seed_{seed}_{variables[i]}.pdf")
+                    plt.close()
 
             wandb.finish()
 
