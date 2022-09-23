@@ -7,6 +7,9 @@ from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
 def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
+    if len(data.features) != len(data.memberships):
+        data.features = data.features[data.labels >= 0]
+
     if cfg.normalize:
         data.features[..., :-1] = (data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)) / torch.std(data.features[..., :-1], dim=0, keepdim=True)
 
