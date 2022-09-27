@@ -291,7 +291,6 @@ class IDIOD(nn.Module):
                 break
 
         self.load_state_dict(torch.load(os.path.join(self.path, 'model.pt')))
-        print(self.model_obs.weight)
 
     def _h(self, W):
         """Evaluate value of acyclicity constraint."""
@@ -625,7 +624,6 @@ class NormalIDIOD(nn.Module):
                 break
 
         self.load_state_dict(torch.load(os.path.join(self.path, 'model.pt')))
-        print(self.model_obs.weight)
 
     def _h(self, W):
         """Evaluate value of acyclicity constraint."""
