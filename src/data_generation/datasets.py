@@ -11,9 +11,13 @@ from clustering.utils import *
 
 
 class OnlyFeatures(Dataset):
-    def __init__(self, features: torch.Tensor, memberships: np.ndarray = None):
+    def __init__(self,
+                 features: torch.Tensor,
+                 memberships: np.ndarray = None,
+                 targets: Union[dict[str, list[int]], list[list[int]], None] = None):
         self.features = features
         self.memberships = torch.from_numpy(memberships) if memberships is not None else None
+        self.targets = targets
 
     def __len__(self):
         return len(self.features)

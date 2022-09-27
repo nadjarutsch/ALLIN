@@ -12,6 +12,7 @@ from models.mlp import MLP
 import wandb
 from itertools import chain
 import shutil
+import sklearn
 
 
 class IDIOD(nn.Module):
@@ -158,6 +159,14 @@ class IDIOD(nn.Module):
 
         if not self.save_model:
             shutil.rmtree(self.path)
+
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=False, drop_last=False)
+        labels = []
+        for batch in dataloader:
+            labels_batch = torch.argmax(self.mixture(batch), dim=1).squeeze().tolist()
+            labels.extend(labels_batch)
+        wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
+        wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
 
         return nx.relabel_nodes(pred_graph, mapping)
 
