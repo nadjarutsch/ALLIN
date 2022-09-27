@@ -11,6 +11,7 @@ import uuid
 from models.mlp import MLP
 import wandb
 from itertools import chain
+import shutil
 
 
 class IDIOD(nn.Module):
@@ -33,7 +34,8 @@ class IDIOD(nn.Module):
                  clustering='none',
                  apply_threshold=False,
                  loss='mse',
-                 single_target=False):
+                 single_target=False,
+                 save_model=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -49,6 +51,7 @@ class IDIOD(nn.Module):
         self.relearn_iter = relearn_iter    # alternating between learning assignments and obs / int models
         self.step = 0   # for logging
         self.single_target = single_target
+        self.save_model = save_model
 
         # models
         self.loss = loss_dict[loss]
@@ -152,6 +155,9 @@ class IDIOD(nn.Module):
         A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
+
+        if not self.save_model:
+            shutil.rmtree(self.path)
 
         return nx.relabel_nodes(pred_graph, mapping)
 
