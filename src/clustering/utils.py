@@ -36,7 +36,7 @@ class TargetClusterer:
             true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i + 1
 
         self.labels_ = true_target_labels
-        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
+        self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], self.num_vars + 1)
         return self
 
 
