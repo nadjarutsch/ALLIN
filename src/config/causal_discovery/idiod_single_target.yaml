@@ -22,4 +22,4 @@ model:
   apply_threshold: True
   loss: mse
   single_target: True
-name: idiod
+name: idiod_single_target
