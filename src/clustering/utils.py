@@ -1,6 +1,7 @@
 import torch
 from itertools import product
 import numpy as np
+from omegaconf import OmegaConf
 
 
 
@@ -22,7 +23,7 @@ class TargetClusterer:
         self.n_obs = n_obs
         self.n_int = int(n_obs * int_ratio)
         self.num_vars = num_vars
-        self.roots = roots
+        self.roots = OmegaConf.to_object(roots)
 
     def fit(self, features):
         true_target_labels = np.zeros(shape=len(features))
