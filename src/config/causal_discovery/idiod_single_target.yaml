@@ -5,7 +5,7 @@ model:
     _target_: models.mlp.MLP
     n_input: ${graph.num_vars}
     n_hidden: [128, 64, 32]
-    n_output: ${graph.num_vars}
+    n_output: ${add:${graph.num_vars},1}
   lambda1: 0.1
   loss_type: l2
   max_iter: 100
@@ -21,5 +21,5 @@ model:
   name: ${causal_discovery.name}
   apply_threshold: True
   loss: mse
-  single_target: False
+  single_target: True
 name: idiod
