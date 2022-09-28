@@ -168,7 +168,7 @@ class IDIOD(nn.Module):
         for batch in eval_dataloader:
             if "target" in self.clustering:
                 x, probs = batch
-                probs = probs.to(device)
+                probs = probs.to(self.device)
                 probs = 1 - probs[..., 1:]
             else:
                 x = batch
@@ -179,7 +179,7 @@ class IDIOD(nn.Module):
                 labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
             else:
                 assignments = torch.round(probs)
-                labels_batch = torch.sum(assignments * (2 ** torch.Tensor(list(range(len(variables))))),
+                labels_batch = torch.sum(assignments * (2 ** torch.Tensor(list(range(len(variables))), device=self.device)),
                                          dim=1).squeeze().tolist()
             labels.extend(labels_batch)
 
