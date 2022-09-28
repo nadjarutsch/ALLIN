@@ -23,7 +23,7 @@ class TargetClusterer:
         self.n_obs = n_obs
         self.n_int = int(n_obs * int_ratio)
         self.num_vars = num_vars
-        self.roots = OmegaConf.to_object(roots)
+        self.roots = OmegaConf.to_object(roots) if roots != "None" else roots
 
     def fit(self, features):
         true_target_labels = np.zeros(shape=len(features))

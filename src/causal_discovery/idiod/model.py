@@ -36,7 +36,8 @@ class IDIOD(nn.Module):
                  apply_threshold=False,
                  loss='mse',
                  single_target=False,
-                 save_model=False):
+                 save_model=False,
+                 log_progress=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -53,6 +54,7 @@ class IDIOD(nn.Module):
         self.step = 0   # for logging
         self.single_target = single_target
         self.save_model = save_model
+        self.log_progress = log_progress
 
         # models
         self.loss = loss_dict[loss]
@@ -160,11 +162,27 @@ class IDIOD(nn.Module):
         if not self.save_model:
             shutil.rmtree(self.path)
 
-        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=False, drop_last=False)
+        eval_dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=False, drop_last=False)
         labels = []
-        for batch in dataloader:
-            labels_batch = torch.argmax(self.mixture(batch), dim=1).squeeze().tolist()
+
+        for batch in eval_dataloader:
+            if "target" in self.clustering:
+                x, probs = batch
+                probs = 1 - probs[..., 1:]
+            else:
+                x = batch
+                probs = self.mixture(x)
+            if self.single_target:
+                labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
+            else:
+                assignments = torch.round(probs)
+                labels_batch = torch.sum(assignments * (2 ** torch.Tensor(list(range(len(variables))))),
+                                         dim=1).squeeze().tolist()
             labels.extend(labels_batch)
+
+        if self.clustering == "observational":
+            data.targets = np.zeros(len(labels))    # one cluster would be optimal
+
         wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
         wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
 
@@ -236,13 +254,14 @@ class IDIOD(nn.Module):
                     if loss == 'likelihood':
                         loss = -torch.log(loss)
 
-                    wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
-                    names_obs = iter(["bias_obs_" + str(i) for i in range(len(self.model_obs.bias))])
-                    names_int = iter(["bias_int_" + str(i) for i in range(len(self.model_int.bias))])
-                    bias_obs_dict = dict(zip(names_obs, self.model_obs.bias.detach().cpu().tolist()))
-                    bias_int_dict = dict(zip(names_int, self.model_int.bias.detach().cpu().tolist()))
-                    wandb.log(bias_obs_dict, step=self.step)
-                    wandb.log(bias_int_dict, step=self.step)
+                    if self.log_progress:
+                        wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
+                        names_obs = iter(["bias_obs_" + str(i) for i in range(len(self.model_obs.bias))])
+                        names_int = iter(["bias_int_" + str(i) for i in range(len(self.model_int.bias))])
+                        bias_obs_dict = dict(zip(names_obs, self.model_obs.bias.detach().cpu().tolist()))
+                        bias_int_dict = dict(zip(names_int, self.model_int.bias.detach().cpu().tolist()))
+                        wandb.log(bias_obs_dict, step=self.step)
+                        wandb.log(bias_int_dict, step=self.step)
 
                  #   wandb.log({'bias_obs': torch.mean(self.model_obs.bias)}, step=self.step)
                  #   wandb.log({'bias_int': torch.mean(self.model_int.bias)}, step=self.step)
