@@ -168,10 +168,13 @@ class IDIOD(nn.Module):
         for batch in eval_dataloader:
             if "target" in self.clustering:
                 x, probs = batch
+                probs = probs.to(device)
                 probs = 1 - probs[..., 1:]
             else:
                 x = batch
+                x = x.to(self.device)
                 probs = self.mixture(x)
+
             if self.single_target:
                 labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
             else:
