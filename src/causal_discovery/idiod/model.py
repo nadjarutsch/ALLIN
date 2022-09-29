@@ -179,7 +179,7 @@ class IDIOD(nn.Module):
                 labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
             else:
                 assignments = torch.round(probs)
-                labels_batch = torch.sum(assignments * (2 ** torch.Tensor(list(range(len(variables))), device=self.device)),
+                labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
                                          dim=1).squeeze().tolist()
             labels.extend(labels_batch)
 
@@ -275,8 +275,9 @@ class IDIOD(nn.Module):
                 obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
                 obj.backward()
 
-                wandb.log({'loss (unconstrained)': loss}, step=self.step)
-                wandb.log({'loss (Lagrange)': obj}, step=self.step)
+                if self.log_progress:
+                    wandb.log({'loss (unconstrained)': loss}, step=self.step)
+                    wandb.log({'loss (Lagrange)': obj}, step=self.step)
                 self.step += 1
 
                 for optimizer in optimizers:
