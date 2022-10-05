@@ -13,20 +13,17 @@ from clustering.utils import *
 class OnlyFeatures(Dataset):
     def __init__(self,
                  features: torch.Tensor,
-                 memberships: np.ndarray = None,
+                 mixture_in: np.ndarray = None,
                  targets: Union[dict[str, list[int]], list[list[int]], None] = None):
         self.features = features
-        self.memberships = torch.from_numpy(memberships) if memberships is not None else None
+        self.mixture_in = mixture_in
         self.targets = targets
 
     def __len__(self):
         return len(self.features)
 
     def __getitem__(self, idx):
-        if self.memberships is None:
-            return self.features[idx, ...]
-        else:
-            return self.features[idx, ...], self.memberships[idx, ...]
+        return self.features[idx, ...], self.mixture_in[idx, ...]
 
 
 class PartitionData(Dataset):

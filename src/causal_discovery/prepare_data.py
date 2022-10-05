@@ -5,7 +5,6 @@ from data_generation.datasets import *
 from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
-
 def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
     if len(data.features) != len(data.memberships):
         data.features = data.features[data.labels >= 0]
@@ -18,10 +17,8 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
 
     elif "notears pytorch" in cfg.causal_discovery.name or "idiod" in cfg.causal_discovery.name:
         features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
-        if "target" in cfg.clustering.name:
-            return variables, OnlyFeatures(features=features, memberships=data.memberships, targets=data.targets)
-        else:
-            return variables, OnlyFeatures(features=features, targets=data.targets)
+        mixture_in = features if cfg.clustering.name == "none" or cfg.clustering.name == "observational" else torch.from_numpy(data.memberships).float()
+        return variables, OnlyFeatures(features=features, mixture_in=mixture_in, targets=data.targets)
 
     elif cfg.causal_discovery.name == "faria":
         return variables, OnlyFeatures(features=data.features[..., :-1])
@@ -64,8 +61,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         data.memberships[data.memberships[:,0] == 1.0][:,0] = 0
         return prepare_for_pc(data, variables)
         
-    
-    
+
 def prepare_for_pc(data: PartitionData, variables: list[str]) -> pd.DataFrame:
     data.set_random_intervention_targets()
     cols_int = ['I_%s' % i for i in range(len(data.partitions))]

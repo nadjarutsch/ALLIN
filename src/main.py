@@ -38,8 +38,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-#os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['WANDB_MODE'] = 'offline'
+os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ['WANDB_MODE'] = 'offline'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
@@ -141,6 +141,11 @@ def main(cfg: DictConfig):
             ########################
 
             if cfg.do.causal_discovery:
+                if cfg.clustering.name != "observational" and cfg.clustering.name != "none":
+                    try:
+                        cfg.causal_discovery.model.mixture_model.n_input = len(set(clusterer.labels_))
+                    except:
+                        pass
                 cd_model = instantiate(cfg.causal_discovery.model)
                 cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
                 pred_graph = cd_model.predict(cd_input)

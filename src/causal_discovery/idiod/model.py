@@ -5,6 +5,7 @@ from torch.nn import functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from data_generation.datasets import *
+from causal_discovery.idiod.mixture import IdentityMixture
 from tqdm import tqdm
 import os
 import uuid
@@ -78,21 +79,11 @@ class IDIOD(nn.Module):
                                    out_features=self.d * 2 if loss == 'likelihood' else self.d,
                                    device=self.device)
 
-        if self.single_target:
-            self.mixture = nn.Sequential(
-                mixture_model.to(self.device),
-                nn.Softmax()
-            )
-        else:
-            self.mixture = nn.Sequential(
-                mixture_model.to(self.device),
-                nn.Sigmoid()
-            )
-
+        self.mixture = mixture_model
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
         # init params
-        for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture[0].layers[-1].bias]):
+        for param in chain(self.model_obs.parameters(), self.model_int.parameters()):#, [self.mixture.layers[-2].bias]):
             nn.init.constant_(param, 0)
 
         # freeze weights
@@ -130,14 +121,15 @@ class IDIOD(nn.Module):
         for _ in range(self.relearn_iter):
             # learn distribution assignments
             print("\n Searching for interventional data...")
-            optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
-            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                     rho=rho,
-                                                     alpha=alpha,
-                                                     h=h,
-                                                     optimizers=[optimizer_mix],
-                                                     mixture=True,
-                                                     apply_threshold=self.apply_threshold)
+            if not isinstance(self.mixture, IdentityMixture):
+                optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
+                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                         rho=rho,
+                                                         alpha=alpha,
+                                                         h=h,
+                                                         optimizers=[optimizer_mix],
+                                                         mixture=True,
+                                                         apply_threshold=self.apply_threshold)
 
             # relearn weights
             print("\n Adjusting weights...")
@@ -166,28 +158,24 @@ class IDIOD(nn.Module):
         labels = []
 
         for batch in eval_dataloader:
-            if "target" in self.clustering:
-                x, probs = batch
-                probs = probs.to(self.device)
-                probs = 1 - probs[..., 1:]
-            else:
-                x = batch
-                x = x.to(self.device)
-                probs = self.mixture(x)
+            features, mixture_in = batch
+            mixture_in = mixture_in.to(self.device)
+            probs = self.mixture(mixture_in)
 
-            if self.single_target:
-                labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
-            else:
-                assignments = torch.round(probs)
-                labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
-                                         dim=1).squeeze().tolist()
+      #     if self.single_target:
+      #          labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
+      #      else:
+            assignments = torch.round(probs)
+            labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
+                                     dim=1).squeeze().tolist()
             labels.extend(labels_batch)
 
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))    # one cluster would be optimal
 
-        wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
-        wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
+        wandb.run.summary["IDIOD ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
+        wandb.run.summary["IDIOD AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
+        wandb.run.summary["IDIOD n_clusters"] = len(set(labels))
 
         return nx.relabel_nodes(pred_graph, mapping)
 
@@ -232,30 +220,24 @@ class IDIOD(nn.Module):
                 for optimizer in optimizers:
                     optimizer.zero_grad()
 
-                if 'target' in self.clustering:
-                    x, probs = batch
-                else:
-                    x = batch
-                x = x.to(self.device)
-                preds_obs = self.model_obs_threshold(x) if apply_threshold else self.model_obs(x)
-                loss = self.loss(x, preds_obs)
+                features, mixture_in = batch
+                features, mixture_in = features.to(self.device), mixture_in.to(self.device)
+                preds_obs = self.model_obs_threshold(features) if apply_threshold else self.model_obs(features)
+                loss = self.loss(features, preds_obs)
 
                 if mixture:
-                    preds_int = self.model_int(x)
-                    loss_int = self.loss(x, preds_int)
-
-                    if 'target' in self.clustering:
-                        probs = 1 - probs[..., 1:]
-                        probs = probs.to(self.device)
-                    else:
-                        probs = self.mixture(x)
-                        if self.single_target:
-                            probs = 1 - probs[..., 1:]
+                    preds_int = self.model_int(features)
+                    loss_int = self.loss(features, preds_int)
+                    probs = self.mixture(mixture_in)
+                #    if 'target' in self.clustering:
+                #        probs = 1 - probs[..., 1:]
+                #        probs = probs.to(self.device)
+                #    else:
+                #        probs = self.mixture(x)
+                #        if self.single_target:
+                #            probs = 1 - probs[..., 1:]
 
                     loss = probs * loss + (1 - probs) * loss_int
-
-                    if loss == 'likelihood':
-                        loss = -torch.log(loss)
 
                     if self.log_progress:
                         wandb.log({'p_obs': torch.mean(probs)}, step=self.step)
@@ -266,11 +248,7 @@ class IDIOD(nn.Module):
                         wandb.log(bias_obs_dict, step=self.step)
                         wandb.log(bias_int_dict, step=self.step)
 
-                 #   wandb.log({'bias_obs': torch.mean(self.model_obs.bias)}, step=self.step)
-                 #   wandb.log({'bias_int': torch.mean(self.model_int.bias)}, step=self.step)
-
-
-                loss = 0.5 / x.shape[0] * torch.sum(loss)  # equivalent to original numpy implementation
+                loss = 0.5 / features.shape[0] * torch.sum(loss)  # equivalent to original numpy implementation
                 h = self._h(self.model_obs.weight[:self.d, ...])
                 obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
                 obj.backward()
@@ -283,36 +261,25 @@ class IDIOD(nn.Module):
                 for optimizer in optimizers:
                     optimizer.step()
 
-            # evaluate performance on whole dataset (always without thresholding W_est)
+            # evaluate performance on whole dataset (always without thresholding W_est) # TODO: try thresholding
             self.eval()
             loss_all = 0
             for _, batch in enumerate(dataloader):
-                if 'target' in self.clustering:
-                    x, probs = batch
-                else:
-                    x = batch
-                x = x.to(self.device)
-                preds_obs = self.model_obs(x)
-                loss = self.loss(x, preds_obs)
+                features, mixture_in = batch
+                features, mixture_in = features.to(self.device), mixture_in.to(self.device)
+                # preds_obs = self.model_obs_threshold(features) if apply_threshold else self.model_obs(features)   # TODO: use thresholding?
+                preds_obs = self.model_obs(features)
+                loss = self.loss(features, preds_obs)
 
                 if mixture:
-                    preds_int = self.model_int(x)
-                    loss_int = self.loss(x, preds_int)
-                    if 'target' in self.clustering:
-                        probs = 1 - probs[..., 1:]
-                        probs = probs.to(self.device)
-                    else:
-                        probs = self.mixture(x)
-                        if self.single_target:
-                            probs = 1 - probs[..., 1:]
+                    preds_int = self.model_int(features)
+                    loss_int = self.loss(features, preds_int)
+                    probs = self.mixture(mixture_in)
                     loss = probs * loss + (1 - probs) * loss_int
 
-                if loss == 'likelihood':
-                    loss = -torch.log(loss)
-
                 loss_all += torch.sum(loss)
-                h = self._h(self.model_obs.weight[:self.d, ...])
 
+            h = self._h(self.model_obs.weight[:self.d, ...])
             obj = 0.5 / len(dataloader.dataset) * loss_all + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
             train_losses.append(obj)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
@@ -424,7 +391,8 @@ class NormalIDIOD(nn.Module):
         self.step = 0   # for logging
 
         # models
-        self.loss = loss_dict['likelihood']
+        self.loss_gaussian = loss_dict['likelihood']
+        self.loss_mse = loss_dict['mse']
 
         self.model_obs_mean = LinearFixedParams(in_features=self.d,
                                                 out_features=self.d,
@@ -432,15 +400,16 @@ class NormalIDIOD(nn.Module):
                                                 fixed_params=torch.zeros((self.d, self.d)),
                                                 device=self.device)
 
+        # independent noise, i.e. fix weight matrix and learn only biases
         self.model_obs_var = LinearFixedParams(in_features=self.d,
-                                                  out_features=self.d,
-                                                  mask=torch.zeros((self.d, self.d), dtype=torch.bool),
-                                                  fixed_params=torch.zeros((self.d, self.d)),
-                                                  device=self.device)
+                                               out_features=self.d,
+                                               mask=torch.zeros((self.d, self.d), dtype=torch.bool),
+                                               fixed_params=torch.zeros((self.d, self.d)),
+                                               device=self.device)
 
         self.model_int_mean = nn.Linear(in_features=self.d,
-                                       out_features=self.d,
-                                       device=self.device)
+                                        out_features=self.d,
+                                        device=self.device)
 
         self.model_int_var = nn.Linear(in_features=self.d,
                                        out_features=self.d,
@@ -491,8 +460,7 @@ class NormalIDIOD(nn.Module):
                                                  alpha=alpha,
                                                  h=h,
                                                  optimizers=[optimizer_obs_mean],
-                                                 mixture=False,
-                                                 loss_fn=loss_dict['mse'])
+                                                 mixture=False)
 
         self.model_obs_mean.bias.requires_grad = True
 
@@ -500,28 +468,33 @@ class NormalIDIOD(nn.Module):
             # learn distribution assignments
             print("\n Searching for interventional data...")
             optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
-            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                     rho=rho,
-                                                     alpha=alpha,
-                                                     h=h,
-                                                     optimizers=[optimizer_mix],
-                                                     mixture=True,
-                                                     apply_threshold=self.apply_threshold,
-                                                     loss_fn=loss_dict['likelihood'])
+            optimizer_obs_var = optim.Adam(self.model_obs_var.parameters(), lr=self.lr)
+            optimizer_int_var = optim.Adam(self.model_int_var.parameters(), lr=self.lr)
+         #   rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+         #                                            rho=rho,
+         #                                            alpha=alpha,
+         #                                            h=h,
+         #                                            optimizers=[optimizer_mix],
+         #                                            mixture=True,
+         #                                            apply_threshold=self.apply_threshold,
+         #                                            loss_fn=loss_dict['likelihood'])
+            self.learn_assignments(dataloader=dataloader,
+                                   optimizers=[optimizer_mix, optimizer_obs_var, optimizer_int_var])
 
             # relearn weights
             print("\n Adjusting weights...")
-            nn.init.constant_(self.model_obs.weight, 0)
-         #   self.model_obs.weight = nn.Parameter(torch.zeros(size=(self.d, self.d), device=self.device))
-            optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
-            optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
+
+            # reinit params
+            for param in chain(self.model_obs_mean.parameters(),
+                               self.model_int_mean.parameters()):
+                nn.init.constant_(param, 0)
 
             rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
             rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
                                                      rho=rho,
                                                      alpha=alpha,
                                                      h=h,
-                                                     optimizers=[optimizer_obs, optimizer_int],
+                                                     optimizers=[optimizer_obs_mean, optimizer_int_mean],
                                                      mixture=True)
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
@@ -556,6 +529,19 @@ class NormalIDIOD(nn.Module):
             alpha += rho * h
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
+
+    def learn_assignments(self, dataloader, optimizers):
+        train_losses = []
+        best_epoch, stop_count = 0, 0
+
+        for epoch in range(self.max_epochs):
+            self.train()
+
+            for _, batch in enumerate(dataloader):
+                for optimizer in optimizers:
+                    optimizer.zero_grad()
+
+
 
     def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold):
         # init params
