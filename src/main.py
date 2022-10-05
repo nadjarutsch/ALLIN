@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
+# os.environ['HYDRA_FULL_ERROR'] = '1'
 os.environ['WANDB_MODE'] = 'offline'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))

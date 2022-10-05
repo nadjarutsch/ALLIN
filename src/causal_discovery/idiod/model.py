@@ -79,7 +79,7 @@ class IDIOD(nn.Module):
                                    out_features=self.d * 2 if loss == 'likelihood' else self.d,
                                    device=self.device)
 
-        self.mixture = mixture_model
+        self.mixture = mixture_model.to(self.device)
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
         # init params
