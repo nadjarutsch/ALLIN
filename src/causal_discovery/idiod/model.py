@@ -156,23 +156,37 @@ class IDIOD(nn.Module):
 
         eval_dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=False, drop_last=False)
         labels = []
+        dist_keys = ["obs"] + variables
+        p_correct = np.zeros(len(variables) + 1)
 
         for batch in eval_dataloader:
-            features, mixture_in = batch
+            features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
             probs = self.mixture(mixture_in)
 
-      #     if self.single_target:
-      #          labels_batch = torch.argmax(probs, dim=1).squeeze().tolist()
-      #      else:
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
                                      dim=1).squeeze().tolist()
             labels.extend(labels_batch)
 
+            probs = probs.detach().cpu().numpy()
+            targets_int = np.copy(targets)
+            targets_int[targets_int > 0] = targets_int[targets_int > 0] - 1
+            int_probs = 1 - probs[np.arange(targets.shape[0])[:, None], targets_int[:, None]]
+            obs_probs = np.mean(probs[targets == 0], axis=1)
+            p_correct_batch = int_probs.squeeze()
+            p_correct_batch[targets == 0] = obs_probs
+            for target in set(targets.tolist()):
+                p_corr = np.sum(p_correct_batch, where=(targets == target))
+                p_correct[target] += p_corr
+
+        counts = np.array([data.targets.tolist().count(i) for i in range(np.max(data.targets) + 1)])
+        p_correct = (p_correct / counts).tolist()
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))    # one cluster would be optimal
 
+        for i, p in enumerate(p_correct):
+            wandb.run.summary[f"p_{dist_keys[i]}"] = p
         wandb.run.summary["IDIOD ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
         wandb.run.summary["IDIOD AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
         wandb.run.summary["IDIOD n_clusters"] = len(set(labels))
@@ -220,7 +234,7 @@ class IDIOD(nn.Module):
                 for optimizer in optimizers:
                     optimizer.zero_grad()
 
-                features, mixture_in = batch
+                features, mixture_in, _ = batch
                 features, mixture_in = features.to(self.device), mixture_in.to(self.device)
                 preds_obs = self.model_obs_threshold(features) if apply_threshold else self.model_obs(features)
                 loss = self.loss(features, preds_obs)
@@ -265,7 +279,7 @@ class IDIOD(nn.Module):
             self.eval()
             loss_all = 0
             for _, batch in enumerate(dataloader):
-                features, mixture_in = batch
+                features, mixture_in, _ = batch
                 features, mixture_in = features.to(self.device), mixture_in.to(self.device)
                 # preds_obs = self.model_obs_threshold(features) if apply_threshold else self.model_obs(features)   # TODO: use thresholding?
                 preds_obs = self.model_obs(features)

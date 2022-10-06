@@ -23,7 +23,7 @@ class OnlyFeatures(Dataset):
         return len(self.features)
 
     def __getitem__(self, idx):
-        return self.features[idx, ...], self.mixture_in[idx, ...]
+        return self.features[idx, ...], self.mixture_in[idx, ...], self.targets[idx, ...]
 
 
 class PartitionData(Dataset):
