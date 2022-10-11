@@ -9,8 +9,10 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
     if len(data.features) != len(data.memberships):
         data.features = data.features[data.labels >= 0]
 
+    data.features[..., -1] = data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)
+
     if cfg.normalize:
-        data.features[..., :-1] = (data.features[..., :-1] - torch.mean(data.features[..., :-1], dim=0, keepdim=True)) / torch.std(data.features[..., :-1], dim=0, keepdim=True)
+        data.features[..., :-1] = data.features[..., :-1] / torch.std(data.features[..., :-1], dim=0, keepdim=True)
 
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
@@ -24,8 +26,6 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
         return variables, OnlyFeatures(features=data.features[..., :-1])
 
     elif "pc_causallearn" in cfg.causal_discovery.name:
-        if len(data.features) != len(data.memberships):
-            data.features = data.features[data.labels >= 0]
         features = data.features[..., :-1].clone().numpy()
         # normalize
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
