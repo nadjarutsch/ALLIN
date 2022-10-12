@@ -18,6 +18,4 @@ model:
   relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
-  loss: mse
-  single_target: True
 name: idiod
