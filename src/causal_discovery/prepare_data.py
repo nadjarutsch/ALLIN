@@ -19,7 +19,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
 
     elif "notears pytorch" in cfg.causal_discovery.name or "idiod" in cfg.causal_discovery.name:
     #    features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
-        mixture_in = data.features[..., :-1] if cfg.clustering.name == "none" or cfg.clustering.name == "observational" else torch.from_numpy(data.memberships).float()
+        mixture_in = data.features[..., :-1].clone() if cfg.clustering.name == "none" or cfg.clustering.name == "observational" else torch.from_numpy(data.memberships).float()
         return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
 
     elif cfg.causal_discovery.name == "faria":

@@ -35,7 +35,6 @@ class IDIOD(nn.Module):
                  name='idiod',
                  clustering='none',
                  apply_threshold=False,
-                 loss='mse',
                  single_target=False,
                  save_model=False,
                  log_progress=False):
@@ -58,32 +57,22 @@ class IDIOD(nn.Module):
         self.log_progress = log_progress
 
         # models
-        self.loss = loss_dict[loss]
-        if loss == 'likelihood':
-            mask = torch.cat([torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
-                              torch.zeros((self.d, self.d), dtype=torch.bool)],
-                             dim=0)
-            self.model_obs = LinearFixedParams(in_features=self.d,
-                                               out_features=self.d * 2,
-                                               mask=mask,
-                                               fixed_params=torch.zeros((self.d * 2, self.d)),
-                                               device=self.device)
-        elif loss == 'mse':
-            self.model_obs = LinearFixedParams(in_features=self.d,
-                                               out_features=self.d,
-                                               mask=torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
-                                               fixed_params=torch.zeros((self.d, self.d)),
-                                               device=self.device)
+        self.loss = loss_dict['mse']
+        self.model_obs = LinearFixedParams(in_features=self.d,
+                                           out_features=self.d,
+                                           mask=torch.ones((self.d, self.d), dtype=torch.bool).fill_diagonal_(0),
+                                           fixed_params=torch.zeros((self.d, self.d)),
+                                           device=self.device)
 
         self.model_int = nn.Linear(in_features=self.d,
-                                   out_features=self.d * 2 if loss == 'likelihood' else self.d,
+                                   out_features=self.d,
                                    device=self.device)
 
         self.mixture = mixture_model.to(self.device)
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
         # init params
-        for param in chain(self.model_obs.parameters(), self.model_int.parameters()):#, [self.mixture.layers[-2].bias]):
+        for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture.layers[-2].bias]):
             nn.init.constant_(param, 0)
 
         # freeze weights
@@ -134,6 +123,8 @@ class IDIOD(nn.Module):
             # relearn weights
             print("\n Adjusting weights...")
             nn.init.constant_(self.model_obs.weight, 0)
+            nn.init.constant_(self.model_obs.bias, 0)
+            nn.init.constant_(self.model_int.bias, 0)
             optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
             optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
 
@@ -203,7 +194,7 @@ class IDIOD(nn.Module):
             h_new = None
             while rho < self.rho_max:
                 self.optimize(dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold)
-                h_new = self._h(self.model_obs.weight[:self.d, ...])
+                h_new = self._h(self.model_obs.weight)
                 if h_new > 0.25 * h:
                     rho *= 10
                 else:
@@ -263,7 +254,7 @@ class IDIOD(nn.Module):
                         wandb.log(bias_int_dict, step=self.step)
 
                 loss = 0.5 / features.shape[0] * torch.sum(loss)  # equivalent to original numpy implementation
-                h = self._h(self.model_obs.weight[:self.d, ...])
+                h = self._h(self.model_obs.weight)
                 obj = loss + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
                 obj.backward()
 
@@ -293,7 +284,7 @@ class IDIOD(nn.Module):
 
                 loss_all += torch.sum(loss)
 
-            h = self._h(self.model_obs.weight[:self.d, ...])
+            h = self._h(self.model_obs.weight)
             obj = 0.5 / len(dataloader.dataset) * loss_all + 0.5 * rho * h * h + alpha * h + self.lambda1 * torch.sum(torch.abs(self.model_obs.weight))
             train_losses.append(obj)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {obj:05.5f}")
@@ -420,8 +411,8 @@ class NormalIDIOD(nn.Module):
 
         # independent noise, i.e. fix weight matrix and learn only biases
         self.model_obs_var = nn.Linear(in_features=self.d,
-                                        out_features=self.d,
-                                        device=self.device)
+                                       out_features=self.d,
+                                       device=self.device)
 
         self.model_int_mean = nn.Linear(in_features=self.d,
                                         out_features=self.d,
