@@ -1,11 +1,11 @@
 model:
   _target_: causal_discovery.idiod.model.IDIOD
-  d: ${graph.num_vars}
   mixture_model:
-    _target_: models.mlp.MLP
+    _target_: causal_discovery.idiod.mixture.MLPMixture
     n_input: ${graph.num_vars}
-    n_hidden: [128, 64, 32]
+    n_hidden: [ 128, 64, 32 ]
     n_output: ${graph.num_vars}
+  d: ${graph.num_vars}
   lambda1: 0.1
   loss_type: l2
   max_iter: 100
@@ -20,6 +20,5 @@ model:
   relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
-  loss: mse
   single_target: False
 name: idiod

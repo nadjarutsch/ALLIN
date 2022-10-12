@@ -6,7 +6,7 @@ model:
     n_hidden: [ ]
     n_output: ${graph.num_vars}
     single_target: False
-    bias: False
+    bias: True
   d: ${graph.num_vars}
   lambda1: 0.1
   loss_type: l2
@@ -22,6 +22,5 @@ model:
   relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
-  loss: mse
   single_target: True
 name: idiod_context
