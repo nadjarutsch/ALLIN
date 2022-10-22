@@ -1,5 +1,7 @@
-from causallearn.search.ConstraintBased.PC import pc
+#from causallearn.search.ConstraintBased.PC import pc
 from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
+
+from causal_discovery.PC.pc_causallearn import pc
 
 import numpy as np
 from typing import Union
