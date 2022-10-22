@@ -59,8 +59,8 @@ def main(cfg: DictConfig):
             cfg.clustering.clusterer.roots = None
         if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
             cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
-        if "gmm" in str(cfg.clustering.name):
-            cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
+      #  if "gmm" in str(cfg.clustering.name):
+      #      cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
 
         run = wandb.init(project=cfg.wandb.project,
                          entity=cfg.wandb.entity,
@@ -147,10 +147,24 @@ def main(cfg: DictConfig):
                         cfg.causal_discovery.model.mixture_model.n_input = len(set(clusterer.labels_))
                     except:
                         pass
-                cd_model = instantiate(cfg.causal_discovery.model)
-                cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-                pred_graph = cd_model.predict(cd_input)
-                context_graph = pred_graph.copy()
+
+                if cfg.do.bootstrap:
+                    pred_adj_matrix = np.zeros((cfg.graph.num_vars, cfg.graph.num_vars))
+                    for _ in range(10):
+                        indices = np.random.choice(len(synth_dataset), size=1/3 * len(synth_dataset), replace=False)
+                        sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
+                                                         targets=synth_dataset[indices].targets)
+                        sub_dataset.memberships = synth_dataset.memberships[indices]
+                        cd_model = instantiate(cfg.causal_discovery.model)
+                        cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
+                        pred_graph = cd_model.predict(cd_input)
+                        pred_adj_matrix +=  nx.to_numpy_array(pred_graph)
+
+                else:
+                    cd_model = instantiate(cfg.causal_discovery.model)
+                    cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+                    pred_graph = cd_model.predict(cd_input)
+                    context_graph = pred_graph.copy()
 
                 # logging
                 # tbl = wandb.Table(dataframe=df)
