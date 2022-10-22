@@ -1,11 +1,11 @@
 defaults:
-  - causal_discovery: idiod
-  - clustering: none
+  - causal_discovery: pc_causallearn
+  - clustering: gmm
   - _self_
 wandb:
-  project: idiod_0.2
+  project: allin
   entity: nadjarutsch
-  group: idiod analysis
+  group: constraint
 graph:
   num_vars: 10
   structure: random
@@ -14,7 +14,7 @@ dist:
   n_obs: 2000
   int_ratio: 1
   obs_mean: 0.0
-  obs_std: 0.7
+  obs_std: 0.5
   int_mean: 1.0
   int_std: ${dist.obs_std}
   negative: False
@@ -27,7 +27,7 @@ do:
   causal_discovery: True
   context_analysis: False
   plot_marginals: False
-end_seed: 50
+end_seed: 1
 start_seed: 0
 seed: -1
 device: cpu
