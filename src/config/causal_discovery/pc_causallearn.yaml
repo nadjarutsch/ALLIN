@@ -1,5 +1,5 @@
 model:
-  _target_: causal_discovery.pc.PC
+  _target_: causal_discovery.pc_causallearn.PC
   alpha: 0.00001
   indep_test: fisherz
   stable: True
