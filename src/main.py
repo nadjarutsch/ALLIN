@@ -155,6 +155,7 @@ def main(cfg: DictConfig):
                         sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
                                                          targets=synth_dataset[indices].targets)
                         sub_dataset.memberships = synth_dataset.memberships[indices]
+                        sub_dataset.labels = synth_dataset.labels[indices]
                         cd_model = instantiate(cfg.causal_discovery.model)
                         cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
                         pred_graph = cd_model.predict(cd_input)
