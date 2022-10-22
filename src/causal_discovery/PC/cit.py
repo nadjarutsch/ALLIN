@@ -1,8 +1,6 @@
 from math import log, sqrt
 
 import numpy as np
-import sympy as sp
-from sympy.matrices import Matrix
 from scipy.stats import chi2, norm
 
 from causallearn.utils.KCI.KCI import KCI_CInd, KCI_UInd
