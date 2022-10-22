@@ -128,7 +128,7 @@ def skeleton_discovery(
 
         for (x, y) in list(set(edge_removal)):
             edge1 = cg.G.get_edge(cg.G.nodes[x], cg.G.nodes[y])
-            if edge1 is not None and not (background_knowledge.is_required(cg.G.nodes[x], cg.G.nodes[y]) or background_knowledge.is_required(cg.G.nodes[y], cg.G.nodes[x])):
+            if edge1 is not None:
                 cg.G.remove_edge(edge1)
 
     if show_progress:
