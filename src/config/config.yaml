@@ -27,6 +27,7 @@ do:
   causal_discovery: True
   context_analysis: False
   plot_marginals: False
+  bootstrap: False
 end_seed: 1
 start_seed: 0
 seed: -1
