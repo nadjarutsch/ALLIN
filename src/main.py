@@ -159,13 +159,16 @@ def main(cfg: DictConfig):
                         cd_model = instantiate(cfg.causal_discovery.model)
                         cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
                         pred_graph = cd_model.predict(cd_input)
-                        pred_adj_matrix +=  nx.to_numpy_array(pred_graph)
+                        pred_adj_matrix += nx.to_numpy_array(pred_graph)
 
+                    pred_adj_matrix = np.round(pred_adj_matrix * 1/10)
+                    pred_graph = nx.DiGraph(incoming_graph_data=pred_adj_matrix)
                 else:
                     cd_model = instantiate(cfg.causal_discovery.model)
                     cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
                     pred_graph = cd_model.predict(cd_input)
-                    context_graph = pred_graph.copy()
+
+                context_graph = pred_graph.copy()
 
                 # logging
                 # tbl = wandb.Table(dataframe=df)
