@@ -152,7 +152,7 @@ def main(cfg: DictConfig):
                 if cfg.do.bootstrap:
                     pred_adj_matrix = np.zeros((cfg.graph.num_vars + n_clusters, cfg.graph.num_vars + n_clusters))
                     for _ in range(10):
-                        indices = np.random.choice(len(synth_dataset), size=int(1/3 * len(synth_dataset)), replace=False)
+                        indices = np.random.choice(len(synth_dataset), size=int(9/10 * len(synth_dataset)), replace=False)
                         sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
                                                          targets=synth_dataset.targets[indices])
                         sub_dataset.memberships = synth_dataset.memberships[indices]
