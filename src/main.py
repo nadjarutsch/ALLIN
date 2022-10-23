@@ -153,7 +153,7 @@ def main(cfg: DictConfig):
                     for _ in range(10):
                         indices = np.random.choice(len(synth_dataset), size=int(1/3 * len(synth_dataset)), replace=False)
                         sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
-                                                         targets=synth_dataset[indices].targets)
+                                                         targets=synth_dataset.targets[indices])
                         sub_dataset.memberships = synth_dataset.memberships[indices]
                         sub_dataset.labels = synth_dataset.labels[indices]
                         cd_model = instantiate(cfg.causal_discovery.model)
