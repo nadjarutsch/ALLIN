@@ -142,14 +142,15 @@ def main(cfg: DictConfig):
             ########################
 
             if cfg.do.causal_discovery:
+                n_clusters = len(set(clusterer.labels_))
                 if cfg.clustering.name != "observational" and cfg.clustering.name != "none":
                     try:
-                        cfg.causal_discovery.model.mixture_model.n_input = len(set(clusterer.labels_))
+                        cfg.causal_discovery.model.mixture_model.n_input = n_clusters
                     except:
                         pass
 
                 if cfg.do.bootstrap:
-                    pred_adj_matrix = np.zeros((cfg.graph.num_vars, cfg.graph.num_vars))
+                    pred_adj_matrix = np.zeros((cfg.graph.num_vars + n_clusters, cfg.graph.num_vars + n_clusters))
                     for _ in range(10):
                         indices = np.random.choice(len(synth_dataset), size=int(1/3 * len(synth_dataset)), replace=False)
                         sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
@@ -162,7 +163,8 @@ def main(cfg: DictConfig):
                         pred_adj_matrix += nx.to_numpy_array(pred_graph)
 
                     pred_adj_matrix = np.round(pred_adj_matrix * 1/10)
-                    pred_graph = nx.DiGraph(incoming_graph_data=pred_adj_matrix)
+                    mapping = dict(zip(range(len(variables)), variables))
+                    pred_graph = nx.relabel_nodes(nx.DiGraph(incoming_graph_data=pred_adj_matrix), mapping)
                 else:
                     cd_model = instantiate(cfg.causal_discovery.model)
                     cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
