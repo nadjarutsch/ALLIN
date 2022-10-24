@@ -3,7 +3,7 @@ defaults:
   - clustering: gmm
   - _self_
 wandb:
-  project: allin
+  project: idiod-to-allin
   entity: nadjarutsch
   group: constraint
 graph:
