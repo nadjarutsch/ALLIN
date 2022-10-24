@@ -22,4 +22,5 @@ model:
   name: ${causal_discovery.name}
   apply_threshold: True
   single_target: False
+  seed: ${seed}
 name: idiod_old

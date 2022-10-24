@@ -32,12 +32,14 @@ class IDIOD(nn.Module):
                  patience=10,
                  lr=0.001,
                  relearn_iter=1,
-                 name='idiod',
+                 name='idiod_new',
                  clustering='none',
                  apply_threshold=False,
                  single_target=False,
                  save_model=False,
-                 log_progress=False):
+                 log_progress=False,
+                 save_w_est=True,
+                 seed=-1):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -55,6 +57,10 @@ class IDIOD(nn.Module):
         self.single_target = single_target
         self.save_model = save_model
         self.log_progress = log_progress
+        self.save_w_est = save_w_est
+        self.name = name
+        self.clustering = clustering
+        self.seed = seed
 
         # models
         self.loss = loss_dict['mse']
@@ -137,6 +143,8 @@ class IDIOD(nn.Module):
                                                      mixture=True)
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
+        if self.save_w_est:
+            np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
         W_est[np.abs(W_est) < self.w_threshold] = 0
         A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
@@ -819,13 +827,15 @@ class IDIOD_old(nn.Module):
                  patience=10,
                  lr=0.001,
                  relearn_iter=1,
-                 name='idiod',
+                 name='idiod_old',
                  clustering='none',
                  apply_threshold=False,
                  loss='mse',
                  single_target=False,
                  save_model=False,
-                 log_progress=False):
+                 log_progress=False,
+                 save_w_est=True,
+                 seed=-1):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -843,6 +853,11 @@ class IDIOD_old(nn.Module):
         self.single_target = single_target
         self.save_model = save_model
         self.log_progress = log_progress
+        self.save_w_est = save_w_est
+        self.name = name
+        self.clustering = clustering
+        self.seed = seed
+
 
         # models
         self.loss = loss_dict[loss]
@@ -933,6 +948,8 @@ class IDIOD_old(nn.Module):
                                                      mixture=True)
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
+        if self.save_w_est:
+            np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
         W_est[np.abs(W_est) < self.w_threshold] = 0
         A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
