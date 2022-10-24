@@ -945,11 +945,11 @@ class IDIOD_old(nn.Module):
 
         for batch in eval_dataloader:
             if "target" in self.clustering:
-                x, probs = batch
+                x, probs, _ = batch
                 probs = probs.to(self.device)
                 probs = 1 - probs[..., 1:]
             else:
-                x = batch
+                x, _, _ = batch
                 x = x.to(self.device)
                 probs = self.mixture(x)
             if self.single_target:
@@ -1006,9 +1006,9 @@ class IDIOD_old(nn.Module):
                 for optimizer in optimizers:
                     optimizer.zero_grad()
                 if 'target' in self.clustering:
-                    x, probs = batch
+                    x, probs, _ = batch
                 else:
-                    x = batch
+                    x, _, _ = batch
                 x = x.to(self.device)
                 preds_obs = self.model_obs_threshold(x) if apply_threshold else self.model_obs(x)
                 loss = self.loss(x, preds_obs)
@@ -1053,9 +1053,9 @@ class IDIOD_old(nn.Module):
             loss_all = 0
             for _, batch in enumerate(dataloader):
                 if 'target' in self.clustering:
-                    x, probs = batch
+                    x, probs, _ = batch
                 else:
-                    x = batch
+                    x, _, _ = batch
                 x = x.to(self.device)
                 preds_obs = self.model_obs(x)
                 loss = self.loss(x, preds_obs)
