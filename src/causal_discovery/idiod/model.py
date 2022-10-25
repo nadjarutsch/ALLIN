@@ -14,6 +14,7 @@ import wandb
 from itertools import chain
 import shutil
 import sklearn
+from utils import set_seed
 
 
 class IDIOD(nn.Module):
@@ -39,7 +40,8 @@ class IDIOD(nn.Module):
                  save_model=False,
                  log_progress=False,
                  save_w_est=True,
-                 seed=-1):
+                 seed=-1,
+                 deterministic=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -61,6 +63,7 @@ class IDIOD(nn.Module):
         self.name = name
         self.clustering = clustering
         self.seed = seed
+        self.deterministic = deterministic
 
         # models
         self.loss = loss_dict['mse']
@@ -78,7 +81,15 @@ class IDIOD(nn.Module):
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
         # init params
-        for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture.layers[-2].bias]):
+        set_seed(seed)
+        for param in self.mixture.parameters():
+            if len(param.data.shape) > 1:
+                nn.init.kaiming_normal_(param)
+            else:
+                nn.init.constant_(param, 0)
+         #   print(param)
+
+        for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
 
         # freeze weights
@@ -98,7 +109,7 @@ class IDIOD(nn.Module):
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
-        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=not self.deterministic)
         optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
 
@@ -835,7 +846,8 @@ class IDIOD_old(nn.Module):
                  save_model=False,
                  log_progress=False,
                  save_w_est=True,
-                 seed=-1):
+                 seed=-1,
+                 deterministic=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -857,7 +869,7 @@ class IDIOD_old(nn.Module):
         self.name = name
         self.clustering = clustering
         self.seed = seed
-
+        self.deterministic = deterministic
 
         # models
         self.loss = loss_dict[loss]
@@ -893,8 +905,17 @@ class IDIOD_old(nn.Module):
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
         # init params
+        set_seed(seed)
+        for param in self.mixture.parameters():
+            if len(param.data.shape) > 1:
+                nn.init.kaiming_normal_(param)
+            else:
+                nn.init.constant_(param, 0)
+            print(param)
+
         for param in chain(self.model_obs.parameters(), self.model_int.parameters(), [self.mixture[0].layers[-1].bias]):
             nn.init.constant_(param, 0)
+
         # freeze weights
         self.model_obs.bias.requires_grad = False  # for pretraining
         self.model_int.weight.requires_grad = False
@@ -909,7 +930,7 @@ class IDIOD_old(nn.Module):
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
-        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=True)
+        dataloader = DataLoader(data, batch_size=self.batch_size, shuffle=not self.deterministic)
         optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
         rho, alpha, h = 1.0, 0.0, np.inf  # Lagrangian stuff
         # pretrain

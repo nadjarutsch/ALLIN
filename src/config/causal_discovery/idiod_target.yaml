@@ -18,4 +18,6 @@ model:
   relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
+  seed: ${seed}
+  deterministic: True
 name: idiod

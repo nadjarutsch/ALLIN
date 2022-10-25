@@ -23,4 +23,6 @@ model:
   apply_threshold: True
   loss: mse
   single_target: True
+  seed: ${seed}
+  deterministic: True
 name: idiod_single_target

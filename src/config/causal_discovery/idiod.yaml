@@ -22,4 +22,5 @@ model:
   apply_threshold: True
   single_target: False
   seed: ${seed}
+  deterministic: True
 name: idiod
