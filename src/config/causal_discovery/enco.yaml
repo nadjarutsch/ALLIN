@@ -1,0 +1,6 @@
+model:
+  _target_: causal_discovery.enco.model.ENCO
+  num_vars: ${graph.num_vars}
+  hidden_dims: [ ]
+name: enco
+batch_size: 64

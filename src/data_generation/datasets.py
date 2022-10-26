@@ -14,16 +14,22 @@ class OnlyFeatures(Dataset):
     def __init__(self,
                  features: torch.Tensor,
                  mixture_in: np.ndarray = None,
-                 targets: Union[dict[str, list[int]], list[list[int]], None] = None):
+                 targets: Union[dict[str, list[int]], list[list[int]], None] = None,
+                 return_only_features: bool = False):
         self.features = features
         self.mixture_in = mixture_in
         self.targets = targets
+        if return_only_features:
+            self.__getitem__ = self.return_only_features
 
     def __len__(self):
         return len(self.features)
 
     def __getitem__(self, idx):
         return self.features[idx, ...], self.mixture_in[idx, ...], self.targets[idx, ...]
+
+    def return_only_features(self, idx):
+        return self.features[idx, ...]
 
 
 class PartitionData(Dataset):
@@ -124,3 +130,24 @@ class PartitionData(Dataset):
                 target = torch.zeros(len(self.partitions))
                 target[i] = 1
                 self.intervention_targets.append(target)
+
+
+class InterventionalDataset(object):
+    def __init__(self, dataloaders):
+
+        self.data_loaders = dataloaders
+        self.data_iter = {}
+
+        for var_idx in dataloaders.keys():
+            self.data_iter[var_idx] = iter(self.data_loaders[var_idx])
+
+    def get_batch(self, var_idx):
+        """
+        Returns batch of interventional data for specified variable.
+        """
+        try:
+            batch = next(self.data_iter[var_idx])
+        except StopIteration:
+            self.data_iter[var_idx] = iter(self.data_loaders[var_idx])
+            batch = next(self.data_iter[var_idx])
+        return batch[0]

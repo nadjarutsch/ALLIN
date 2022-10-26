@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
+import torch.utils.data as dt
 
 from data_generation.datasets import *
 from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
-def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame:
+def prepare_data(cfg, data: PartitionData, variables: list[str]):
     if len(data.features) != len(data.memberships):
         data.features = data.features[data.labels >= 0]
 
@@ -16,6 +17,20 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]) -> pd.DataFrame
 
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
+
+    if cfg.causal_discovery.name == "enco":
+        int_dataloaders = {}
+        for var_idx, partition in enumerate(data.partitions[1:]):
+            dataset = dt.TensorDataset(partition.features[..., :-1])
+            int_dataloaders[var_idx] = dt.DataLoader(dataset,
+                                                     batch_size=cfg.causal_discovery.batch_size,
+                                                     shuffle=True,
+                                                     pin_memory=False,
+                                                     drop_last=False)
+
+        obs_dataset = dt.TensorDataset(data.partitions[0].features[..., :-1])
+        int_dataset = InterventionalDataset(dataloaders=int_dataloaders)
+        return variables, obs_dataset, int_dataset
 
     elif "notears pytorch" in cfg.causal_discovery.name or "idiod" in cfg.causal_discovery.name:
     #    features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
