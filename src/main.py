@@ -30,6 +30,7 @@ from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_va
 
 import sklearn
 from sklearn.cluster import KMeans
+from sklearn.neighbors import KNeighborsClassifier
 from clustering.utils import *
 import hdbscan
 
@@ -129,6 +130,25 @@ def main(cfg: DictConfig):
 
             clusterer = instantiate(cfg.clustering.clusterer)
             clusterer.fit(synth_dataset.features[..., :-1])
+
+            if cfg.do.gmm_get_means:
+                target_mean_obs = [np.zeros(shape=cfg.graph.num_vars)]
+                target_means_int = [np.eye(N=1, M=cfg.graph.num_vars, k=i).squeeze() for i in range(cfg.graph.num_vars)]
+                target_means = np.asarray(target_mean_obs + target_means_int)
+                gmm_means = clusterer.means_
+
+                classes = np.arange(len(target_means))
+                knn = KNeighborsClassifier(n_neighbors=1)
+                knn.fit(target_means, y=classes)
+                gmm_means_sorted = gmm_means[np.argsort(knn.predict(gmm_means))]
+
+                mean_distance = 0
+                for target_mean, gmm_mean in zip(target_means, gmm_means_sorted):
+                    mean_distance += np.linalg.norm(target_mean-gmm_mean)
+
+                mean_distance = mean_distance / len(target_means)
+                wandb.run.summary["GMM mean distance"] = mean_distance
+
             synth_dataset.memberships = clusterer.memberships_
             if cfg.clustering.name == "hdbscan_soft_normed":
                 synth_dataset.memberships = synth_dataset.memberships / np.sum(synth_dataset.memberships, axis=1, keepdims=True)

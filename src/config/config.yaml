@@ -1,9 +1,9 @@
 defaults:
-  - causal_discovery: pc_causallearn
-  - clustering: gmm
+  - causal_discovery: enco
+  - clustering: target
   - _self_
 wandb:
-  project: idiod-to-allin
+  project: allin
   entity: nadjarutsch
   group: constraint
 graph:
@@ -28,6 +28,7 @@ do:
   context_analysis: False
   plot_marginals: False
   bootstrap: False
+  gmm_get_means: False
 end_seed: 1
 start_seed: 0
 seed: -1
