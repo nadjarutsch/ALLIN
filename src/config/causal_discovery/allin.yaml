@@ -1,0 +1,25 @@
+model:
+  _target_: causal_discovery.allin.model.ALLIN
+  mixture_model:
+    _target_: causal_discovery.allin.mixture.MLPMixture
+    n_input: ${graph.num_vars}
+    n_hidden: [ 128, 64, 32 ]
+    n_output: ${graph.num_vars}
+  d: ${graph.num_vars}
+  lambda1: 0.1
+  loss_type: l2
+  max_iter: 100
+  h_tol: 1e-8
+  rho_max: 1e+16
+  w_threshold: 0.3
+  max_epochs: 1000
+  device: ${device}
+  patience: 10
+  clustering: ${clustering.name}
+  lr: 0.001
+  relearn_iter: 1
+  name: ${causal_discovery.name}
+  apply_threshold: True
+  seed: ${seed}
+  deterministic: True
+name: ALLIN Gaussian
