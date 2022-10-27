@@ -2,6 +2,7 @@ model:
   _target_: causal_discovery.enco.model.ENCO
   num_vars: ${graph.num_vars}
   hidden_dims: [ ]
-  lambda_sparse: 0.001
+  lambda_sparse: 0.004
+  batch_size: 128
+  graph_iters: 200
 name: ENCO
-batch_size: 64
