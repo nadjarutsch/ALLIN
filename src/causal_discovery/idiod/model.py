@@ -87,7 +87,6 @@ class IDIOD(nn.Module):
                 nn.init.kaiming_normal_(param)
             else:
                 nn.init.constant_(param, 0)
-         #   print(param)
 
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
