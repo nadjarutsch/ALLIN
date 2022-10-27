@@ -24,4 +24,4 @@ model:
   single_target: False
   seed: ${seed}
   deterministic: True
-name: idiod_old
+name: IDIOD old

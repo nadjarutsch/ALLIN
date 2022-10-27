@@ -4,4 +4,4 @@ model:
   device: ${device}
   seed: ${seed}
   batch_size: 128
-name: faria
+name: Faria

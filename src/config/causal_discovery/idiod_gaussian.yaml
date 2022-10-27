@@ -20,4 +20,4 @@ model:
   relearn_iter: 5
   name: ${causal_discovery.name}
   apply_threshold: True
-name: idiod_gaussian
+name: IDIOD Gaussian

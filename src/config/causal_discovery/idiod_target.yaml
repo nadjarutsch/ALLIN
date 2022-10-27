@@ -20,4 +20,4 @@ model:
   apply_threshold: True
   seed: ${seed}
   deterministic: True
-name: idiod
+name: IDIOD known interventions

@@ -3,4 +3,4 @@ clusterer:
   init: k-means++
   n_clusters: 6
   soft: False
-name: kmeans
+name: K-Means

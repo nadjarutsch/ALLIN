@@ -93,7 +93,7 @@ def main(cfg: DictConfig):
             plot_graph(true_graph, "true graph")
             plot_graph(mec, "MEC")
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
-            wandb.run.summary["SHD zero guess"] = true_graph.size()
+      #      wandb.run.summary["SHD zero guess"] = true_graph.size()
 
             # datasets
             synth_dataset, interventions = data_gen.generate_data(dag=dag,

@@ -3,4 +3,4 @@ clusterer:
   min_cluster_size: 5
   metric: euclidean
   prediction_data: False
-name: hdbscan
+name: HDBSCAN*

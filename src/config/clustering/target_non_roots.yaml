@@ -4,4 +4,4 @@ clusterer:
   int_ratio: ${dist.int_ratio}
   num_vars: ${graph.num_vars}
   roots: None
-name: target_non_roots
+name: Target non-roots

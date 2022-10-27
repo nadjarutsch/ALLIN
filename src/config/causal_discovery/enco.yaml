@@ -3,5 +3,5 @@ model:
   num_vars: ${graph.num_vars}
   hidden_dims: [ ]
   lambda_sparse: 0.001
-name: enco
+name: ENCO
 batch_size: 64
