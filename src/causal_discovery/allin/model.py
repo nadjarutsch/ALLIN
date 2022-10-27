@@ -1,5 +1,4 @@
 import networkx as nx
-import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import torch.optim as optim
@@ -277,7 +276,7 @@ class ALLIN(nn.Module):
             h_new = None
             while rho < self.rho_max:
                 self.optimize(dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold)
-                h_new = self._h(self.model_obs.weight)
+                h_new = self._h(self.model_obs_mean.weight)
                 if h_new > 0.25 * h:
                     rho *= 10
                 else:
@@ -292,7 +291,7 @@ class ALLIN(nn.Module):
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
 
-    def learn_assignments(self, dataloader, optims_var, optim_mix, apply_threshold):
+    def learn_assignments(self, dataloader, optimizers, apply_threshold):
         train_losses = []
         best_epoch, stop_count = 0, 0
 
