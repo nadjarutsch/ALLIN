@@ -7,6 +7,6 @@ model:
   uc_priority: 4
   verbose: False
   show_progress: True
-name: PC
+name: PC Causallearn
 background_knowledge: True
 known_targets: False

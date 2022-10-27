@@ -7,6 +7,9 @@ from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
 def prepare_data(cfg, data: PartitionData, variables: list[str]):
+    if cfg.causal_discovery.name == "Empty Graph":
+        return variables
+
     if len(data.features) != len(data.memberships):
         data.features = data.features[data.labels >= 0]
 
@@ -18,7 +21,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
     if cfg.causal_discovery.name == "PC" or cfg.causal_discovery.name == "pc_pcalg":
         return prepare_for_pc(data, variables)
 
-    if cfg.causal_discovery.name == "enco":
+    if cfg.causal_discovery.name == "ENCO":
         int_dataloaders = {}
         for var_idx, partition in enumerate(data.partitions[1:]):
             dataset = dt.TensorDataset(partition.features[..., :-1])
@@ -32,15 +35,15 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         int_dataset = InterventionalDataset(dataloaders=int_dataloaders)
         return variables, obs_dataset, int_dataset
 
-    elif "notears pytorch" in cfg.causal_discovery.name or "idiod" in cfg.causal_discovery.name:
+    elif "NOTEARS Pytorch" in cfg.causal_discovery.name or "IDIOD" in cfg.causal_discovery.name:
     #    features = data.features[..., :-1] - torch.mean(data.features[..., :-1], axis=0, keepdims=True)     # zero-center
-        mixture_in = data.features[..., :-1].clone() if cfg.clustering.name == "none" or cfg.clustering.name == "observational" else torch.from_numpy(data.memberships).float()
+        mixture_in = data.features[..., :-1].clone() if cfg.clustering.name == "None" or cfg.clustering.name == "Observational" else torch.from_numpy(data.memberships).float()
         return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
 
-    elif cfg.causal_discovery.name == "faria":
+    elif cfg.causal_discovery.name == "Faria":
         return variables, OnlyFeatures(features=data.features[..., :-1])
 
-    elif "pc_causallearn" in cfg.causal_discovery.name:
+    elif "PC Causallearn" in cfg.causal_discovery.name:
         features = data.features[..., :-1].clone().numpy()
         # normalize
         features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
@@ -61,14 +64,8 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         else:
             return variables, X, None
 
-    elif cfg.causal_discovery.name == "notears" or "notears context" in cfg.causal_discovery.name:
+    elif cfg.causal_discovery.name == "NOTEARS" or "NOTEARS+context" in cfg.causal_discovery.name:
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
-        return variables, X
-
-    elif cfg.causal_discovery.name == "notears normed":
-        features = data.features[...,:-1].clone().numpy()
-        features = (features - np.mean(features, axis=0, keepdims=True)) / np.std(features, axis=0, keepdims=True)
-        X = np.concatenate((features, data.memberships), axis=1)
         return variables, X
 
     elif cfg.causal_discovery.name == "PC known context":
