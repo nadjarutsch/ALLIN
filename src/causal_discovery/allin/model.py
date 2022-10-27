@@ -216,7 +216,7 @@ class ALLIN(nn.Module):
                                                      optimizers=[optimizer_obs_mean, optimizer_int_mean],
                                                      mixture=True)
 
-        W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
+        W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
         W_est[np.abs(W_est) < self.w_threshold] = 0
@@ -360,6 +360,10 @@ class ALLIN(nn.Module):
 
         self.load_state_dict(torch.load(os.path.join(self.path, 'model.pt')))
 
+        self.model_obs_mean.weight.requires_grad = True
+        self.model_obs_mean.bias.requires_grad = True
+        self.model_int_mean.bias.requires_grad = True
+
     def optimize(self, dataloader, rho, h, alpha, optimizers, mixture, params_init, apply_threshold):
         # init params
         for param, init in zip(chain(self.model_obs_mean.parameters(), self.model_int_mean.parameters()), params_init):
@@ -382,7 +386,7 @@ class ALLIN(nn.Module):
 
                 if mixture:
                     preds_int = self.model_int_mean(features)
-                    loss_int = self.loss(features, preds_int)
+                    loss_int = self.loss_mse(features, preds_int)
                     probs = self.mixture(mixture_in)
                     loss = probs * loss + (1 - probs) * loss_int
 

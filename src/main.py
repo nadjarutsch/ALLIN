@@ -164,7 +164,7 @@ def main(cfg: DictConfig):
 
             if cfg.do.causal_discovery:
                 n_clusters = len(set(clusterer.labels_))
-                if cfg.clustering.name != "observational" and cfg.clustering.name != "none":
+                if cfg.clustering.name != "Observational" and cfg.clustering.name != "None":
                     try:
                         cfg.causal_discovery.model.mixture_model.n_input = n_clusters
                     except:
@@ -234,7 +234,7 @@ def main(cfg: DictConfig):
             ################
 
             if cfg.do.context_analysis:
-                if cfg.clustering.name == "target":
+                if cfg.clustering.name == "Target":
                     # FN edges from context variables to intervention targets
                     tps = 0
                     fps = 0
@@ -267,7 +267,7 @@ def main(cfg: DictConfig):
                     sns.kdeplot(data=obs_data, color=palette_obs, fill=True, label="observational").set(title=f"Marginal of {variables[i]}")
                     sns.kdeplot(data=int_data, color=palette_int, fill=True, label="interventional")
 
-                    if cfg.do.causal_discovery and "idiod" in cfg.causal_discovery.name:
+                    if cfg.do.causal_discovery and "IDIOD" in cfg.causal_discovery.name:
                         plt.axvline(wandb.run.summary[f"bias_obs_{i}"], 0, 1, color=palette_obs)
                         plt.axvline(wandb.run.summary[f"bias_int_{i}"], 0, 1, color=palette_int)
 
