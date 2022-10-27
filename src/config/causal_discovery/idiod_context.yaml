@@ -22,7 +22,7 @@ model:
   relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
-  single_target: True
+  single_target: False
   seed: ${seed}
   deterministic: True
 name: IDIOD+context
