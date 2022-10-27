@@ -1,0 +1,4 @@
+model:
+  _target_: causal_discovery.empty_graph.EmptyGraph
+  num_vars: ${graph.num_vars}
+name: Empty Graph
