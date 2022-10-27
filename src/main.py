@@ -155,17 +155,17 @@ def main(cfg: DictConfig):
                     alpha_lst = [0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001]
                     for i in range(11):
                         # data bootstrapping
-                        # indices = np.random.choice(len(synth_dataset), size=int(99/100 * len(synth_dataset)), replace=False)
-                        # sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
-                        #                                 targets=synth_dataset.targets[indices])
-                        # sub_dataset.memberships = synth_dataset.memberships[indices]
-                        # sub_dataset.labels = synth_dataset.labels[indices]
-                        # cd_model = instantiate(cfg.causal_discovery.model)
-                        # cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
+                        indices = np.random.choice(len(synth_dataset), size=int(99/100 * len(synth_dataset)), replace=False)
+                        sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
+                                                         targets=synth_dataset.targets[indices])
+                        sub_dataset.memberships = synth_dataset.memberships[indices]
+                        sub_dataset.labels = synth_dataset.labels[indices]
+                        cd_model = instantiate(cfg.causal_discovery.model)
+                        cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
 
                         # model bootstrapping
-                        cfg.causal_discovery.model.alpha = alpha_lst[i]
-                        cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+                        # cfg.causal_discovery.model.alpha = alpha_lst[i]
+                        # cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
 
                         pred_graph = cd_model.predict(cd_input)
                         pred_adj_matrix += nx.to_numpy_array(pred_graph)
