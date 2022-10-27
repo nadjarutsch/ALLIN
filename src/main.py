@@ -165,6 +165,8 @@ def main(cfg: DictConfig):
 
                         # model bootstrapping
                         cfg.causal_discovery.model.alpha = alpha_lst[i]
+                        cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+
                         pred_graph = cd_model.predict(cd_input)
                         pred_adj_matrix += nx.to_numpy_array(pred_graph)
 
