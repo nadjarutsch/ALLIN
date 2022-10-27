@@ -14,18 +14,18 @@ import data_generation.causal_graphs.graph_definition as graphs
 
 def log_cd_metrics(true_graph, pred_graph, mec, title):
     pred_graph.remove_nodes_from(list(set(pred_graph) - set(true_graph)))
-    wandb.run.summary[f"{title}: SHD"] = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
-    wandb.run.summary[f"{title}: CC"] = causal_correctness(true_graph, pred_graph, mec)
+    wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
+    wandb.run.summary["CC"] = causal_correctness(true_graph, pred_graph, mec)
 
     if nx.is_directed_acyclic_graph(pred_graph):
-        wandb.run.summary[f"{title}: SID"] = cdt.metrics.SID(true_graph, pred_graph)
+        wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
     else:
-        wandb.run.summary[f"{title}: SID min"], wandb.run.summary[f"{title}: SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
+        wandb.run.summary["SID min"], wandb.run.summary["SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
 
 
 def causal_correctness(true_graph: nx.DiGraph,
                        pred_graph: nx.DiGraph,
-                       mec: nx.DiGraph=None) -> int:
+                       mec: nx.DiGraph = None) -> int:
     if mec is None:
         adj_matrix, var_lst = causaldag.DAG.from_nx(true_graph).cpdag().to_amat()
         mapping = dict(zip(range(len(var_lst)), var_lst))
@@ -36,7 +36,7 @@ def causal_correctness(true_graph: nx.DiGraph,
     pred_edges = set(pred_graph.edges())
     mec_edges = set(mec.edges())
     shd = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
-    n_undirected = sum([mec[u][v]['directed']==False for u,v in mec.edges()]) / 2.
+    n_undirected = sum([mec[u][v]['directed'] == False for u, v in mec.edges()]) / 2.
 
     if true_edges.issubset(pred_edges) and pred_edges.issubset(mec_edges):
         return n_undirected - shd
