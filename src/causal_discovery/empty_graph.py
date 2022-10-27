@@ -11,4 +11,4 @@ class EmptyGraph:
         pred_graph = nx.empty_graph(len(variables), create_using=nx.DiGraph())
         mapping = dict(zip(range(len(variables)), variables))
 
-        return nx.relabel_nodes(pred_graph.nx_graph, mapping)
+        return nx.relabel_nodes(pred_graph, mapping)
