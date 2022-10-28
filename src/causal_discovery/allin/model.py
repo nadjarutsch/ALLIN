@@ -260,8 +260,13 @@ class ALLIN(nn.Module):
 
         for i, p in enumerate(p_correct):
             wandb.run.summary[f"p_{dist_keys[i]}"] = p
-        wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
-        wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
+
+        try:
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
+        except:
+            pass
+
         wandb.run.summary["n_clusters"] = len(set(labels))
 
         return nx.relabel_nodes(pred_graph, mapping)
