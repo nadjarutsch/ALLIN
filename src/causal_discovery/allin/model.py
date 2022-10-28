@@ -296,6 +296,8 @@ class ALLIN(nn.Module):
             if h <= self.h_tol or rho >= self.rho_max:
                 return rho, alpha, h
 
+        return rho, alpha, h
+
     def learn_assignments(self, dataloader, optimizers, apply_threshold):
         train_losses = []
         best_epoch, stop_count = 0, 0
