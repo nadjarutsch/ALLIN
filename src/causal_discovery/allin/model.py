@@ -196,7 +196,7 @@ class ALLIN(nn.Module):
 
                 optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
                 self.learn_assignments(dataloader=dataloader,
-                                       optimizers=[optimizer_mix],
+                                       optimizers=[optimizer_mix, optimizer_obs_var, optimizer_int_var],
                                        apply_threshold=True)
 
             # relearn weights
