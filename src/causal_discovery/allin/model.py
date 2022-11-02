@@ -14,14 +14,14 @@ import sklearn
 from utils import set_seed
 
 
-def get_likelihood(batch: torch.Tensor, preds: tuple) -> torch.Tensor:
+def nll(batch: torch.Tensor, preds: tuple) -> torch.Tensor:
     mean, log_var_scale = preds
     loss = nn.GaussianNLLLoss(reduction='none')
-    return torch.exp(-loss(mean, batch, torch.exp(1 * log_var_scale)))
+    return loss(mean, batch, torch.exp(1 * log_var_scale))
 
 
 loss_dict = {'mse': nn.MSELoss(reduction='none'),
-             'likelihood': get_likelihood}
+             'nll': nll}
 
 
 class LinearFixedParams(nn.Linear):
@@ -109,7 +109,7 @@ class ALLIN(nn.Module):
         self.deterministic = deterministic
 
         # models
-        self.loss_gaussian = loss_dict['likelihood']
+        self.loss_gaussian = loss_dict['nll']
         self.loss_mse = loss_dict['mse']
 
         self.model_obs_mean = LinearFixedParams(in_features=self.d,
@@ -263,6 +263,10 @@ class ALLIN(nn.Module):
 
         try:
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
+        except:
+            pass
+
+        try:
             wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
         except:
             pass
@@ -316,8 +320,7 @@ class ALLIN(nn.Module):
 
                 features, mixture_in, _ = batch
                 features, mixture_in = features.to(self.device), mixture_in.to(self.device)
-                preds_obs_mean = self.model_obs_threshold(features) if apply_threshold else self.model_obs_mean(
-                    features)
+                preds_obs_mean = self.model_obs_threshold(features) if apply_threshold else self.model_obs_mean(features)
                 preds_int_mean = self.model_int_mean(features)
                 preds_obs_var, preds_int_var = self.model_obs_var(features), self.model_int_var(features)
 
@@ -325,9 +328,15 @@ class ALLIN(nn.Module):
                 loss_gaussian_int = self.loss_gaussian(features, (preds_int_mean, preds_int_var))
 
                 probs = self.mixture(mixture_in)
-                loss = probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int
-                loss = 0.5 / features.shape[0] * torch.sum(
-                    -torch.log(loss))  # equivalent to original numpy implementation
+                a_obs = torch.log(probs) - loss_gaussian_obs
+                a_int = torch.log(1-probs) - loss_gaussian_int
+                a = torch.stack([a_obs, a_int], dim=-1)
+                loss = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
+           #     a_max = torch.max(a)
+           #     loss = torch.log(torch.sum(torch.exp(a - a_max))) + a_max
+             #   loss = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
+            #    loss = 0.5 / features.shape[0] * torch.log(torch.sum(loss))
+                loss = 0.5 / features.shape[0] * loss
                 loss.backward()
 
                 for optimizer in optimizers:
