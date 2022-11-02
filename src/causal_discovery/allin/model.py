@@ -15,9 +15,12 @@ from utils import set_seed
 
 
 def nll(batch: torch.Tensor, preds: tuple) -> torch.Tensor:
-    mean, log_var_scale = preds
+    mean, log_var = preds
+   # log_var_scale = torch.zeros_like(log_var_scale)
+  #  print(batch[0, ...], mean[0, ...])
     loss = nn.GaussianNLLLoss(reduction='none')
-    return loss(mean, batch, torch.exp(1 * log_var_scale))
+ #   print(torch.exp(1 * log_var_scale)[0, ...])
+    return loss(mean, batch, torch.exp(log_var))
 
 
 loss_dict = {'mse': nn.MSELoss(reduction='none'),
@@ -194,6 +197,8 @@ class ALLIN(nn.Module):
                                        optimizers=[optimizer_obs_var, optimizer_int_var],
                                        apply_threshold=True)
 
+                print(self.model_obs_var.bias, self.model_int_var.bias)
+
                 optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
                 self.learn_assignments(dataloader=dataloader,
                                        optimizers=[optimizer_mix, optimizer_obs_var, optimizer_int_var],
@@ -331,12 +336,11 @@ class ALLIN(nn.Module):
                 a_obs = torch.log(probs) - loss_gaussian_obs
                 a_int = torch.log(1-probs) - loss_gaussian_int
                 a = torch.stack([a_obs, a_int], dim=-1)
-                loss = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
-           #     a_max = torch.max(a)
-           #     loss = torch.log(torch.sum(torch.exp(a - a_max))) + a_max
-             #   loss = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
-            #    loss = 0.5 / features.shape[0] * torch.log(torch.sum(loss))
-                loss = 0.5 / features.shape[0] * loss
+                ll = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
+
+            #    ll = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
+            #    loss = 0.5 / features.shape[0] * -torch.log(torch.sum(ll))
+                loss = 0.5 / features.shape[0] * -ll
                 loss.backward()
 
                 for optimizer in optimizers:
