@@ -381,7 +381,7 @@ class ALLIN(nn.Module):
                 ll_all += torch.log(comb_l)
                 # loss_all += torch.sum(-torch.log(probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int))
 
-            loss = 0.5 / len(dataloader.dataset) * -torch.sum(ll_all)  # equivalent to original numpy implementation
+            loss = 0.5 / len(dataloader.dataset) * -ll_all  # equivalent to original numpy implementation
             train_losses.append(loss)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {loss:05.5f}")
 
