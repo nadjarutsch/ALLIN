@@ -196,7 +196,7 @@ class ALLIN(nn.Module):
                                        optimizers=[optimizer_obs_var, optimizer_int_var],
                                        apply_threshold=True)
 
-                print(self.model_obs_var.bias, self.model_int_var.bias)
+           #     print(self.model_obs_var.bias, self.model_int_var.bias)
 
                 optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
                 self.learn_assignments(dataloader=dataloader,
@@ -278,7 +278,7 @@ class ALLIN(nn.Module):
         wandb.run.summary["n_clusters"] = len(set(labels))
         bias_list_obs = self.model_obs_mean.bias.detach().cpu().tolist()
         bias_list_int = self.model_int_mean.bias.detach().cpu().tolist()
-        for i, bias_obs, bias_int in enumerate(zip(bias_list_obs, bias_list_int)):
+        for i, (bias_obs, bias_int) in enumerate(zip(bias_list_obs, bias_list_int)):
             wandb.run.summary[f"bias_obs_{variables[i]}"] = bias_obs
             wandb.run.summary[f"bias_int_{variables[i]}"] = bias_int
 
