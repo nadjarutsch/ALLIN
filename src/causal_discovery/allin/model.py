@@ -16,10 +16,7 @@ from utils import set_seed
 
 def nll(batch: torch.Tensor, preds: tuple) -> torch.Tensor:
     mean, log_var = preds
-   # log_var_scale = torch.zeros_like(log_var_scale)
-  #  print(batch[0, ...], mean[0, ...])
     loss = nn.GaussianNLLLoss(reduction='none')
- #   print(torch.exp(1 * log_var_scale)[0, ...])
     return loss(mean, batch, torch.exp(log_var))
 
 
@@ -110,6 +107,8 @@ class ALLIN(nn.Module):
         self.clustering = clustering
         self.seed = seed
         self.deterministic = deterministic
+
+        torch.autograd.set_detect_anomaly(True)
 
         # models
         self.loss_gaussian = loss_dict['nll']
@@ -277,6 +276,11 @@ class ALLIN(nn.Module):
             pass
 
         wandb.run.summary["n_clusters"] = len(set(labels))
+        bias_list_obs = self.model_obs_mean.bias.detach().cpu().tolist()
+        bias_list_int = self.model_int_mean.bias.detach().cpu().tolist()
+        for i, bias_obs, bias_int in enumerate(zip(bias_list_obs, bias_list_int)):
+            wandb.run.summary[f"bias_obs_{variables[i]}"] = bias_obs
+            wandb.run.summary[f"bias_int_{variables[i]}"] = bias_int
 
         return nx.relabel_nodes(pred_graph, mapping)
 
@@ -349,6 +353,7 @@ class ALLIN(nn.Module):
             # evaluate performance on whole dataset (always without thresholding W_est) # TODO: try thresholding
             self.eval()
             loss_all = 0
+            ll_all = 0
             for _, batch in enumerate(dataloader):
                 features, mixture_in, _ = batch
                 features, mixture_in = features.to(self.device), mixture_in.to(self.device)
@@ -361,9 +366,18 @@ class ALLIN(nn.Module):
                 loss_gaussian_int = self.loss_gaussian(features, (preds_int_mean, preds_int_var))
 
                 probs = self.mixture(mixture_in)
-                loss_all += torch.sum(-torch.log(probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int))
+                a_obs = torch.log(probs) - loss_gaussian_obs
+                a_int = torch.log(1 - probs) - loss_gaussian_int
+                a = torch.stack([a_obs, a_int], dim=-1)
+                ll = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
 
-            loss = 0.5 / len(dataloader.dataset) * loss_all  # equivalent to original numpy implementation
+                #    ll = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
+                #    loss = 0.5 / features.shape[0] * -torch.log(torch.sum(ll))
+                # loss = 0.5 / features.shape[0] * -ll
+                ll_all += ll
+                # loss_all += torch.sum(-torch.log(probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int))
+
+            loss = 0.5 / len(dataloader.dataset) * ll_all  # equivalent to original numpy implementation
             train_losses.append(loss)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {loss:05.5f}")
 
