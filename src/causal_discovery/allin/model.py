@@ -378,7 +378,7 @@ class ALLIN(nn.Module):
                 #    loss = 0.5 / features.shape[0] * -torch.log(torch.sum(ll))
                 # loss = 0.5 / features.shape[0] * -ll
             #    ll_all += ll
-                ll_all += torch.log(comb_l)
+                ll_all += torch.sum(torch.log(comb_l))
                 # loss_all += torch.sum(-torch.log(probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int))
 
             loss = 0.5 / len(dataloader.dataset) * -ll_all  # equivalent to original numpy implementation
