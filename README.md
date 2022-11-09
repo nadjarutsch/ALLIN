@@ -1,2 +1,2 @@
-# IDIOD
-Intervention DetectIOn for causal Discovery
+# ALLIN
+Assigning Losses to Latent Intervention
