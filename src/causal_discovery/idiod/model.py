@@ -41,7 +41,8 @@ class IDIOD(nn.Module):
                  log_progress=False,
                  save_w_est=True,
                  seed=-1,
-                 deterministic=False):
+                 deterministic=False,
+                 obs_prior_prob=0.5):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -64,6 +65,7 @@ class IDIOD(nn.Module):
         self.clustering = clustering
         self.seed = seed
         self.deterministic = deterministic
+        self.obs_prior_prob = obs_prior_prob
 
         # models
         self.loss = loss_dict['mse']
@@ -82,11 +84,13 @@ class IDIOD(nn.Module):
 
         # init params
         set_seed(seed)
-        for param in self.mixture.parameters():
+        for i, param in enumerate(self.mixture.parameters()):
             if len(param.data.shape) > 1:
                 nn.init.kaiming_normal_(param)
             else:
-                nn.init.constant_(param, 0)
+                last_param = i == len(self.mixture.parameters()) - 1
+                val = np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)) if last_param else 0
+                nn.init.constant_(param, val)
 
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
