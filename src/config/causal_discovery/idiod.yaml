@@ -24,4 +24,5 @@ model:
   seed: ${seed}
   deterministic: True
   obs_prior_prob: 0.5
+  fix_bias: False
 name: IDIOD

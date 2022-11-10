@@ -42,7 +42,8 @@ class IDIOD(nn.Module):
                  save_w_est=True,
                  seed=-1,
                  deterministic=False,
-                 obs_prior_prob=0.5):
+                 obs_prior_prob=0.5,
+                 fix_bias=False):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -66,6 +67,7 @@ class IDIOD(nn.Module):
         self.seed = seed
         self.deterministic = deterministic
         self.obs_prior_prob = obs_prior_prob
+        self.fix_bias = fix_bias
 
         # models
         self.loss = loss_dict['mse']
@@ -88,9 +90,10 @@ class IDIOD(nn.Module):
             if len(param.data.shape) > 1:
                 nn.init.kaiming_normal_(param)
             else:
-                last_param = i == len(self.mixture.parameters()) - 1
-                val = np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)) if last_param else 0
-                nn.init.constant_(param, val)
+                nn.init.constant_(param, 0)
+
+        # init classification bias with prior probability of the observational regime
+        nn.init.constant_(self.mixture.layers[-2].bias, np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)))
 
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
@@ -98,6 +101,7 @@ class IDIOD(nn.Module):
         # freeze weights
         self.model_obs.bias.requires_grad = False   # for pretraining
         self.model_int.weight.requires_grad = False
+        self.mixture.layers[-2].bias.requires_grad = not self.fix_bias
 
         # early stopping
         self.path = os.path.join('causal_discovery', name, 'saved_models', str(uuid.uuid1()))
