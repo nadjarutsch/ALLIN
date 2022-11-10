@@ -1,0 +1,33 @@
+model:
+  _target_: causal_discovery.idiod.model.IDIOD_double
+  mixture1:
+    _target_: causal_discovery.idiod.mixture.MLPMixture
+    n_input: ${graph.num_vars}
+    n_hidden: [ 128, 64, 32 ]
+    n_output: ${graph.num_vars}
+  mixture2:
+    _target_: causal_discovery.idiod.mixture.MLPMixture
+    n_input: ${graph.num_vars}
+    n_hidden: [ 256, 128, 64, 32 ]
+    n_output: ${graph.num_vars}
+  d: ${graph.num_vars}
+  lambda1: 0.1
+  loss_type: l2
+  max_iter: 100
+  h_tol: 1e-8
+  rho_max: 1e+16
+  w_threshold: 0.3
+  max_epochs: 100
+  device: ${device}
+  patience: 10
+  clustering: ${clustering.name}
+  lr: 0.001
+  relearn_iter: 1
+  name: ${causal_discovery.name}
+  apply_threshold: True
+  single_target: False
+  seed: ${seed}
+  deterministic: True
+  obs_prior_prob: 0.5
+  fix_bias: False
+name: IDIOD double
