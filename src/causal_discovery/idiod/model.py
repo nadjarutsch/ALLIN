@@ -17,6 +17,8 @@ import sklearn
 from utils import set_seed
 
 
+loss_dict = {'mse': nn.MSELoss(reduction='none')}
+
 class IDIOD(nn.Module):
     def __init__(self,
                  d,
