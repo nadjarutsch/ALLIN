@@ -51,6 +51,10 @@ def main(cfg: DictConfig):
     if torch.cuda.is_available():
         cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
         cfg.device = 'cuda:0'
+        try:
+            cfg.causal_discovery.model.device = 'cuda:0'
+        except:
+            pass
     else:
         cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
         cfg.device = 'cpu'
