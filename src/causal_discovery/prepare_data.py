@@ -40,7 +40,9 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
 
     elif cfg.causal_discovery.name == "Faria":
-        return variables, OnlyFeatures(features=data.features[..., :-1])
+        dataset = OnlyFeatures(features=data.features[..., :-1])
+        OnlyFeatures.__getitem__ = OnlyFeatures.return_only_features
+        return variables, dataset
 
     elif "PC Causallearn" in cfg.causal_discovery.name:
         features = data.features[..., :-1].clone().numpy()
