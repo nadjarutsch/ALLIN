@@ -670,7 +670,7 @@ class ALLIN_double(nn.Module):
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
-            probs = torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+            probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
 
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
@@ -851,7 +851,7 @@ class ALLIN_double(nn.Module):
                 if mixture:
                     preds_int = self.model_int_mean(features)
                     loss_int = self.loss_mse(features, preds_int)
-                    probs = torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+                    probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
                     if self.sample == 1:
                         probs = torch.bernoulli(probs)
                     elif self.sample == 2:
@@ -893,7 +893,7 @@ class ALLIN_double(nn.Module):
                 if mixture:
                     preds_int = self.model_int_mean(features)
                     loss_int = self.loss_mse(features, preds_int)
-                    probs = torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+                    probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
                 #    if self.sample:
                 #        probs = torch.bernoulli(probs)
                     loss = probs * loss + (1 - probs) * loss_int

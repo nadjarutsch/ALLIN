@@ -534,7 +534,7 @@ class IDIOD_double(nn.Module):
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
-            probs = torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in))
+            probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in))
 
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
@@ -624,7 +624,7 @@ class IDIOD_double(nn.Module):
                         loss = 1/2 * (loss1 + loss2)
 
                     elif mixture == 2:
-                        probs = torch.sqrt(probs1 * probs2)
+                        probs = 1 - torch.sqrt(probs1 * probs2)
                         loss = probs * loss + (1 - probs) * loss_int
 
                     if self.log_progress:
@@ -672,7 +672,7 @@ class IDIOD_double(nn.Module):
                         loss = 1 / 2 * (loss1 + loss2)
 
                     elif mixture == 2:
-                        probs = torch.sqrt(probs1 * probs2)
+                        probs = 1 - torch.sqrt(probs1 * probs2)
                         loss = probs * loss + (1 - probs) * loss_int
 
                 loss_all += torch.sum(loss)
