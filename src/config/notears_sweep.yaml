@@ -1,9 +1,9 @@
 defaults:
-  - override hydra/sweeper: optuna
-  - override hydra/sweeper/sampler: tpe
   - causal_discovery: notears
   - clustering: none
   - _self_
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
 
 hydra:
   sweeper:
