@@ -15,15 +15,11 @@ hydra:
     n_trials: 50
     n_jobs: 1
     params:
-      causal_discovery:
-        model:
-          lambda1: interval(0, 1)
-          w_threshold: interval(0, 1)
+      causal_discovery.model.lambda1: interval(0, 1)
+      causal_discovery.model.w_threshold: interval(0, 1)
 
-causal_discovery:
-  model:
-    lambda1: 0.1
-    w_threshold: 0.3
+causal_discovery.model.lambda1: 0.1
+causal_discovery.model.w_threshold: 0.3
 
 # if true, simulate a failure by raising an exception
 error: false
