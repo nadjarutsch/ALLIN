@@ -241,7 +241,6 @@ class IDIOD(nn.Module):
         # init params
         for param, init in zip(chain(self.model_obs.parameters(), self.model_int.parameters()), params_init):
             param.data.copy_(init)
-        #    nn.init.constant_(param, 0)
 
         train_losses = []
         best_epoch, stop_count = 0, 0
@@ -262,13 +261,6 @@ class IDIOD(nn.Module):
                     preds_int = self.model_int(features)
                     loss_int = self.loss(features, preds_int)
                     probs = self.mixture(mixture_in)
-                #    if 'target' in self.clustering:
-                #        probs = 1 - probs[..., 1:]
-                #        probs = probs.to(self.device)
-                #    else:
-                #        probs = self.mixture(x)
-                #        if self.single_target:
-                #            probs = 1 - probs[..., 1:]
 
                     loss = probs * loss + (1 - probs) * loss_int
 
