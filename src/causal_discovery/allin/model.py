@@ -185,7 +185,7 @@ class ALLIN(nn.Module):
         #                                         mixture=False)
 
         notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
-        notears_in = (variables, np.concatenate((data.features.clone().numpy(), data.memberships), axis=1))
+        notears_in = (variables, np.concatenate((data.features.clone().numpy(), data.mixture_in), axis=1))
         notears.predict(notears_in)
         self.model_obs_mean.weight.data.copy_(notears.W_est)
 
