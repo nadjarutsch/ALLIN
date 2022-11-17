@@ -167,7 +167,6 @@ class ALLIN(nn.Module):
         self.p = None
 
         self.apply_threshold = apply_threshold
-        print(self.device)
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -185,9 +184,9 @@ class ALLIN(nn.Module):
         #                                         mixture=False)
 
         notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
-        notears_in = (variables, np.concatenate((data.features.clone().numpy(), data.mixture_in), axis=1))
+        notears_in = (variables, data.features.clone().numpy())
         notears.predict(notears_in)
-        self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est))
+        self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est))  # TODO: make un-thresholded version available
 
         self.model_obs_mean.bias.requires_grad = True
 
@@ -344,14 +343,9 @@ class ALLIN(nn.Module):
                 loss_gaussian_int = self.loss_gaussian(features, (preds_int_mean, preds_int_var))
 
                 probs = self.mixture(mixture_in)
-             #   a_obs = torch.log(probs) - loss_gaussian_obs
-             #   a_int = torch.log(1-probs) - loss_gaussian_int
-             #   a = torch.stack([a_obs, a_int], dim=-1)
-             #   ll = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
 
                 comb_l = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
                 loss = 0.5 / features.shape[0] * -torch.sum(torch.log(comb_l))
-           #     loss = 0.5 / features.shape[0] * -ll
                 loss.backward()
 
                 for optimizer in optimizers:
@@ -373,20 +367,9 @@ class ALLIN(nn.Module):
                 loss_gaussian_int = self.loss_gaussian(features, (preds_int_mean, preds_int_var))
 
                 probs = self.mixture(mixture_in)
-             #   a_obs = torch.log(probs) - loss_gaussian_obs
-             #   a_int = torch.log(1 - probs) - loss_gaussian_int
-             #   a = torch.stack([a_obs, a_int], dim=-1)
-             #   ll = torch.logsumexp(a, dim=tuple(range(len(a.shape))))
 
                 comb_l = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
-            #    loss = 0.5 / features.shape[0] * -torch.sum(torch.log(comb_l))
-
-                #    ll = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
-                #    loss = 0.5 / features.shape[0] * -torch.log(torch.sum(ll))
-                # loss = 0.5 / features.shape[0] * -ll
-            #    ll_all += ll
                 ll_all += torch.sum(torch.log(comb_l))
-                # loss_all += torch.sum(-torch.log(probs * loss_gaussian_obs + (1 - probs) * loss_gaussian_int))
 
             loss = 0.5 / len(dataloader.dataset) * -ll_all  # equivalent to original numpy implementation
             train_losses.append(loss)
