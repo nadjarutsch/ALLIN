@@ -45,7 +45,7 @@ os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
-@hydra.main(config_path="./config", config_name="config")
+@hydra.main(config_path="./config", config_name="notears_sweep")
 def main(cfg: DictConfig):
     
     if torch.cuda.is_available():
