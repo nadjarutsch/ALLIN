@@ -17,8 +17,8 @@ hydra:
     params:
       causal_discovery:
         model:
-          lambda1: range(0, 1)
-          w_threshold: range(0, 1)
+          lambda1: interval(0, 1)
+          w_threshold: interval(0, 1)
 
 causal_discovery:
   model:
