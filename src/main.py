@@ -45,7 +45,7 @@ os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
-@hydra.main(config_path="./config", config_name="config")
+@hydra.main(config_path="./config", config_name="notears_sweep")
 def main(cfg: DictConfig):
     
     if torch.cuda.is_available():
@@ -59,6 +59,7 @@ def main(cfg: DictConfig):
         cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
         cfg.device = 'cpu'
 
+    shds = []
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
         if str(cfg.clustering.name) == "target_non_roots":
@@ -210,6 +211,7 @@ def main(cfg: DictConfig):
 
                 metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
                 plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+                shds.append(wandb.run.summary["SHD"])
 
             #########################
             ### CLUSTER DISCOVERY ###
@@ -280,6 +282,8 @@ def main(cfg: DictConfig):
                     plt.close()
 
             wandb.finish()
+
+    return sum(shds)
 
 
 if __name__ == '__main__':

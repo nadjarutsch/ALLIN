@@ -1,0 +1,63 @@
+defaults:
+  - override hydra/sweeper: optuna
+  - override hydra/sweeper/sampler: tpe
+  - causal_discovery: notears
+  - clustering: none
+  - _self_
+
+hydra:
+  sweeper:
+    sampler:
+      seed: 123
+    direction: minimize
+    study_name: notears_sweep
+    storage: null
+    n_trials: 50
+    n_jobs: 1
+    max_failure_rate: 0.0
+    params:
+      causal_discovery:
+        model:
+          lambda1: range(0, 1)
+          w_threshold: range(0, 1)
+
+causal_discovery:
+  model:
+    lambda1: 0.1
+    w_threshold: 0.3
+
+# if true, simulate a failure by raising an exception
+error: false
+
+wandb:
+  project: allin
+  entity: nadjarutsch
+  group: Hparam sweeps
+graph:
+  num_vars: 10
+  structure: random
+  e_n: 2
+dist:
+  n_obs: 2000
+  int_ratio: 1
+  obs_mean: 0.0
+  obs_std: 0.5
+  int_mean: 1.0
+  int_std: ${dist.obs_std}
+  negative: False
+oracle:
+  n_int_targets: 5
+do:
+  oracle: False
+  cluster: True
+  cluster_discovery: False
+  causal_discovery: True
+  context_analysis: False
+  plot_marginals: False
+  bootstrap: False
+  gmm_get_means: False
+end_seed: 10
+start_seed: 0
+seed: -1
+device: cpu
+normalize: False
