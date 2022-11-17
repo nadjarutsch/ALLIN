@@ -517,7 +517,7 @@ class ALLIN_double(nn.Module):
                  save_w_est=True,
                  seed=-1,
                  deterministic=False,
-                 sample=False):
+                 sample=0):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -852,8 +852,10 @@ class ALLIN_double(nn.Module):
                     preds_int = self.model_int_mean(features)
                     loss_int = self.loss_mse(features, preds_int)
                     probs = torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in))
-                    if self.sample:
+                    if self.sample == 1:
                         probs = torch.bernoulli(probs)
+                    elif self.sample == 2:
+                        probs = torch.round(probs)
                     loss = probs * loss + (1 - probs) * loss_int
 
                     if self.log_progress:
