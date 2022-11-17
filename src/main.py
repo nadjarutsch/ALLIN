@@ -40,12 +40,12 @@ import matplotlib
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-# os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
-@hydra.main(config_path="./config", config_name="notears_sweep")
+@hydra.main(config_path="./config", config_name="config")
 def main(cfg: DictConfig):
     
     if torch.cuda.is_available():
@@ -82,15 +82,19 @@ def main(cfg: DictConfig):
             #######################
 
             # generate graph
-            dag = data_gen.generate_dag(num_vars=cfg.graph.num_vars,
-                                        edge_prob=cfg.graph.e_n / cfg.graph.num_vars,
-                                        fns='linear gaussian',
-                                        mu=cfg.dist.obs_mean,
-                                        sigma=cfg.dist.obs_std,
-                                        negative=cfg.dist.negative,
-                                        seed=seed)
-            variables = [v.name for v in dag.variables]
-            true_graph = dag.nx_graph
+            dags = []
+            for mean in cfg.dist.obs_means:
+                dag = data_gen.generate_dag(num_vars=cfg.graph.num_vars,
+                                            edge_prob=cfg.graph.e_n / cfg.graph.num_vars,
+                                            fns='linear gaussian',
+                                            mu=mean,
+                                            sigma=cfg.dist.obs_std,
+                                            negative=cfg.dist.negative,
+                                            seed=seed)
+                dags.append(dag)
+
+            variables = [v.name for v in dags[0].variables]
+            true_graph = dags[0].nx_graph
             if str(cfg.clustering.name) == "target_non_roots":
                 cfg.clustering.clusterer.roots = [variables.index(n) for n in get_root_nodes(true_graph)]
             mec = dag_to_mec(true_graph)
@@ -102,12 +106,19 @@ def main(cfg: DictConfig):
       #      wandb.run.summary["SHD zero guess"] = true_graph.size()
 
             # datasets
-            synth_dataset, interventions = data_gen.generate_data(dag=dag,
-                                                                  n_obs=cfg.dist.n_obs,
-                                                                  int_ratio=cfg.dist.int_ratio,
-                                                                  seed=seed,
-                                                                  int_mu=cfg.dist.int_mean,
-                                                                  int_sigma=cfg.dist.int_std)
+            datasets = []
+            for dag in dags:
+                synth_dataset, interventions = data_gen.generate_data(dag=dag,
+                                                                      n_obs=cfg.dist.n_obs,
+                                                                      int_ratio=cfg.dist.int_ratio,
+                                                                      seed=seed,
+                                                                      int_mu=cfg.dist.int_mean,
+                                                                      int_sigma=cfg.dist.int_std)
+
+                datasets.append(synth_dataset)
+
+            synth_dataset = data.PartitionData(features=torch.cat([dataset.features[..., :-1] for dataset in datasets], dim=0),
+                                               targets=np.concatenate([dataset.targets for dataset in datasets], axis=0))
 
             target_dataset = data.PartitionData(features=synth_dataset.features[..., :-1],
                                                 targets=synth_dataset.targets)

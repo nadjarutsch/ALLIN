@@ -1,6 +1,6 @@
 defaults:
-  - causal_discovery: enco
-  - clustering: target
+  - causal_discovery: pc_causallearn
+  - clustering: gmm
   - _self_
 wandb:
   project: allin
@@ -11,9 +11,9 @@ graph:
   structure: random
   e_n: 2
 dist:
-  n_obs: 2000
+  n_obs: 1000
   int_ratio: 1
-  obs_mean: 0.0
+  obs_means: [ -1.0, 1.0 ]
   obs_std: 0.5
   int_mean: 1.0
   int_std: ${dist.obs_std}
