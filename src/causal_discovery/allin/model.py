@@ -12,6 +12,7 @@ from itertools import chain
 import shutil
 import sklearn
 from utils import set_seed
+from causal_discovery.notears_model import Notears
 
 
 def nll(batch: torch.Tensor, preds: tuple) -> torch.Tensor:
@@ -166,6 +167,7 @@ class ALLIN(nn.Module):
         self.p = None
 
         self.apply_threshold = apply_threshold
+        print(self.device)
 
     def predict(self, cd_input: tuple):
         variables, data = cd_input
@@ -175,12 +177,17 @@ class ALLIN(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                 rho=rho,
-                                                 alpha=alpha,
-                                                 h=h,
-                                                 optimizers=[optimizer_obs_mean],
-                                                 mixture=False)
+        #rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+        #                                         rho=rho,
+        #                                         alpha=alpha,
+        #                                         h=h,
+        #                                         optimizers=[optimizer_obs_mean],
+        #                                         mixture=False)
+
+        notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
+        notears_in = (variables, np.concatenate((data.features.clone().numpy(), data.memberships), axis=1))
+        notears.predict(notears_in)
+        self.model_obs_mean.weight.data.copy_(notears.W_est)
 
         self.model_obs_mean.bias.requires_grad = True
 

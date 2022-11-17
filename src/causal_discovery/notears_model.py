@@ -29,7 +29,7 @@ class Notears:
     def predict(self, cd_input: tuple):
 
         variables, data = cd_input
-        W_est = notears_linear(X=data,
+        self.W_est = notears_linear(X=data,
                                lambda1=self.lambda1,
                                loss_type=self.loss_type,
                                max_iter=self.max_iter,
@@ -37,7 +37,7 @@ class Notears:
                                rho_max=self.rho_max,
                                w_threshold=self.w_threshold)
 
-        A_est = W_est != 0
+        A_est = self.W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
         mapping = dict(zip(range(len(variables)), variables))
 
