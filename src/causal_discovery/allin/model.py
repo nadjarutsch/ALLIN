@@ -187,7 +187,7 @@ class ALLIN(nn.Module):
         notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
         notears_in = (variables, np.concatenate((data.features.clone().numpy(), data.mixture_in), axis=1))
         notears.predict(notears_in)
-        self.model_obs_mean.weight.data.copy_(notears.W_est)
+        self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est))
 
         self.model_obs_mean.bias.requires_grad = True
 
