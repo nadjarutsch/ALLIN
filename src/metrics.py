@@ -16,11 +16,13 @@ def log_cd_metrics(true_graph, pred_graph, mec, title):
     pred_graph.remove_nodes_from(list(set(pred_graph) - set(true_graph)))
     wandb.run.summary["SHD"] = cdt.metrics.SHD(true_graph, pred_graph, double_for_anticausal=False)
     wandb.run.summary["CC"] = causal_correctness(true_graph, pred_graph, mec)
+    wandb.run.summary["FN"] = fn(pred_graph, true_graph)
+    wandb.run.summary["FP"] = fp(pred_graph, true_graph)
 
-    if nx.is_directed_acyclic_graph(pred_graph):
-        wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
-    else:
+    if not nx.is_directed_acyclic_graph(pred_graph):
         wandb.run.summary["SID min"], wandb.run.summary["SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
+
+    wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
 
 
 def causal_correctness(true_graph: nx.DiGraph,
@@ -96,6 +98,7 @@ def fp(pred_dag, target_dag) -> float:
     pred = nx.to_numpy_array(pred_dag).astype(bool)
     target = nx.to_numpy_array(target_dag).astype(bool)
     return np.sum(pred * np.invert(target))
+
 
 def fn(pred_dag, target_dag) -> float:
     pred = nx.to_numpy_array(pred_dag).astype(bool)
