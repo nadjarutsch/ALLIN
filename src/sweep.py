@@ -1,7 +1,8 @@
 from main import main
 
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 import optuna
+from hydra import compose, initialize
 
 import argparse
 import os
@@ -10,9 +11,13 @@ if os.path.split(os.getcwd())[-1] != 'src':
 
 
 def objective(trial, sweep_nr):
-    cfg = OmegaConf.load(f'config/notears_sweep_{sweep_nr}.yaml')
-    cfg.causal_discovery.model.lambda1 = trial.suggest_float('lambda', 0, 1)
-    cfg.causal_discovery.model.w_threshold = trial.suggest_float('w_thresh', 0, 1, log=True)
+    lambda1 = trial.suggest_float('lambda', 0, 1)
+    w_threshold = trial.suggest_float('w_thresh', 1e-4, 1, log=True)
+    initialize(version_base=None, config_path="config")
+    cfg = compose(config_name=f"notears_sweep_{sweep_nr}",
+                  overrides=[f"causal_discovery.model.lambda1={lambda1}",
+                             f"causal_discovery.model.w_threshold={w_threshold}"])
+
     shds = []
     for seed in range(50, 100):
         cfg.start_seed = seed
@@ -28,7 +33,7 @@ def objective(trial, sweep_nr):
 def sweep(args):
     os.makedirs(f'sweep_{args.sweep_nr}', exist_ok=True)
     study = optuna.create_study(
-        study_name='notears',
+        study_name=f'notears_{args.sweep_nr}',
         storage=f'sqlite:///sweep_{args.sweep_nr}/optuna_hparam_search.db',
         direction='minimize',
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)

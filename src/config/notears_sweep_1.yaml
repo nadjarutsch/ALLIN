@@ -2,6 +2,10 @@ defaults:
   - causal_discovery: notears
   - clustering: none
   - _self_
+causal_discovery:
+  model:
+    lambda1: 0.1
+    w_threshold: 0.3
 wandb:
   project: allin
   entity: nadjarutsch
