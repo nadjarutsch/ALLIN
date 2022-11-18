@@ -26,6 +26,7 @@ def objective(trial, sweep_nr):
 
 
 def sweep(args):
+    os.makedirs(f'sweep_{args.sweep_nr}', exist_ok=True)
     study = optuna.create_study(
         study_name='notears',
         storage=f'sqlite:///sweep_{args.sweep_nr}/optuna_hparam_search.db',
