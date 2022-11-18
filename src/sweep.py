@@ -28,7 +28,7 @@ def objective(trial, sweep_nr):
 def sweep(args):
     study = optuna.create_study(
         study_name='notears',
-        storage=f'sweep_{args.sweep_nr}',
+        storage=f'sqlite:///sweep_{args.sweep_nr}/optuna_hparam_search.db',
         direction='minimize',
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
     )
