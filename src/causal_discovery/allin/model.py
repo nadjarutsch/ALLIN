@@ -85,7 +85,8 @@ class ALLIN(nn.Module):
                  log_progress=False,
                  save_w_est=True,
                  seed=-1,
-                 deterministic=False):
+                 deterministic=False,
+                 speedup=True):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -108,6 +109,7 @@ class ALLIN(nn.Module):
         self.clustering = clustering
         self.seed = seed
         self.deterministic = deterministic
+        self.speedup = speedup
 
         torch.autograd.set_detect_anomaly(True)
 
