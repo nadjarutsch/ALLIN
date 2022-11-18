@@ -176,17 +176,19 @@ class ALLIN(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        #rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-        #                                         rho=rho,
-        #                                         alpha=alpha,
-        #                                         h=h,
-        #                                         optimizers=[optimizer_obs_mean],
-        #                                         mixture=False)
-
-        notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
-        notears_in = (variables, data.features.clone().numpy())
-        notears.predict(notears_in)
-        self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est))  # TODO: make un-thresholded version available
+        if self.speedup:
+            notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
+            notears_in = (variables, data.features.clone().numpy())
+            notears.predict(notears_in)
+            self.model_obs_mean.weight.data.copy_(
+                torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
+        else:
+            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                     rho=rho,
+                                                     alpha=alpha,
+                                                     h=h,
+                                                     optimizers=[optimizer_obs_mean],
+                                                     mixture=0)
 
         self.model_obs_mean.bias.requires_grad = True
 
@@ -517,7 +519,8 @@ class ALLIN_double(nn.Module):
                  save_w_est=True,
                  seed=-1,
                  deterministic=False,
-                 sample=0):
+                 sample=0,
+                 speedup=True):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -541,6 +544,7 @@ class ALLIN_double(nn.Module):
         self.seed = seed
         self.deterministic = deterministic
         self.sample = sample
+        self.speedup = speedup
 
         torch.autograd.set_detect_anomaly(True)
 
@@ -611,10 +615,18 @@ class ALLIN_double(nn.Module):
         # pretrain
         print("\n Starting pretraining...")
 
-        notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
-        notears_in = (variables, data.features.clone().numpy())
-        notears.predict(notears_in)
-        self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est))  # TODO: make un-thresholded version available
+        if self.speedup:
+            notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
+            notears_in = (variables, data.features.clone().numpy())
+            notears.predict(notears_in)
+            self.model_obs_mean.weight.data.copy_(torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
+        else:
+            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                     rho=rho,
+                                                     alpha=alpha,
+                                                     h=h,
+                                                     optimizers=[optimizer_obs_mean],
+                                                     mixture=0)
 
         self.model_obs_mean.bias.requires_grad = True
 
@@ -670,7 +682,7 @@ class ALLIN_double(nn.Module):
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
-            probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+            probs = 1 - (self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
 
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
@@ -851,7 +863,7 @@ class ALLIN_double(nn.Module):
                 if mixture:
                     preds_int = self.model_int_mean(features)
                     loss_int = self.loss_mse(features, preds_int)
-                    probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+                    probs = 1 - (self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
                     if self.sample == 1:
                         probs = torch.bernoulli(probs)
                     elif self.sample == 2:
@@ -893,7 +905,7 @@ class ALLIN_double(nn.Module):
                 if mixture:
                     preds_int = self.model_int_mean(features)
                     loss_int = self.loss_mse(features, preds_int)
-                    probs = 1 - torch.sqrt(self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
+                    probs = 1 - (self.mixture1(mixture_in) * self.mixture2(mixture_in)).detach()
                 #    if self.sample:
                 #        probs = torch.bernoulli(probs)
                     loss = probs * loss + (1 - probs) * loss_int

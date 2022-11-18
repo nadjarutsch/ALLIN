@@ -16,8 +16,8 @@ model:
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  w_threshold: 0.3
-  max_epochs: 100
+  w_threshold: 0.1
+  max_epochs: 500
   device: ${device}
   patience: 10
   clustering: ${clustering.name}
@@ -27,5 +27,6 @@ model:
   apply_threshold: True
   seed: ${seed}
   deterministic: True
-  sample: False
+  sample: 0
+  speedup: True
 name: ALLIN double
