@@ -17,7 +17,7 @@ graph:
 dist:
   n_obs: 2000
   int_ratio: 1
-  obs_mean: 0.0
+  obs_means: [ 0.0 ]
   obs_std: 0.5
   int_mean: 1.0
   int_std: ${dist.obs_std}
