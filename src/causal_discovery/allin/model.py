@@ -222,7 +222,7 @@ class ALLIN(nn.Module):
 
             if self.speedup:
                 notears_in = data.features.clone().numpy()
-                assignments = self.mixture(data.features).clone().detach().numpy()
+                assignments = self.mixture(data.features.to(self.device)).clone().detach().numpy()
 
                 W_est = allin_linear(X=notears_in,
                                      P=assignments,
