@@ -40,6 +40,7 @@ def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
             t(D.mean(0), (n, 1)) + t(D.mean(1), (n, 1)).T - t(D_bar, (n, n))
         )  # doubly centered
         Z[j] = D / (D_bar)  # standardized
+        torch.cuda.empty_cache()
     F = Z.reshape(num_feats * num_samps, num_samps)
     left = torch.tensordot(Z, thresh, dims=([0], [0]))
     left_right = torch.tensordot(left, Z, dims=([2, 1], [0, 1]))
