@@ -26,7 +26,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         for var_idx, partition in enumerate(data.partitions[1:]):
             dataset = dt.TensorDataset(partition.features[..., :-1])
             int_dataloaders[var_idx] = dt.DataLoader(dataset,
-                                                     batch_size=cfg.causal_discovery.batch_size,
+                                                     batch_size=cfg.causal_discovery.model.batch_size,
                                                      shuffle=True,
                                                      pin_memory=False,
                                                      drop_last=False)
