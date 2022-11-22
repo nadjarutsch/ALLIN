@@ -16,6 +16,9 @@ import shutil
 import sklearn
 from utils import set_seed
 
+from causal_discovery.notears_model import Notears
+from causal_discovery.notears.linear import allin_linear
+
 
 loss_dict = {'mse': nn.MSELoss(reduction='none')}
 
@@ -45,7 +48,8 @@ class IDIOD(nn.Module):
                  seed=-1,
                  deterministic=False,
                  obs_prior_prob=0.5,
-                 fix_bias=False):
+                 fix_bias=False,
+                 speedup=True):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -70,6 +74,7 @@ class IDIOD(nn.Module):
         self.deterministic = deterministic
         self.obs_prior_prob = obs_prior_prob
         self.fix_bias = fix_bias
+        self.speedup = speedup
 
         # models
         self.loss = loss_dict['mse']
@@ -124,12 +129,19 @@ class IDIOD(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                 rho=rho,
-                                                 alpha=alpha,
-                                                 h=h,
-                                                 optimizers=[optimizer_obs],
-                                                 mixture=False)
+        if self.speedup:
+            notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
+            notears_in = (variables, data.features.clone().numpy())
+            notears.predict(notears_in)
+            self.model_obs_mean.weight.data.copy_(
+                torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
+        else:
+            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                     rho=rho,
+                                                     alpha=alpha,
+                                                     h=h,
+                                                     optimizers=[optimizer_obs],
+                                                     mixture=False)
 
         self.model_obs.bias.requires_grad = True
 
@@ -148,19 +160,42 @@ class IDIOD(nn.Module):
 
             # relearn weights
             print("\n Adjusting weights...")
-            nn.init.constant_(self.model_obs.weight, 0)
-            nn.init.constant_(self.model_obs.bias, 0)
-            nn.init.constant_(self.model_int.bias, 0)
-            optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
-            optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
 
-            rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
-            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                     rho=rho,
-                                                     alpha=alpha,
-                                                     h=h,
-                                                     optimizers=[optimizer_obs, optimizer_int],
-                                                     mixture=True)
+            if self.speedup:
+                notears_in = data.features.clone().numpy()
+                probs = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
+
+                W_est = allin_linear(X=notears_in,
+                                     P=probs,
+                                     lambda1=self.lambda1,
+                                     loss_type=self.loss_type,
+                                     max_iter=self.max_iter,
+                                     h_tol=self.h_tol,
+                                     rho_max=self.rho_max,
+                                     w_threshold=self.w_threshold)
+
+                W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
+                W_obs = W_obs_augmented[:-1, ...]
+                bias_obs = W_obs_augmented[-1, ...]
+                bias_int = W_int_augmented[-1, ...]
+                self.model_obs.weight.data.copy_(torch.from_numpy(W_obs.T))
+                self.model_obs.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
+                self.model_int.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
+
+            else:
+                nn.init.constant_(self.model_obs.weight, 0)
+                nn.init.constant_(self.model_obs.bias, 0)
+                nn.init.constant_(self.model_int.bias, 0)
+                optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
+                optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
+
+                rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
+                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                         rho=rho,
+                                                         alpha=alpha,
+                                                         h=h,
+                                                         optimizers=[optimizer_obs, optimizer_int],
+                                                         mixture=True)
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
         if self.save_w_est:
@@ -396,7 +431,8 @@ class IDIOD_double(nn.Module):
                  seed=-1,
                  deterministic=False,
                  obs_prior_prob=0.5,
-                 fix_bias=False):
+                 fix_bias=False,
+                 speedup=True):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -421,6 +457,7 @@ class IDIOD_double(nn.Module):
         self.deterministic = deterministic
         self.obs_prior_prob = obs_prior_prob
         self.fix_bias = fix_bias
+        self.speedup = speedup
 
         # models
         self.loss = loss_dict['mse']
@@ -478,12 +515,19 @@ class IDIOD_double(nn.Module):
 
         # pretrain
         print("\n Starting pretraining...")
-        rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                 rho=rho,
-                                                 alpha=alpha,
-                                                 h=h,
-                                                 optimizers=[optimizer_obs],
-                                                 mixture=0)
+        if self.speedup:
+            notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
+            notears_in = (variables, data.features.clone().numpy())
+            notears.predict(notears_in)
+            self.model_obs_mean.weight.data.copy_(
+                torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
+        else:
+            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                     rho=rho,
+                                                     alpha=alpha,
+                                                     h=h,
+                                                     optimizers=[optimizer_obs],
+                                                     mixture=0)
 
         self.model_obs.bias.requires_grad = True
 
@@ -501,19 +545,43 @@ class IDIOD_double(nn.Module):
 
             # relearn weights
             print("\n Adjusting weights...")
-            nn.init.constant_(self.model_obs.weight, 0)
-            nn.init.constant_(self.model_obs.bias, 0)
-            nn.init.constant_(self.model_int.bias, 0)
-            optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
-            optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
 
-            rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
-            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                     rho=rho,
-                                                     alpha=alpha,
-                                                     h=h,
-                                                     optimizers=[optimizer_obs, optimizer_int],
-                                                     mixture=2)
+            if self.speedup:
+                notears_in = data.features.clone().numpy()
+                probs = (1 - torch.sqrt(self.mixture1(data.features.to(self.device)) * self.mixture2(data.features.to(self.device)))).clone().detach().cpu().numpy()
+
+                W_est = allin_linear(X=notears_in,
+                                     P=probs,
+                                     lambda1=self.lambda1,
+                                     loss_type=self.loss_type,
+                                     max_iter=self.max_iter,
+                                     h_tol=self.h_tol,
+                                     rho_max=self.rho_max,
+                                     w_threshold=self.w_threshold)
+
+                W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
+                W_obs = W_obs_augmented[:-1, ...]
+                bias_obs = W_obs_augmented[-1, ...]
+                bias_int = W_int_augmented[-1, ...]
+                self.model_obs.weight.data.copy_(torch.from_numpy(W_obs.T))
+                self.model_obs.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
+                self.model_int.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
+
+            else:
+                nn.init.constant_(self.model_obs.weight, 0)
+                nn.init.constant_(self.model_obs.bias, 0)
+                nn.init.constant_(self.model_int.bias, 0)
+
+                optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
+                optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
+
+                rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
+                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                         rho=rho,
+                                                         alpha=alpha,
+                                                         h=h,
+                                                         optimizers=[optimizer_obs, optimizer_int],
+                                                         mixture=2)
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
         if self.save_w_est:
