@@ -53,7 +53,7 @@ def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
 
 
 @torch.no_grad()
-def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, init='k-means++', max_iters=100, device='cuda:0'):
+def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, init='random', max_iters=100, device='cuda:0'):
     num_samps, num_feats = data.shape
     if init == 'random':
         rng = np.random.default_rng(1312)
@@ -135,7 +135,7 @@ def plus_plus(ds, k, device='cuda:0'):
 
     centroids = [ds[0]]
     c_indices = [0]
-    distances, _ = dep_contrib_kernel(ds, device='cpu')
+    distances, _ = dep_contrib_kernel(ds, device=device)
 
     for _ in range(1, k):
         dist_sq = torch.tensor([min([distances[idx1, idx2] for idx1 in c_indices]) for idx2 in range(ds.shape[0])])
