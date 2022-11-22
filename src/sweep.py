@@ -13,14 +13,14 @@ if os.path.split(os.getcwd())[-1] != 'src':
 
 def objective(trial, sweep_nr):
     lambda1 = trial.suggest_float('lambda', 0, 1)
-    w_threshold = trial.suggest_float('w_thresh', 1e-4, 1, log=True)
+    w_threshold = trial.suggest_float('w_thresh', 1e-3, 1, log=True)
     initialize(version_base=None, config_path="config")
     cfg = compose(config_name=f"notears_sweep_{sweep_nr}",
                   overrides=[f"causal_discovery.model.lambda1={lambda1}",
                              f"causal_discovery.model.w_threshold={w_threshold}"])
 
     shds = []
-    for seed in range(50, 100):
+    for seed in range(50, 70):
         cfg.start_seed = seed
         cfg.end_seed = seed + 1
         shds.append(main(cfg))
