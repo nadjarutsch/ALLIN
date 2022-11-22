@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-
+@torch.no_grad()
 def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
     num_samps, num_feats = X.shape
     thresh = torch.eye(num_feats).to(device)
@@ -51,6 +51,7 @@ def dep_contrib_kernel(X, alpha=None, device='cuda:0'):
     return kappa, gamma
 
 
+@torch.no_grad()
 def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, init='k-means++', max_iters=100, device='cuda:0'):
     num_samps, num_feats = data.shape
     if init == 'random':
@@ -114,6 +115,7 @@ def kernel_k_means(data, num_clus=5, kernel=dep_contrib_kernel, init='k-means++'
     return labels.cpu()
 
 
+@torch.no_grad()
 def plus_plus(ds, k, device='cuda:0'):
     """
     Create cluster centroids using the k-means++ algorithm.
