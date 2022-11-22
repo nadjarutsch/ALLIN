@@ -1,38 +1,26 @@
-import torch
-from torch.utils.data import DataLoader
-import numpy as np
 import wandb
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import hydra
 from hydra.utils import instantiate
-import copy
 
 import os
 if os.path.split(os.getcwd())[-1] != 'src':
     os.chdir('../src')
 
-from collections import defaultdict
-
 import networkx as nx
 # import causaldag
 import cdt
 
-import data_generation.causal_graphs.graph_generation as graph_gen
-
 import data_generation.data_generation as data_gen
 import data_generation.datasets as data
 import causal_discovery.prepare_data as cd
-import outlier_detection.depcon_kernel as depcon
 import metrics
-from fci import FCI
 from plotting import plot_graph
 from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph, get_root_nodes
 
 import sklearn
-from sklearn.cluster import KMeans
 from sklearn.neighbors import KNeighborsClassifier
 from clustering.utils import *
-import hdbscan
 
 import seaborn as sns
 import matplotlib.pyplot as plt
