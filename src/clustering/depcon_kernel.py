@@ -135,7 +135,7 @@ def plus_plus(ds, k, device='cuda:0'):
 
     centroids = [ds[0]]
     c_indices = [0]
-    distances, _ = dep_contrib_kernel(ds, device=device)
+    distances, _ = dep_contrib_kernel(ds, device='cpu')
 
     for _ in range(1, k):
         dist_sq = torch.tensor([min([distances[idx1, idx2] for idx1 in c_indices]) for idx2 in range(ds.shape[0])])
