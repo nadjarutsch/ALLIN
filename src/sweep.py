@@ -3,6 +3,7 @@ from main import main
 from omegaconf import OmegaConf, DictConfig
 import optuna
 from hydra import compose, initialize
+import hydra
 
 import argparse
 import os
@@ -23,6 +24,7 @@ def objective(trial, sweep_nr):
         cfg.start_seed = seed
         cfg.end_seed = seed + 1
         shds.append(main(cfg))
+        hydra.core.global_hydra.GlobalHydra.instance().clear()
         trial.report(shds[-1], step=seed)
         if trial.should_prune():
             raise optuna.TrialPruned()
