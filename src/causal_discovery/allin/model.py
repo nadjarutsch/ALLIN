@@ -87,7 +87,8 @@ class ALLIN(nn.Module):
                  save_w_est=True,
                  seed=-1,
                  deterministic=False,
-                 speedup=True):
+                 speedup=True,
+                 delta=1e-4):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -111,6 +112,7 @@ class ALLIN(nn.Module):
         self.seed = seed
         self.deterministic = deterministic
         self.speedup = speedup
+        self.delta = delta
 
         torch.autograd.set_detect_anomaly(True)
 
@@ -195,7 +197,12 @@ class ALLIN(nn.Module):
 
         self.model_obs_mean.bias.requires_grad = True
 
-        for _ in range(self.relearn_iter):
+        w_est_old = self.model_obs_mean.weight.data.clone().detach()
+        delta = 10
+        steps = 0
+      #  for _ in range(self.relearn_iter):
+        while delta > self.delta:
+            steps += 1
             # learn distribution assignments
             if not isinstance(self.mixture, IdentityMixture):
                 # learn distribution assignments
@@ -229,7 +236,7 @@ class ALLIN(nn.Module):
                                      lambda1=self.lambda1,
                                      loss_type=self.loss_type,
                                      max_iter=self.max_iter,
-                                     h_tol=self.h_tol,
+                                     h_tol=10,
                                      rho_max=self.rho_max,
                                      w_threshold=self.w_threshold)
 
@@ -253,6 +260,33 @@ class ALLIN(nn.Module):
                                                          optimizers=[optimizer_obs_mean, optimizer_int_mean],
                                                          mixture=True)
 
+            w_est_new = self.model_obs_mean.weight.data.clone().detach()
+            delta = torch.mean(torch.abs(w_est_new - w_est_old)).item()
+            print(delta)
+            w_est_old = w_est_new
+
+        if self.speedup:
+            notears_in = data.features.clone().numpy()
+            assignments = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
+
+            W_est = allin_linear(X=notears_in,
+                                 P=assignments,
+                                 lambda1=self.lambda1,
+                                 loss_type=self.loss_type,
+                                 max_iter=self.max_iter,
+                                 h_tol=self.h_tol,
+                                 rho_max=self.rho_max,
+                                 w_threshold=self.w_threshold)
+
+            W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
+            W_obs = W_obs_augmented[:-1, ...]
+            bias_obs = W_obs_augmented[-1, ...]
+            bias_int = W_int_augmented[-1, ...]
+            self.model_obs_mean.weight.data.copy_(torch.from_numpy(W_obs.T))
+            self.model_obs_mean.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
+            self.model_int_mean.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
+
+        wandb.run.summary["steps"] = steps
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
@@ -675,7 +709,7 @@ class ALLIN_double(nn.Module):
             print("\n Adjusting weights...")
             if self.speedup:
                 notears_in = data.features.clone().numpy()
-                assignments = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
+                assignments = (1 - self.mixture1(data.features.to(self.device)) * self.mixture2(data.features.to(self.device))).clone().detach().cpu().numpy()
 
                 W_est = allin_linear(X=notears_in,
                                      P=assignments,

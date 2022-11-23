@@ -23,4 +23,5 @@ model:
   seed: ${seed}
   deterministic: True
   speedup: True
+  delta: 1e-4
 name: ALLIN Gaussian
