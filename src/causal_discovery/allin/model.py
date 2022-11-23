@@ -88,7 +88,8 @@ class ALLIN(nn.Module):
                  seed=-1,
                  deterministic=False,
                  speedup=True,
-                 delta=1e-4):
+                 delta=1e-4,
+                 max_steps=15):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -113,6 +114,7 @@ class ALLIN(nn.Module):
         self.deterministic = deterministic
         self.speedup = speedup
         self.delta = delta
+        self.max_steps = max_steps
 
         torch.autograd.set_detect_anomaly(True)
 
@@ -199,10 +201,8 @@ class ALLIN(nn.Module):
 
         w_est_old = self.model_obs_mean.weight.data.clone().detach()
         delta = 10
-        steps = 0
-      #  for _ in range(self.relearn_iter):
-        while delta > self.delta:
-            steps += 1
+
+        for steps in range(self.max_iter):
             # learn distribution assignments
             if not isinstance(self.mixture, IdentityMixture):
                 # learn distribution assignments
@@ -263,6 +263,8 @@ class ALLIN(nn.Module):
             w_est_new = self.model_obs_mean.weight.data.clone().detach()
             delta = torch.mean(torch.abs(w_est_new - w_est_old)).item()
             print(delta)
+            if delta < self.delta:
+                break
             w_est_old = w_est_new
 
         if self.speedup:
@@ -286,7 +288,7 @@ class ALLIN(nn.Module):
             self.model_obs_mean.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
             self.model_int_mean.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
 
-        wandb.run.summary["steps"] = steps
+        wandb.run.summary["steps"] = steps + 1
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
