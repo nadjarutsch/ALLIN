@@ -673,20 +673,42 @@ class ALLIN_double(nn.Module):
 
             # relearn weights
             print("\n Adjusting weights...")
-            for param in chain(self.model_obs_mean.parameters(),
-                               self.model_int_mean.parameters()):
-                nn.init.constant_(param, 0)
+            if self.speedup:
+                notears_in = data.features.clone().numpy()
+                assignments = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
 
-            optimizer_obs_mean = optim.Adam(self.model_obs_mean.parameters(), lr=self.lr)
-            optimizer_int_mean = optim.Adam(self.model_int_mean.parameters(), lr=self.lr)
+                W_est = allin_linear(X=notears_in,
+                                     P=assignments,
+                                     lambda1=self.lambda1,
+                                     loss_type=self.loss_type,
+                                     max_iter=self.max_iter,
+                                     h_tol=self.h_tol,
+                                     rho_max=self.rho_max,
+                                     w_threshold=self.w_threshold)
 
-            rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
-            rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                     rho=rho,
-                                                     alpha=alpha,
-                                                     h=h,
-                                                     optimizers=[optimizer_obs_mean, optimizer_int_mean],
-                                                     mixture=True)
+                W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
+                W_obs = W_obs_augmented[:-1, ...]
+                bias_obs = W_obs_augmented[-1, ...]
+                bias_int = W_int_augmented[-1, ...]
+                self.model_obs_mean.weight.data.copy_(torch.from_numpy(W_obs.T))
+                self.model_obs_mean.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
+                self.model_int_mean.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
+
+            else:
+                for param in chain(self.model_obs_mean.parameters(),
+                                   self.model_int_mean.parameters()):
+                    nn.init.constant_(param, 0)
+
+                optimizer_obs_mean = optim.Adam(self.model_obs_mean.parameters(), lr=self.lr)
+                optimizer_int_mean = optim.Adam(self.model_int_mean.parameters(), lr=self.lr)
+
+                rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
+                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                         rho=rho,
+                                                         alpha=alpha,
+                                                         h=h,
+                                                         optimizers=[optimizer_obs_mean, optimizer_int_mean],
+                                                         mixture=True)
 
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
