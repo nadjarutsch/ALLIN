@@ -1,0 +1,40 @@
+defaults:
+  - causal_discovery: idiod
+  - clustering: none
+  - _self_
+causal_discovery:
+  model:
+    lambda1: 0.1
+    w_threshold: 0.3
+wandb:
+  project: allin
+  entity: nadjarutsch
+  group: Hparam sweeps
+graph:
+  num_vars: 10
+  structure: random
+  e_n: 2
+dist:
+  n_obs: 2000
+  int_ratio: 1
+  obs_means: [ 0.0 ]
+  obs_std: 0.5
+  int_mean: 1.0
+  int_std: ${dist.obs_std}
+  negative: False
+oracle:
+  n_int_targets: 5
+do:
+  oracle: False
+  cluster: True
+  cluster_discovery: False
+  causal_discovery: True
+  context_analysis: False
+  plot_marginals: False
+  bootstrap: False
+  gmm_get_means: False
+end_seed: 10
+start_seed: 0
+seed: -1
+device: cpu
+normalize: True

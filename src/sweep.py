@@ -11,11 +11,11 @@ if os.path.split(os.getcwd())[-1] != 'src':
     os.chdir('../src')
 
 
-def objective(trial, sweep_nr):
+def objective(trial, args):
     lambda1 = trial.suggest_float('lambda', 0, 1)
     w_threshold = trial.suggest_float('w_thresh', 1e-3, 1, log=True)
     initialize(version_base=None, config_path="config")
-    cfg = compose(config_name=f"notears_sweep_{sweep_nr}",
+    cfg = compose(config_name=f"{args.model}_sweep_{args.sweep_nr}",
                   overrides=[f"causal_discovery.model.lambda1={lambda1}",
                              f"causal_discovery.model.w_threshold={w_threshold}"])
 
@@ -33,14 +33,14 @@ def objective(trial, sweep_nr):
 
 
 def sweep(args):
-    os.makedirs(f'sweep_{args.sweep_nr}', exist_ok=True)
+    os.makedirs(f'{args.model}_sweep_{args.sweep_nr}', exist_ok=True)
     study = optuna.create_study(
-        study_name=f'notears_{args.sweep_nr}',
-        storage=f'sqlite:///sweep_{args.sweep_nr}/optuna_hparam_search.db',
+        study_name=f'{args.model}_{args.sweep_nr}',
+        storage=f'sqlite:///{args.model}_sweep_{args.sweep_nr}/optuna_hparam_search.db',
         direction='minimize',
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
     )
-    func = lambda trial: objective(trial, args.sweep_nr)
+    func = lambda trial: objective(trial, args)
     study.optimize(func, n_trials=50, n_jobs=1)
 
 
@@ -49,6 +49,7 @@ if __name__ == '__main__':
     # collect cmd line args
     parser = argparse.ArgumentParser()
     parser.add_argument('--sweep_nr', default=1, type=int)
+    parser.add_argument('--model', type=str)
     args: argparse.Namespace = parser.parse_args()
 
     os.environ['WANDB_MODE'] = 'offline'
