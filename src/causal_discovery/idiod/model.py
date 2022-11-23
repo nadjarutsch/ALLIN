@@ -133,7 +133,7 @@ class IDIOD(nn.Module):
             notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
             notears_in = (variables, data.features.clone().numpy())
             notears.predict(notears_in)
-            self.model_obs_mean.weight.data.copy_(
+            self.model_obs.weight.data.copy_(
                 torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
         else:
             rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
@@ -519,7 +519,7 @@ class IDIOD_double(nn.Module):
             notears = Notears(self.lambda1, self.loss_type, self.max_iter, self.h_tol, self.rho_max, self.w_threshold)
             notears_in = (variables, data.features.clone().numpy())
             notears.predict(notears_in)
-            self.model_obs_mean.weight.data.copy_(
+            self.model_obs.weight.data.copy_(
                 torch.from_numpy(notears.W_est.T))  # TODO: make un-thresholded version available
         else:
             rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
