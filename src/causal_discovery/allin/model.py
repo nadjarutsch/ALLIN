@@ -202,7 +202,7 @@ class ALLIN(nn.Module):
         w_est_old = self.model_obs_mean.weight.data.clone().detach()
         delta = 1
 
-        for steps in range(self.max_iter):
+        for steps in range(self.max_steps):
             # learn distribution assignments
             if not isinstance(self.mixture, IdentityMixture):
                 # learn distribution assignments
