@@ -241,9 +241,12 @@ class IDIOD(nn.Module):
 
         for i, p in enumerate(p_correct):
             wandb.run.summary[f"p_{dist_keys[i]}"] = p
-        wandb.run.summary["IDIOD ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
-        wandb.run.summary["IDIOD AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
-        wandb.run.summary["IDIOD n_clusters"] = len(set(labels))
+        try:
+            wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(data.targets, labels)
+            wandb.run.summary["AMI"] = sklearn.metrics.adjusted_mutual_info_score(data.targets, labels)
+        except:
+            pass
+        wandb.run.summary["n_clusters"] = len(set(labels))
 
         return nx.relabel_nodes(pred_graph, mapping)
 
@@ -430,7 +433,7 @@ class IDIOD_double(nn.Module):
                  save_w_est=True,
                  seed=-1,
                  deterministic=False,
-                 obs_prior_prob=0.5,
+                 int_prior_prob=0.5,
                  fix_bias=False,
                  speedup=True):
         super().__init__()
@@ -455,7 +458,7 @@ class IDIOD_double(nn.Module):
         self.clustering = clustering
         self.seed = seed
         self.deterministic = deterministic
-        self.obs_prior_prob = obs_prior_prob
+        self.int_prior_prob = int_prior_prob
         self.fix_bias = fix_bias
         self.speedup = speedup
 
@@ -483,9 +486,9 @@ class IDIOD_double(nn.Module):
             else:
                 nn.init.constant_(param, 0)
 
-        # init classification bias with prior probability of the observational regime
-        nn.init.constant_(self.mixture1.layers[-2].bias, np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)))
-        nn.init.constant_(self.mixture2.layers[-2].bias, np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)))
+        # init classification bias with prior probability of the interventional regime
+        nn.init.constant_(self.mixture1.layers[-2].bias, np.log(self.int_prior_prob / (1 - self.int_prior_prob)))
+        nn.init.constant_(self.mixture2.layers[-2].bias, np.log(self.int_prior_prob / (1 - self.int_prior_prob)))
 
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
