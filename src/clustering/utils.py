@@ -18,22 +18,26 @@ class RandomClusterer:
 
 
 class TargetClusterer:
-    def __init__(self, n_obs, int_ratio, num_vars, roots=None):
+    def __init__(self, n, int_ratio, n_int_targets, num_vars, roots=None):
         self.labels_ = None
-        self.n_obs = n_obs
-        self.n_int = int(n_obs * int_ratio)
+        self.int_ratio = int_ratio
+        self.n_int_targets = n_int_targets
+        self.n_obs = int(n / (1 + self.int_ratio * self.n_int_targets))
+        self.n_int = int(self.n_obs * self.int_ratio)
         self.num_vars = num_vars
         self.roots = OmegaConf.to_object(roots) if roots != "None" else roots
+        self.int_targets = None
 
     def fit(self, features):
         true_target_labels = np.zeros(shape=len(features))
 
-        for i in range(self.num_vars):
+        for i, t in enumerate(self.int_targets):
             if isinstance(self.roots, list):
                 if i in self.roots:
                     true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 0
                     continue
-            true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = i + 1
+
+            true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i+1) * self.n_int] = t + 1
 
         self.labels_ = true_target_labels
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], self.num_vars + 1)
