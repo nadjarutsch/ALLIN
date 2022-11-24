@@ -1,17 +1,17 @@
 defaults:
-  - causal_discovery: allin
-  - clustering: none
+  - causal_discovery: idiod_target
+  - clustering: target
   - _self_
 wandb:
   project: allin
   entity: nadjarutsch
   group: constraint
 graph:
-  num_vars: 3
+  num_vars: 10
   structure: random
   e_n: 2
 dist:
-  n_obs: 200
+  n: 22000
   int_ratio: 1
   obs_means: [ 0 ]
   obs_std: 0.5
@@ -29,9 +29,10 @@ do:
   plot_marginals: False
   bootstrap: False
   gmm_get_means: False
-end_seed: 2
-start_seed: 1
+end_seed: 50
+start_seed: 0
 seed: -1
 device: cpu
 normalize: False
 observational: False
+n_int_targets: ${graph.num_vars}
