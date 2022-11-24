@@ -25,6 +25,7 @@ from clustering.utils import *
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+import random
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
@@ -94,14 +95,18 @@ def main(cfg: DictConfig):
       #      wandb.run.summary["SHD zero guess"] = true_graph.size()
 
             # datasets
+            n_obs = int(cfg.dist.n / (1 + cfg.dist.int_ratio * cfg.n_int_targets))
+            int_variables = random.sample(dags[0].variables, cfg.n_int_targets)
             datasets = []
+            int_ratio = cfg.dist.int_ratio / len(cfg.dist.obs_means)
             for dag in dags:
                 synth_dataset, interventions = data_gen.generate_data(dag=dag,
-                                                                      n_obs=cfg.dist.n_obs,
-                                                                      int_ratio=cfg.dist.int_ratio,
+                                                                      n_obs=n_obs,
+                                                                      int_ratio=int_ratio,
                                                                       seed=seed,
                                                                       int_mu=cfg.dist.int_mean,
-                                                                      int_sigma=cfg.dist.int_std)
+                                                                      int_sigma=cfg.dist.int_std,
+                                                                      int_variables=int_variables)
 
                 datasets.append(synth_dataset)
 
@@ -133,10 +138,12 @@ def main(cfg: DictConfig):
             ##################
 
             if cfg.observational:
-                synth_dataset = data.PartitionData(features=synth_dataset.features[:cfg.dist.n_obs, :-1],   # does not work with multimodal
-                                                   targets=synth_dataset.targets[:cfg.dist.n_obs])
+                synth_dataset = data.PartitionData(features=synth_dataset.features[:n_obs, :-1],   # does not work with multimodal
+                                                   targets=synth_dataset.targets[:n_obs])
 
             clusterer = instantiate(cfg.clustering.clusterer)
+            if isinstance(clusterer, TargetClusterer):
+                clusterer.int_targets = [variables.index(v.name) for v in int_variables]
             clusterer.fit(synth_dataset.features[..., :-1])
 
             if cfg.do.gmm_get_means:
@@ -263,7 +270,7 @@ def main(cfg: DictConfig):
             if cfg.do.plot_marginals:
                 for i in range(cfg.graph.num_vars):
                     mask = np.ones(len(synth_dataset.features), dtype=bool)
-                    mask[list(range(cfg.dist.n_obs + i * cfg.dist.n_obs * cfg.dist.int_ratio, cfg.dist.n_obs + (i + 1) * cfg.dist.n_obs * cfg.dist.int_ratio))] = False
+                    mask[list(range(n_obs + i * n_obs * cfg.dist.int_ratio, n_obs + (i + 1) * n_obs * cfg.dist.int_ratio))] = False
                     obs_data = synth_dataset.features[..., i][mask]
                     obs_data = obs_data - torch.mean(synth_dataset.features[..., i])
                     int_data = synth_dataset.features[..., i][~mask]

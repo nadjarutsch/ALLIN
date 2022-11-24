@@ -24,5 +24,6 @@ model:
   deterministic: True
   speedup: True
   delta: 1e-4
-  max_steps: 15
+  max_steps: 1
+  intv_penalty: 0
 name: ALLIN Gaussian

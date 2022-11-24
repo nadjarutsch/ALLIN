@@ -89,7 +89,8 @@ class ALLIN(nn.Module):
                  deterministic=False,
                  speedup=True,
                  delta=1e-4,
-                 max_steps=15):
+                 max_steps=15,
+                 intv_penalty=0):
         super().__init__()
         self.lambda1 = lambda1
         self.loss_type = loss_type
@@ -115,6 +116,7 @@ class ALLIN(nn.Module):
         self.speedup = speedup
         self.delta = delta
         self.max_steps = max_steps
+        self.intv_penalty = intv_penalty
 
         torch.autograd.set_detect_anomaly(True)
 
@@ -387,7 +389,8 @@ class ALLIN(nn.Module):
                 probs = self.mixture(mixture_in)
 
                 comb_l = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
-                loss = 0.5 / features.shape[0] * -torch.sum(torch.log(comb_l))
+                reg = torch.sum(1 - probs)
+                loss = 0.5 / features.shape[0] * -torch.sum(torch.log(comb_l)) + self.intv_penalty * reg
                 loss.backward()
 
                 for optimizer in optimizers:
@@ -397,6 +400,7 @@ class ALLIN(nn.Module):
             self.eval()
             loss_all = 0
             ll_all = 0
+            penalty = 0
             for _, batch in enumerate(dataloader):
                 features, mixture_in, _ = batch
                 features, mixture_in = features.to(self.device), mixture_in.to(self.device)
@@ -409,11 +413,12 @@ class ALLIN(nn.Module):
                 loss_gaussian_int = self.loss_gaussian(features, (preds_int_mean, preds_int_var))
 
                 probs = self.mixture(mixture_in)
+                penalty += torch.sum(1 - probs)
 
                 comb_l = probs * torch.exp(-loss_gaussian_obs) + (1 - probs) * torch.exp(-loss_gaussian_int)
                 ll_all += torch.sum(torch.log(comb_l))
 
-            loss = 0.5 / len(dataloader.dataset) * -ll_all  # equivalent to original numpy implementation
+            loss = 0.5 / len(dataloader.dataset) * -ll_all + self.intv_penalty * penalty  # equivalent to original numpy implementation
             train_losses.append(loss)
             print(f"[Epoch {epoch + 1:2d}] Training loss: {loss:05.5f}")
 

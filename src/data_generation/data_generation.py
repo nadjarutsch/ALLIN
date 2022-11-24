@@ -27,7 +27,7 @@ def generate_dag(num_vars: int,
                                                    **kwargs)
 
 
-def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, save_to_file=False, properties={}):
+def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, int_variables, save_to_file=False, properties={}):
     """
         
     Attributes:
@@ -40,24 +40,21 @@ def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, save_to_file=F
     utils.set_seed(seed)
     
     # sample observational data from DAG
-    features = torch.from_numpy(dag.sample(batch_size=n_obs, as_array=True)).float()  
-    
+    features = torch.from_numpy(dag.sample(batch_size=n_obs, as_array=True)).float()
+
+    variables = [v.name for v in dag.variables]
+    int_indices = [variables.index(v.name) + 1 for v in int_variables]
     # save information about target partitions (observational, interventional)
     true_target_labels = [0] * n_obs
     n_int = int(n_obs * int_ratio)
-    for i in range(1,dag.num_vars+1):
+    for i in int_indices:
         true_target_labels.extend([i] * n_int)
-
-   # targets = []
-   # targets.append(list(range(n_obs)))
-   # for i in range(dag.num_vars):
-   #     targets.append(list(range(int(n_obs + n_int * i), int(n_obs + n_int * i+1))))
 
     # sample interventional data from DAG
     interventions = []
     if n_int > 0:
-        prob_dist = dists.GaussianDist(mu_func = lambda x: int_mu, sigma_func = lambda x: int_sigma) # TODO: variable intervention (e.g. shift)
-        for v in dag.variables: # perfect interventions on each variable
+        prob_dist = dists.GaussianDist(mu_func=lambda x: int_mu, sigma_func=lambda x: int_sigma) # TODO: variable intervention (e.g. shift)
+        for v in int_variables: # perfect interventions on each variable
             intervention_dict = {}
             intervention_dict[v.name] = prob_dist
             int_data = dag.sample(interventions=intervention_dict,
