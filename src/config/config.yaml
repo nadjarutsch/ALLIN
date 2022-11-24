@@ -1,19 +1,19 @@
 defaults:
-  - causal_discovery: pc_causallearn
-  - clustering: gmm
+  - causal_discovery: allin
+  - clustering: none
   - _self_
 wandb:
   project: allin
   entity: nadjarutsch
   group: constraint
 graph:
-  num_vars: 10
+  num_vars: 3
   structure: random
   e_n: 2
 dist:
-  n_obs: 1000
+  n_obs: 200
   int_ratio: 1
-  obs_means: [ -1.0, 1.0 ]
+  obs_means: [ 0 ]
   obs_std: 0.5
   int_mean: 1.0
   int_std: ${dist.obs_std}
@@ -29,8 +29,9 @@ do:
   plot_marginals: False
   bootstrap: False
   gmm_get_means: False
-end_seed: 1
-start_seed: 0
+end_seed: 2
+start_seed: 1
 seed: -1
 device: cpu
 normalize: False
+observational: False

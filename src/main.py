@@ -132,6 +132,10 @@ def main(cfg: DictConfig):
             ### CLUSTERING ###
             ##################
 
+            if cfg.observational:
+                synth_dataset = data.PartitionData(features=synth_dataset.features[:cfg.dist.n_obs, :-1],   # does not work with multimodal
+                                                   targets=synth_dataset.targets[:cfg.dist.n_obs])
+
             clusterer = instantiate(cfg.clustering.clusterer)
             clusterer.fit(synth_dataset.features[..., :-1])
 
@@ -154,9 +158,6 @@ def main(cfg: DictConfig):
                 wandb.run.summary["GMM mean distance"] = mean_distance
 
             synth_dataset.memberships = clusterer.memberships_
-            if cfg.clustering.name == "hdbscan_soft_normed":
-                synth_dataset.memberships = synth_dataset.memberships / np.sum(synth_dataset.memberships, axis=1, keepdims=True)
-
             synth_dataset.update_partitions(clusterer.labels_)
             wandb.log({"cluster sizes": wandb.Histogram(clusterer.labels_)})
             wandb.run.summary["ARI"] = sklearn.metrics.adjusted_rand_score(synth_dataset.targets, clusterer.labels_)
