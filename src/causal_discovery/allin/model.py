@@ -200,7 +200,7 @@ class ALLIN(nn.Module):
         self.model_obs_mean.bias.requires_grad = True
 
         w_est_old = self.model_obs_mean.weight.data.clone().detach()
-        delta = 10
+        delta = 1
 
         for steps in range(self.max_iter):
             # learn distribution assignments
@@ -236,7 +236,7 @@ class ALLIN(nn.Module):
                                      lambda1=self.lambda1,
                                      loss_type=self.loss_type,
                                      max_iter=self.max_iter,
-                                     h_tol=10,
+                                     h_tol=self.h_tol,
                                      rho_max=self.rho_max,
                                      w_threshold=self.w_threshold)
 
@@ -266,27 +266,6 @@ class ALLIN(nn.Module):
             if delta < self.delta:
                 break
             w_est_old = w_est_new
-
-        if self.speedup:
-            notears_in = data.features.clone().numpy()
-            assignments = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
-
-            W_est = allin_linear(X=notears_in,
-                                 P=assignments,
-                                 lambda1=self.lambda1,
-                                 loss_type=self.loss_type,
-                                 max_iter=self.max_iter,
-                                 h_tol=self.h_tol,
-                                 rho_max=self.rho_max,
-                                 w_threshold=self.w_threshold)
-
-            W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
-            W_obs = W_obs_augmented[:-1, ...]
-            bias_obs = W_obs_augmented[-1, ...]
-            bias_int = W_int_augmented[-1, ...]
-            self.model_obs_mean.weight.data.copy_(torch.from_numpy(W_obs.T))
-            self.model_obs_mean.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
-            self.model_int_mean.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
 
         wandb.run.summary["steps"] = steps + 1
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
