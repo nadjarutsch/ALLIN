@@ -6,12 +6,12 @@ model:
     n_hidden: [ 128, 64, 32 ]
     n_output: ${graph.num_vars}
   d: ${graph.num_vars}
-  lambda1: 0.1
+  lambda1: 0.22
   loss_type: l2
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  w_threshold: 0.1
+  w_threshold: 0.03
   max_epochs: 1000
   device: ${device}
   patience: 10

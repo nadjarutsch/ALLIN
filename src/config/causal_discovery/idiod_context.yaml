@@ -8,12 +8,12 @@ model:
     single_target: False
     bias: True
   d: ${graph.num_vars}
-  lambda1: 0.1
+  lambda1: 0.22
   loss_type: l2
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  w_threshold: 0.3
+  w_threshold: 0.03
   max_epochs: 500
   device: ${device}
   patience: 10
