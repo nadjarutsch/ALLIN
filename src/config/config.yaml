@@ -33,6 +33,6 @@ end_seed: 50
 start_seed: 0
 seed: -1
 device: cpu
-normalize: False
+normalize: True
 observational: False
 n_int_targets: ${graph.num_vars}
