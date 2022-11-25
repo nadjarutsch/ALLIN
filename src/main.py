@@ -55,8 +55,8 @@ def main(cfg: DictConfig):
             cfg.clustering.clusterer.roots = None
         if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
             cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
-        if "gmm" in str(cfg.clustering.name):
-            cfg.clustering.clusterer.n_components = cfg.graph.num_vars + 1
+        if "GMM" in str(cfg.clustering.name):
+            cfg.clustering.clusterer.n_components = cfg.n_int_targets + 1
 
         run = wandb.init(project=cfg.wandb.project,
                          entity=cfg.wandb.entity,
