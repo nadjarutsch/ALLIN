@@ -100,7 +100,8 @@ class IDIOD(nn.Module):
                 nn.init.constant_(param, 0)
 
         # init classification bias with prior probability of the observational regime
-        nn.init.constant_(self.mixture.layers[-2].bias, np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)))
+        if not isinstance(self.mixture, IdentityMixture):
+            nn.init.constant_(self.mixture.layers[-2].bias, np.log(self.obs_prior_prob / (1 - self.obs_prior_prob)))
 
         for param in chain(self.model_obs.parameters(), self.model_int.parameters()):
             nn.init.constant_(param, 0)
@@ -108,7 +109,8 @@ class IDIOD(nn.Module):
         # freeze weights
         self.model_obs.bias.requires_grad = False   # for pretraining
         self.model_int.weight.requires_grad = False
-        self.mixture.layers[-2].bias.requires_grad = not self.fix_bias
+        if not isinstance(self.mixture, IdentityMixture):
+            self.mixture.layers[-2].bias.requires_grad = not self.fix_bias
 
         # early stopping
         self.path = os.path.join('causal_discovery', name, 'saved_models', str(uuid.uuid1()))
@@ -163,7 +165,7 @@ class IDIOD(nn.Module):
 
             if self.speedup:
                 notears_in = data.features.clone().numpy()
-                probs = self.mixture(data.features.to(self.device)).clone().detach().cpu().numpy()
+                probs = self.mixture(data.mixture_in.to(self.device)).clone().detach().cpu().numpy()
 
                 W_est = allin_linear(X=notears_in,
                                      P=probs,
@@ -234,7 +236,7 @@ class IDIOD(nn.Module):
                 p_corr = np.sum(p_correct_batch, where=(targets == target))
                 p_correct[target] += p_corr
 
-        counts = np.array([data.targets.tolist().count(i) for i in range(np.max(data.targets) + 1)])
+        counts = np.array([data.targets.tolist().count(i) for i in range(len(variables) + 1)])
         p_correct = (p_correct / counts).tolist()
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))    # one cluster would be optimal
@@ -247,6 +249,11 @@ class IDIOD(nn.Module):
         except:
             pass
         wandb.run.summary["n_clusters"] = len(set(labels))
+        bias_list_obs = self.model_obs.bias.detach().cpu().tolist()
+        bias_list_int = self.model_int.bias.detach().cpu().tolist()
+        for i, (bias_obs, bias_int) in enumerate(zip(bias_list_obs, bias_list_int)):
+            wandb.run.summary[f"bias_obs_{variables[i]}"] = bias_obs
+            wandb.run.summary[f"bias_int_{variables[i]}"] = bias_int
 
         return nx.relabel_nodes(pred_graph, mapping)
 

@@ -307,7 +307,7 @@ class ALLIN(nn.Module):
                 p_corr = np.sum(p_correct_batch, where=(targets == target))
                 p_correct[target] += p_corr
 
-        counts = np.array([data.targets.tolist().count(i) for i in range(np.max(data.targets) + 1)])
+        counts = np.array([data.targets.tolist().count(i) for i in range(len(variables) + 1)])
         p_correct = (p_correct / counts).tolist()
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))  # one cluster would be optimal
