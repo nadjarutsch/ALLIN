@@ -54,7 +54,7 @@ def generate_data(dag, n_obs, int_ratio, seed, int_mu, int_sigma, int_variables,
     interventions = []
     if n_int > 0:
         prob_dist = dists.GaussianDist(mu_func=lambda x: int_mu, sigma_func=lambda x: int_sigma) # TODO: variable intervention (e.g. shift)
-        for v in int_variables: # perfect interventions on each variable
+        for v in int_variables:     # perfect interventions on each variable
             intervention_dict = {}
             intervention_dict[v.name] = prob_dist
             int_data = dag.sample(interventions=intervention_dict,
