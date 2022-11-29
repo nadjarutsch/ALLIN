@@ -214,6 +214,8 @@ class IDIOD(nn.Module):
         labels = []
         dist_keys = ["obs"] + variables
         p_correct = np.zeros(len(variables) + 1)
+        n_int_assign = 0
+        n_int_correct = 0
 
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
@@ -224,6 +226,10 @@ class IDIOD(nn.Module):
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
                                      dim=1).squeeze().tolist()
             labels.extend(labels_batch)
+
+            # for precision & recall
+            n_int_assign += torch.sum(1 - assignments).item()
+            n_int_correct += np.sum([torch.sum(assignments[targets == i+1][..., i] == 0) for i in range(len(variables))])
 
             probs = probs.detach().cpu().numpy()
             targets_int = np.copy(targets)
@@ -240,6 +246,10 @@ class IDIOD(nn.Module):
         p_correct = (p_correct / counts).tolist()
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))    # one cluster would be optimal
+
+        n_int = np.count_nonzero(data.targets)
+        wandb.run.summary["Precision intv"] = n_int_correct / n_int_assign
+        wandb.run.summary["Recall intv"] = n_int_correct / n_int
 
         for i, p in enumerate(p_correct):
             wandb.run.summary[f"p_{dist_keys[i]}"] = p

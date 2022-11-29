@@ -285,6 +285,8 @@ class ALLIN(nn.Module):
         labels = []
         dist_keys = ["obs"] + variables
         p_correct = np.zeros(len(variables) + 1)
+        n_int_assign = 0
+        n_int_correct = 0
 
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
@@ -307,8 +309,17 @@ class ALLIN(nn.Module):
                 p_corr = np.sum(p_correct_batch, where=(targets == target))
                 p_correct[target] += p_corr
 
+            # for precision & recall
+            n_int_assign += torch.sum(1 - assignments).item()
+            n_int_correct += np.sum([torch.sum(assignments[targets == i + 1][..., i] == 0) for i in range(len(variables))])
+
         counts = np.array([data.targets.tolist().count(i) for i in range(len(variables) + 1)])
         p_correct = (p_correct / counts).tolist()
+
+        n_int = np.count_nonzero(data.targets)
+        wandb.run.summary["Precision intv"] = n_int_correct / n_int_assign
+        wandb.run.summary["Recall intv"] = n_int_correct / n_int
+
         if self.clustering == "observational":
             data.targets = np.zeros(len(labels))  # one cluster would be optimal
 
