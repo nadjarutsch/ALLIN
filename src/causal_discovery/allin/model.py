@@ -311,7 +311,7 @@ class ALLIN(nn.Module):
 
             # for precision & recall
             n_int_assign += torch.sum(1 - assignments).item()
-            n_int_correct += np.sum([torch.sum(assignments[targets == i + 1][..., i] == 0) for i in range(len(variables))])
+            n_int_correct += np.sum([torch.sum(assignments[targets == i + 1][..., i] == 0).item() for i in range(len(variables))])
 
         counts = np.array([data.targets.tolist().count(i) for i in range(len(variables) + 1)])
         p_correct = (p_correct / counts).tolist()
