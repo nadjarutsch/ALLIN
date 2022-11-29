@@ -267,7 +267,7 @@ class ALLIN(nn.Module):
                 break
             w_est_old = w_est_new
 
-        wandb.run.summary["steps"] = steps + 1
+      #  wandb.run.summary["steps"] = steps + 1
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
