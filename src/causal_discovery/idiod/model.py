@@ -229,7 +229,7 @@ class IDIOD(nn.Module):
 
             # for precision & recall
             n_int_assign += torch.sum(1 - assignments).item()
-            n_int_correct += np.sum([torch.sum(assignments[targets == i+1][..., i] == 0) for i in range(len(variables))])
+            n_int_correct += np.sum([torch.sum(assignments[targets == i+1][..., i] == 0).item() for i in range(len(variables))])
 
             probs = probs.detach().cpu().numpy()
             targets_int = np.copy(targets)
