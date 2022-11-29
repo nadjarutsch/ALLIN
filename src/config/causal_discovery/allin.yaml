@@ -17,13 +17,12 @@ model:
   patience: 10
   clustering: ${clustering.name}
   lr: 0.001
-  relearn_iter: 1
   name: ${causal_discovery.name}
   apply_threshold: True
   seed: ${seed}
   deterministic: True
   speedup: True
-  delta: 1e-4
+  delta: 1e-10
   max_steps: 1
   intv_penalty: 0
 name: ALLIN Gaussian

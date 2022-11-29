@@ -17,7 +17,7 @@ model:
   patience: 10
   clustering: ${clustering.name}
   lr: 0.001
-  relearn_iter: 3
+  max_steps: 1
   name: ${causal_discovery.name}
   apply_threshold: True
   single_target: False

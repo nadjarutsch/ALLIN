@@ -77,7 +77,6 @@ class ALLIN(nn.Module):
                  device='cpu',
                  patience=10,
                  lr=0.001,
-                 relearn_iter=1,
                  name='allin',
                  clustering='none',
                  apply_threshold=False,
@@ -103,7 +102,6 @@ class ALLIN(nn.Module):
         self.lr = lr
         self.d = d
         self.device = device
-        self.relearn_iter = relearn_iter    # alternating between learning assignments and obs / int models
         self.step = 0   # for logging
         self.single_target = single_target
         self.save_model = save_model

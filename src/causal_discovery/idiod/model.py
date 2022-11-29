@@ -37,7 +37,7 @@ class IDIOD(nn.Module):
                  device='cpu',
                  patience=10,
                  lr=0.001,
-                 relearn_iter=1,
+                 max_steps=1,
                  name='idiod_new',
                  clustering='none',
                  apply_threshold=False,
@@ -62,7 +62,7 @@ class IDIOD(nn.Module):
         self.lr = lr
         self.d = d
         self.device = device
-        self.relearn_iter = relearn_iter    # alternating between learning assignments and obs / int models
+        self.max_steps = max_steps   # alternating between learning assignments and obs / int models
         self.step = 0   # for logging
         self.single_target = single_target
         self.save_model = save_model
@@ -147,7 +147,7 @@ class IDIOD(nn.Module):
 
         self.model_obs.bias.requires_grad = True
 
-        for _ in range(self.relearn_iter):
+        for _ in range(self.max_steps):
             # learn distribution assignments
             print("\n Searching for interventional data...")
             if not isinstance(self.mixture, IdentityMixture):
