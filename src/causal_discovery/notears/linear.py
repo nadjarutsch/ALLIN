@@ -171,8 +171,8 @@ def notears_linear_adv(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=
                 continue
             X_temp = X.copy()
             X_temp = np.delete(X_temp, i, axis=1)
-            diag = (np.linalg.inv(X_temp.T @ X_temp)).diagonal()
-            Z[i, j] = W_abs[i, j] / np.sqrt((np.linalg.inv(X_temp.T @ X_temp)).diagonal()[j-1])
+            idx = j if j < i else j-1
+            Z[i, j] = W_abs[i, j] / np.sqrt((np.linalg.inv(X_temp.T @ X_temp)).diagonal()[idx])
 
     Probs = st.norm.cdf(Z)
     W_est[Probs < 1 - thresh] = 0
