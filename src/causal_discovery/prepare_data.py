@@ -64,7 +64,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         else:
             return variables, X, None
 
-    elif cfg.causal_discovery.name == "NOTEARS" or "NOTEARS+context" in cfg.causal_discovery.name:
+    elif cfg.causal_discovery.name == "NOTEARS" or cfg.causal_discovery.name == "NOTEARS adv" or "NOTEARS+context" in cfg.causal_discovery.name:
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
         return variables, X
 

@@ -44,6 +44,40 @@ class Notears:
         return nx.relabel_nodes(pred_graph, mapping)
 
 
+class NotearsAdv:
+    def __init__(self,
+                 lambda1,
+                 loss_type="l2",
+                 max_iter=100,
+                 h_tol=1e-8,
+                 rho_max=1e+16,
+                 alpha=0.01):
+
+        self.lambda1 = lambda1
+        self.loss_type = loss_type
+        self.max_iter = max_iter
+        self.h_tol = h_tol
+        self.rho_max = rho_max
+        self.alpha = alpha
+
+    def predict(self, cd_input: tuple):
+
+        variables, data = cd_input
+        self.W_est = notears_linear_adv(X=data[...,:-1],
+                               lambda1=self.lambda1,
+                               loss_type=self.loss_type,
+                               max_iter=self.max_iter,
+                               h_tol=self.h_tol,
+                               rho_max=self.rho_max,
+                               thresh=self.alpha)
+
+        A_est = self.W_est != 0
+        pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
+        mapping = dict(zip(range(len(variables)), variables))
+
+        return nx.relabel_nodes(pred_graph, mapping)
+
+
 class NOTEARSTorch(nn.Module):
     def __init__(self,
                  d,
