@@ -165,7 +165,7 @@ def notears_linear_adv(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=
     W_est = _adj(w_est)
     W_abs = np.abs(W_est)
     Z = np.empty_like(W_est)
-    Vars = 1 / (X.shape[0] - X.shape[1] - 1) * np.sum(((X - X @ W) ** 2), axis=0)
+    Vars = 1 / (X.shape[0] - X.shape[1] - 1) * np.sum(((X - X @ W_est) ** 2), axis=0)
 
     for i in range(W_est.shape[0]):
         for j in range(W_est.shape[1]):

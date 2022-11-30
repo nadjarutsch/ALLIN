@@ -5,5 +5,5 @@ model:
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  alpha: 0.1
+  alpha: 0.01
 name: NOTEARS adv
