@@ -165,6 +165,8 @@ def notears_linear_adv(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=
     W_est = _adj(w_est)
     W_abs = np.abs(W_est)
     Z = np.empty_like(W_est)
+    Vars = 1 / (X.shape[0] - X.shape[1] - 1) * np.sum(((X - X @ W) ** 2), axis=0)
+
     for i in range(W_est.shape[0]):
         for j in range(W_est.shape[1]):
             if i == j:
@@ -172,7 +174,7 @@ def notears_linear_adv(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=
             X_temp = X.copy()
             X_temp = np.delete(X_temp, i, axis=1)
             idx = j if j < i else j-1
-            Z[i, j] = W_abs[i, j] / np.sqrt((np.linalg.inv(X_temp.T @ X_temp)).diagonal()[idx])
+            Z[i, j] = W_abs[i, j] / (np.sqrt(Vars[i]) * np.sqrt((np.linalg.inv(X_temp.T @ X_temp)).diagonal()[idx]))
 
     Probs = st.norm.cdf(Z)
     W_est[Probs < 1 - thresh] = 0
