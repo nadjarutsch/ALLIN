@@ -157,7 +157,13 @@ class GraphFitting(object):
 
         # Pre-sampled data
         var_idx = self.sample_next_var_idx()
-        int_sample = torch.cat([self.dataset.get_batch(var_idx) for _ in range(num_batches)], dim=0).to(device)
+        while True:
+            try:
+                int_sample = torch.cat([self.dataset.get_batch(var_idx) for _ in range(num_batches)], dim=0).to(device)
+                break
+            except:
+                var_idx = self.sample_next_var_idx()
+
         batch_size = int_sample.shape[0] // num_batches
 
         # Split number of graph samples across multiple iterations if not all can fit into memory
