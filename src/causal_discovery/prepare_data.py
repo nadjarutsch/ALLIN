@@ -39,6 +39,10 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         mixture_in = data.features[..., :-1].clone() if cfg.clustering.name == "None" or cfg.clustering.name == "Observational" else torch.from_numpy(data.memberships).float()
         return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
 
+    elif cfg.causal_discovery.name == "IDIOD adv":
+        mixture_in = data.features[..., :-1].clone()
+        return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
+
     elif cfg.causal_discovery.name == "Faria":
         dataset = OnlyFeatures(features=data.features[..., :-1])
         OnlyFeatures.__getitem__ = OnlyFeatures.return_only_features
@@ -64,7 +68,11 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         else:
             return variables, X, None
 
-    elif cfg.causal_discovery.name == "NOTEARS" or cfg.causal_discovery.name == "NOTEARS adv" or "NOTEARS+context" in cfg.causal_discovery.name:
+    elif cfg.causal_discovery.name == "NOTEARS" or cfg.causal_discovery.name == "NOTEARS adv":
+        X = data.features[..., :-1].clone().numpy()
+        return variables, X
+
+    elif "NOTEARS+context" in cfg.causal_discovery.name:
         X = np.concatenate((data.features[...,:-1].clone().numpy(), data.memberships), axis=1)
         return variables, X
 
