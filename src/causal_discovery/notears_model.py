@@ -63,7 +63,7 @@ class NotearsAdv:
     def predict(self, cd_input: tuple):
 
         variables, data = cd_input
-        self.W_est = notears_linear_adv(X=data[...,:-1],
+        self.W_est = notears_linear_adv(X=data,
                                lambda1=self.lambda1,
                                loss_type=self.loss_type,
                                max_iter=self.max_iter,
