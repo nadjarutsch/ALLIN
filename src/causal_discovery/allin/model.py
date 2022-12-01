@@ -116,7 +116,7 @@ class ALLIN(nn.Module):
         self.max_steps = max_steps
         self.intv_penalty = intv_penalty
 
-        torch.autograd.set_detect_anomaly(True)
+        # torch.autograd.set_detect_anomaly(True)
 
         # models
         self.loss_gaussian = loss_dict['nll']
@@ -271,6 +271,8 @@ class ALLIN(nn.Module):
         W_est = self.model_obs_mean.weight.detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
+
+
         W_est[np.abs(W_est) < self.w_threshold] = 0
         A_est = W_est != 0
         pred_graph = nx.from_numpy_array(A_est, create_using=nx.DiGraph)
@@ -600,7 +602,7 @@ class ALLIN_double(nn.Module):
         self.sample = sample
         self.speedup = speedup
 
-        torch.autograd.set_detect_anomaly(True)
+     #   torch.autograd.set_detect_anomaly(True)
 
         # models
         self.loss_gaussian = loss_dict['nll']
