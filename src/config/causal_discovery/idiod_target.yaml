@@ -2,7 +2,7 @@ model:
   _target_: causal_discovery.idiod.model.IDIOD
   mixture_model:
     _target_: causal_discovery.idiod.mixture.IdentityMixture
-    single_target: False
+    single_target: True
   d: ${graph.num_vars}
   lambda1: 0.22
   loss_type: l2
