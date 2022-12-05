@@ -53,8 +53,8 @@ def main(cfg: DictConfig):
         cfg.seed = seed
         if str(cfg.clustering.name) == "target_non_roots":
             cfg.clustering.clusterer.roots = None
-        if str(cfg.clustering.name) == "kmeans":  # TODO: with resolver (hydra)
-            cfg.clustering.clusterer.n_clusters = cfg.graph.num_vars + 1
+        if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
+            cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
         if "GMM" in str(cfg.clustering.name):
             cfg.clustering.clusterer.n_components = cfg.n_int_targets + 1
 
@@ -146,24 +146,6 @@ def main(cfg: DictConfig):
                 clusterer.int_targets = [variables.index(v.name) for v in int_variables]
             clusterer.fit(synth_dataset.features[..., :-1])
 
-            if cfg.do.gmm_get_means:
-                target_mean_obs = [np.zeros(shape=cfg.graph.num_vars)]
-                target_means_int = [np.eye(N=1, M=cfg.graph.num_vars, k=i).squeeze() for i in range(cfg.graph.num_vars)]
-                target_means = np.asarray(target_mean_obs + target_means_int)
-                gmm_means = clusterer.means_
-
-                classes = np.arange(len(target_means))
-                knn = KNeighborsClassifier(n_neighbors=1)
-                knn.fit(target_means, y=classes)
-                gmm_means_sorted = gmm_means[np.argsort(knn.predict(gmm_means))]
-
-                mean_distance = 0
-                for target_mean, gmm_mean in zip(target_means, gmm_means_sorted):
-                    mean_distance += np.linalg.norm(target_mean-gmm_mean)
-
-                mean_distance = mean_distance / len(target_means)
-                wandb.run.summary["GMM mean distance"] = mean_distance
-
             synth_dataset.memberships = clusterer.memberships_
             synth_dataset.update_partitions(clusterer.labels_)
             wandb.log({"cluster sizes": wandb.Histogram(clusterer.labels_)})
@@ -184,7 +166,7 @@ def main(cfg: DictConfig):
 
                 if cfg.do.bootstrap:
                     pred_adj_matrix = np.zeros((cfg.graph.num_vars + n_clusters, cfg.graph.num_vars + n_clusters))
-                    alpha_lst = [0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00005, 0.00001, 0.000005, 0.000001]
+                    alpha_lst = [0.1, 0.05, 0.01, 0.005, 0.001]
                     for i in range(11):
                         # data bootstrapping
                         indices = np.random.choice(len(synth_dataset), size=int(99/100 * len(synth_dataset)), replace=False)
