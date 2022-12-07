@@ -19,10 +19,12 @@ model:
   patience: 10
   clustering: ${clustering.name}
   lr: 0.001
-  relearn_iter: 1
+  max_steps: 5
   name: ${causal_discovery.name}
   apply_threshold: True
   single_target: False
   seed: ${seed}
   deterministic: True
+  obs_prior_prob: 0.9
+  fix_bias: False
 name: IDIOD+context
