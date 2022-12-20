@@ -68,7 +68,7 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
         else:
             return variables, X, None
 
-    elif cfg.causal_discovery.name == "NOTEARS" or cfg.causal_discovery.name == "NOTEARS adv":
+    elif cfg.causal_discovery.name == "NOTEARS" or cfg.causal_discovery.name == "NOTEARS adv" or cfg.causal_discovery.name == "NOTEARS tuned":
         X = data.features[..., :-1].clone().numpy()
         return variables, X
 
