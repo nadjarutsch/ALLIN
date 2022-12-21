@@ -40,3 +40,4 @@ seed: -1
 device: cpu
 normalize: True
 observational: False
+n_int_targets: 10
