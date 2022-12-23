@@ -41,7 +41,7 @@ def sweep(args):
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
     )
     func = lambda trial: objective(trial, args)
-    study.optimize(func, n_trials=50, n_jobs=1)
+    study.optimize(func, n_trials=30, n_jobs=1)
 
 
 if __name__ == '__main__':
