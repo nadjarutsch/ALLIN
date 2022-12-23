@@ -29,7 +29,7 @@ import random
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-# os.environ['WANDB_MODE'] = 'offline'
+#os.environ['WANDB_MODE'] = 'offline'
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
@@ -38,14 +38,14 @@ OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 def main(cfg: DictConfig):
     
     if torch.cuda.is_available():
-        cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
+   #     cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
         cfg.device = 'cuda:0'
         try:
             cfg.causal_discovery.model.device = 'cuda:0'
         except:
             pass
     else:
-        cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
+    #    cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
         cfg.device = 'cpu'
 
     shds = []
