@@ -19,10 +19,10 @@ def log_cd_metrics(true_graph, pred_graph, mec, title):
     wandb.run.summary["FN"] = fn(pred_graph, true_graph)
     wandb.run.summary["FP"] = fp(pred_graph, true_graph)
 
-    if not nx.is_directed_acyclic_graph(pred_graph):
-        wandb.run.summary["SID min"], wandb.run.summary["SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
+ #   if not nx.is_directed_acyclic_graph(pred_graph):
+ #       wandb.run.summary["SID min"], wandb.run.summary["SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
 
-    wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
+ #   wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
 
 
 def causal_correctness(true_graph: nx.DiGraph,
