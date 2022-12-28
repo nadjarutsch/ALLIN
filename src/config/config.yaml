@@ -1,6 +1,6 @@
 defaults:
-  - causal_discovery: idiod_target
-  - clustering: target
+  - causal_discovery: notears
+  - clustering: none
   - _self_
 wandb:
   project: allin
@@ -9,7 +9,7 @@ wandb:
 graph:
   num_vars: 10
   structure: random
-  e_n: 2
+  e_n: 4
 dist:
   n: 22000
   int_ratio: 1
@@ -18,8 +18,6 @@ dist:
   int_mean: 1.0
   int_std: ${dist.obs_std}
   negative: False
-oracle:
-  n_int_targets: 5
 do:
   oracle: False
   cluster: True
@@ -29,10 +27,10 @@ do:
   plot_marginals: False
   bootstrap: False
   gmm_get_means: False
-end_seed: 50
-start_seed: 0
+end_seed: 4
+start_seed: 3
 seed: -1
 device: cpu
 normalize: True
 observational: False
-n_int_targets: ${graph.num_vars}
+n_int_targets: 10

@@ -123,7 +123,7 @@ def main(cfg: DictConfig):
 
             if cfg.do.oracle:
                 pc_context_graph = add_context_vars(graph=true_graph.copy(),
-                                                    n=cfg.oracle.n_int_targets,
+                                                    n=cfg.n_int_targets,
                                                     vars=variables,
                                                     confounded=True)
                 pc_context_mec = dag_to_mec(pc_context_graph)
