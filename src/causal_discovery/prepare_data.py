@@ -23,7 +23,8 @@ def prepare_data(cfg, data: PartitionData, variables: list[str]):
 
     if cfg.causal_discovery.name == "ENCO":
         int_dataloaders = {}
-        for var_idx, partition in enumerate(data.partitions[1:]):
+        for idx, partition in enumerate(data.partitions[1:]):
+            var_idx = partition.targets[0] - 1  # TODO: doublecheck
             dataset = dt.TensorDataset(partition.features[..., :-1])
             int_dataloaders[var_idx] = dt.DataLoader(dataset,
                                                      batch_size=cfg.causal_discovery.model.batch_size,
