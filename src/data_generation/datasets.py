@@ -82,8 +82,9 @@ class PartitionData(Dataset):
         for label in set(partitions) - set([-1]):
             indices = torch.nonzero(torch.tensor(partitions) == label).long().squeeze()
             partition_features = torch.index_select(self.features, 0, indices)
+          #  partition_targets = torch.index_select(self.targets, 0, indices)
             partitions_lst.append(PartitionData(features=partition_features,
-                                                targets=self.targets,
+                                                targets=self.targets[indices.numpy()],
                                                 ispartition=True))
         self.partitions = partitions_lst
         self.labels = partitions
