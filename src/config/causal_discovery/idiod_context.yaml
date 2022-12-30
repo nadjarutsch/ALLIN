@@ -4,7 +4,7 @@ model:
     _target_: causal_discovery.idiod.mixture.MLPMixture
     n_input: ${graph.num_vars}
     n_hidden: [ ]
-    n_output: ${graph.num_vars}
+    n_output: ${causal_discovery.model.mixture_model.n_input}
     single_target: False
     bias: True
   d: ${graph.num_vars}
