@@ -29,7 +29,7 @@ import random
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-os.environ['WANDB_MODE'] = 'offline'
+#os.environ['WANDB_MODE'] = 'offline'
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
