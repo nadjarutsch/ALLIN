@@ -29,7 +29,7 @@ import random
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['WANDB_MODE'] = 'offline'
+os.environ['WANDB_MODE'] = 'offline'
 os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
 
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
@@ -157,7 +157,7 @@ def main(cfg: DictConfig):
             ########################
 
             if cfg.do.causal_discovery:
-                n_clusters = len(set(clusterer.labels_))
+                n_clusters = clusterer.memberships_.shape[-1]
                 if cfg.clustering.name != "Observational" and cfg.clustering.name != "None":
                     try:
                         cfg.causal_discovery.model.mixture_model.n_input = n_clusters
