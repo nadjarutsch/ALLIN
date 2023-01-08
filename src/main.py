@@ -53,10 +53,10 @@ def main(cfg: DictConfig):
         cfg.seed = seed
         if str(cfg.clustering.name) == "target_non_roots":
             cfg.clustering.clusterer.roots = None
-        if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
-            cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
-        if "GMM" in str(cfg.clustering.name):
-            cfg.clustering.clusterer.n_components = cfg.n_int_targets + 1
+     #   if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
+     #       cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
+     #   if "GMM" in str(cfg.clustering.name):
+     #       cfg.clustering.clusterer.n_components = cfg.n_int_targets + 1
 
         run = wandb.init(project=cfg.wandb.project,
                          entity=cfg.wandb.entity,
