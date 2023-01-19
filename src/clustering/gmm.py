@@ -26,4 +26,4 @@ class GMM_hard(GaussianMixture):
         self.labels_ = self.predict(data)
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
         if self.remove_one_cvar:
-            self.memberships = self.memberships[..., :-1]
+            self.memberships_ = self.memberships_[..., :-1]
