@@ -33,7 +33,7 @@ class TargetClusterer:
 
         for i, t in enumerate(self.int_targets):
             if isinstance(self.roots, list):
-                if i in self.roots:
+                if t in self.roots:
                     true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 0
                     continue
 
