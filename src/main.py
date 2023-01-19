@@ -270,9 +270,9 @@ def main(cfg: DictConfig):
                     plt.savefig(f"marginal_seed_{seed}_{variables[i]}.pdf")
                     plt.close()
 
-            if cfg.do.search_modes:
-                clustering = sklearn.cluster.MeanShift().fit(synth_dataset.features[..., :-1])
-                n_modes = len(np.unique(clustering.labels_))
+         #   if cfg.do.search_modes:
+         #       clustering = sklearn.cluster.MeanShift().fit(synth_dataset.features[..., :-1])
+         #       n_modes = len(np.unique(clustering.labels_))
 
             wandb.finish()
 
