@@ -16,11 +16,14 @@ class GMM_soft(GaussianMixture):
 
 
 class GMM_hard(GaussianMixture):
-    def __init__(self, n_components, random_state):
+    def __init__(self, n_components, random_state, remove_one_cvar=False):
         super().__init__(n_components=n_components, random_state=random_state)
+        self.remove_one_cvar=remove_one_cvar
 
     # extended method
     def fit(self, data):
         super().fit(data)
         self.labels_ = self.predict(data)
         self.memberships_ = labels_to_one_hot(self.labels_[self.labels_ >= 0], np.max(self.labels_) + 1)
+        if self.remove_one_cvar:
+            self.memberships = self.memberships[..., :-1]
