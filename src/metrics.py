@@ -18,11 +18,7 @@ def log_cd_metrics(true_graph, pred_graph, mec, title):
     wandb.run.summary["CC"] = causal_correctness(true_graph, pred_graph, mec)
     wandb.run.summary["FN"] = fn(pred_graph, true_graph)
     wandb.run.summary["FP"] = fp(pred_graph, true_graph)
-
- #   if not nx.is_directed_acyclic_graph(pred_graph):
- #       wandb.run.summary["SID min"], wandb.run.summary["SID max"] = cdt.metrics.SID_CPDAG(true_graph, pred_graph)
-
- #   wandb.run.summary["SID"] = cdt.metrics.SID(true_graph, pred_graph)
+    wandb.run.summary["Undirected"] = sum([not pred_graph[u][v]['directed'] for u, v in pred_graph.edges()]) / 2
 
 
 def causal_correctness(true_graph: nx.DiGraph,
@@ -94,10 +90,17 @@ def avg_neighbourhood_size(dag: graphs.CausalDAG) -> float:
     return np.sum(dag.adj_matrix) * 2 / len(dag.variables)
 
 
+#def flips()
+
+
 def fp(pred_dag, target_dag) -> float:
     pred = nx.to_numpy_array(pred_dag).astype(bool)
     target = nx.to_numpy_array(target_dag).astype(bool)
-    return np.sum(pred * np.invert(target))
+
+    fps = pred * np.invert(target)
+    fps = fps + fps.transpose()
+    fps[fps > 1] = 1
+    return np.sum(fps)/2
 
 
 def fn(pred_dag, target_dag) -> float:
