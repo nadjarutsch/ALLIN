@@ -51,7 +51,7 @@ def main(cfg: DictConfig):
     shds = []
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
-        if str(cfg.clustering.name) == "target_non_roots":
+        if str(cfg.clustering.name) == "Target non-roots":
             cfg.clustering.clusterer.roots = None
      #   if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
      #       cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
@@ -84,7 +84,7 @@ def main(cfg: DictConfig):
 
             variables = [v.name for v in dags[0].variables]
             true_graph = dags[0].nx_graph
-            if str(cfg.clustering.name) == "target_non_roots":
+            if str(cfg.clustering.name) == "Target non-roots":
                 cfg.clustering.clusterer.roots = [variables.index(n) for n in get_root_nodes(true_graph)]
             mec = dag_to_mec(true_graph)
 
@@ -269,6 +269,10 @@ def main(cfg: DictConfig):
                     plt.legend()
                     plt.savefig(f"marginal_seed_{seed}_{variables[i]}.pdf")
                     plt.close()
+
+            if cfg.do.search_modes:
+                clustering = sklearn.cluster.MeanShift().fit(synth_dataset.features[..., :-1])
+                n_modes = len(np.unique(clustering.labels_))
 
             wandb.finish()
 
