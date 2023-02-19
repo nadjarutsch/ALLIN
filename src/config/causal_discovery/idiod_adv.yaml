@@ -1,27 +1,30 @@
 model:
-  _target_: causal_discovery.idiod.model.IDIOD_old
+  _target_: causal_discovery.idiod.model.IDIOD
   mixture_model:
-   # _target_: causal_discovery.idiod.mixture.MLPMixture
-    _target_: models.mlp.MLP
+    _target_: causal_discovery.idiod.mixture.MLPMixture
     n_input: ${graph.num_vars}
     n_hidden: [ 128, 64, 32 ]
     n_output: ${graph.num_vars}
   d: ${graph.num_vars}
-  lambda1: 0.1
+  lambda1: 0.12
   loss_type: l2
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  w_threshold: 0.3
-  max_epochs: 100
+  w_threshold: 0.03
+  max_epochs: 500
   device: ${device}
   patience: 10
   clustering: ${clustering.name}
   lr: 0.001
-  relearn_iter: 1
+  max_steps: 5
   name: ${causal_discovery.name}
   apply_threshold: True
   single_target: False
   seed: ${seed}
   deterministic: True
-name: IDIOD old
+  obs_prior_prob: 0.9
+  fix_bias: False
+  auto_thresh: True
+  alpha: 0.01
+name: IDIOD adv
