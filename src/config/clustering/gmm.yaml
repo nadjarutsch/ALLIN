@@ -1,5 +1,5 @@
 clusterer:
-  _target_: clustering.gmm.GMM_hard
-  n_components: 6
+  _target_: clustering.gmm.GMM
+  n_clusters: 0
   random_state: ${seed}
 name: GMM

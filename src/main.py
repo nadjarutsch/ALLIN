@@ -1,5 +1,6 @@
 import wandb
-from omegaconf import DictConfig
+import torch
+from omegaconf import DictConfig, OmegaConf
 import hydra
 from hydra.utils import instantiate
 
@@ -10,12 +11,13 @@ if os.path.split(os.getcwd())[-1] != 'src':
 import networkx as nx
 import cdt
 
+from utils import set_seed, get_device
 import data_generation.data_generation as data_gen
 import data_generation.datasets as data
 import causal_discovery.prepare_data as cd
 import metrics
 from plotting import plot_graph
-from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph, get_root_nodes
+from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_root_nodes
 
 import sklearn
 from clustering.utils import *
@@ -28,46 +30,28 @@ import random
 
 os.environ['WANDB_MODE'] = 'offline'
 
-# enable adding two variables in config file
+# enable adding two variables in config file    TODO: is this used anywhere?
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
 @hydra.main(config_path="./config", config_name="config")
 def predict_graphs(cfg: DictConfig) -> float:
     """...
         Args:
-            cfg:
+            cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
 
         Returns:
             The SHD between the predicted graphs and the true graphs, averaged over all runs.
     """
     
-    if torch.cuda.is_available():
-        cfg.device = 'cuda:0'
-#        try:
-#            cfg.causal_discovery.model.device = 'cuda:0'
-#        except:
-#            pass
-    else:
-        cfg.device = 'cpu'
-
+    cfg.device = get_device()   # cpu or gpu
     shds = []
-
-    print(cfg.causal_discovery.model.device)
 
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
-      #  if str(cfg.clustering.name) == "Target non-roots":
-      #      cfg.clustering.clusterer.roots = None
-        if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
-            cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
-        if "GMM" in str(cfg.clustering.name):
-            cfg.clustering.clusterer.n_components = cfg.n_int_targets + 1
 
         run = wandb.init(project=cfg.wandb.project,
                          entity=cfg.wandb.entity,
                          group=cfg.wandb.group,
-                         notes='',
-                         tags=[],
                          config=OmegaConf.to_container(cfg, resolve=True),
                          reinit=True)
         with run:
@@ -75,7 +59,8 @@ def predict_graphs(cfg: DictConfig) -> float:
             ### DATA GENERATION ###
             #######################
 
-            # generate graph
+            # if the distribution is multimodal, we create the same graph for each mode
+            # each graph is entangled with a different distribution, according to the mode
             dags = []
             for mean in cfg.dist.obs_means:
                 dag = data_gen.generate_dag(num_vars=cfg.graph.num_vars,
@@ -87,17 +72,15 @@ def predict_graphs(cfg: DictConfig) -> float:
                                             seed=seed)
                 dags.append(dag)
 
+            # store graph properties
             variables = [v.name for v in dags[0].variables]
-            true_graph = dags[0].nx_graph
-            if str(cfg.clustering.name) == "Target non-roots":
-                cfg.clustering.clusterer.roots = [variables.index(n) for n in get_root_nodes(true_graph)]
+            true_graph = dags[0].nx_graph   # graphs are identical, only distributions differ
             mec = dag_to_mec(true_graph)
 
             # logging
             plot_graph(true_graph, "true graph")
             plot_graph(mec, "MEC")
             wandb.run.summary["avg neighbourhood size"] = metrics.avg_neighbourhood_size(dag)
-      #      wandb.run.summary["SHD zero guess"] = true_graph.size()
 
             # datasets
             n_obs = int(cfg.dist.n / (1 + cfg.dist.int_ratio * cfg.n_int_targets))
@@ -142,13 +125,17 @@ def predict_graphs(cfg: DictConfig) -> float:
             ### CLUSTERING ###
             ##################
 
-            if cfg.observational:
-                synth_dataset = data.PartitionData(features=synth_dataset.features[:n_obs, :-1],   # does not work with multimodal
-                                                   targets=synth_dataset.targets[:n_obs])
+            # set number of clusters automatically if not manually specified (n_clusters == 0)
+            if (cfg.clustering.name in ["K-Means", "GMM"]) and (cfg.clustering.clusterer.n_clusters == 0):
+                cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
 
             clusterer = instantiate(cfg.clustering.clusterer)
-            if isinstance(clusterer, TargetClusterer):
+
+            # pass knowledge of intervention targets and root nodes to the target clusterer
+            if "Target" in cfg.clustering.name:
+                clusterer.roots = [variables.index(n) for n in get_root_nodes(true_graph)]
                 clusterer.int_targets = [variables.index(v.name) for v in int_variables]
+
             clusterer.fit(synth_dataset.features[..., :-1])
 
             synth_dataset.memberships = clusterer.memberships_
@@ -161,98 +148,24 @@ def predict_graphs(cfg: DictConfig) -> float:
             ### CAUSAL DISCOVERY ###
             ########################
 
-            if cfg.do.causal_discovery:
-                n_clusters = clusterer.memberships_.shape[-1]
-                if cfg.clustering.name != "Observational" and cfg.clustering.name != "None":
-                    try:
-                        cfg.causal_discovery.model.mixture_model.n_input = n_clusters
-                    except:
-                        pass
+            n_clusters = clusterer.memberships_.shape[-1]
+            if cfg.clustering.name != "Observational" and cfg.clustering.name != "None":
+                try:
+                    cfg.causal_discovery.model.mixture_model.n_input = n_clusters
+                except:
+                    pass
 
-                if cfg.do.bootstrap:
-                    pred_adj_matrix = np.zeros((cfg.graph.num_vars + n_clusters, cfg.graph.num_vars + n_clusters))
-                    alpha_lst = [0.1, 0.05, 0.01, 0.005, 0.001]
-                    for i in range(11):
-                        # data bootstrapping
-                        indices = np.random.choice(len(synth_dataset), size=int(99/100 * len(synth_dataset)), replace=False)
-                        sub_dataset = data.PartitionData(features=synth_dataset.features[indices, :-1],
-                                                         targets=synth_dataset.targets[indices])
-                        sub_dataset.memberships = synth_dataset.memberships[indices]
-                        sub_dataset.labels = synth_dataset.labels[indices]
-                        cd_model = instantiate(cfg.causal_discovery.model)
-                        cd_input = cd.prepare_data(cfg=cfg, data=sub_dataset, variables=variables)
+            cd_model = instantiate(cfg.causal_discovery.model)
+            cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
+            pred_graph = cd_model.predict(cd_input)
 
-                        # model bootstrapping
-                        # cfg.causal_discovery.model.alpha = alpha_lst[i]
-                        # cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-
-                        pred_graph = cd_model.predict(cd_input)
-                        pred_adj_matrix += nx.to_numpy_array(pred_graph)
-
-                    pred_adj_matrix = np.round(pred_adj_matrix * 1/11)
-                    mapping = dict(zip(range(len(variables)), variables))
-                    pred_graph = nx.relabel_nodes(nx.DiGraph(incoming_graph_data=pred_adj_matrix), mapping)
-                else:
-                    cd_model = instantiate(cfg.causal_discovery.model)
-                    cd_input = cd.prepare_data(cfg=cfg, data=synth_dataset, variables=variables)
-                    pred_graph = cd_model.predict(cd_input)
-
-                context_graph = pred_graph.copy()
-
-                # logging
-                # tbl = wandb.Table(dataframe=df)
-                # wandb.log({"clustered data": tbl})
-
-                metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
-                plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
-                shds.append(wandb.run.summary["SHD"])
-
-            #########################
-            ### CLUSTER DISCOVERY ###
-            #########################
-
-            if cfg.do.cluster_discovery:
-                # Match pred and target clusters via the highest count
-                int_targets = [i-1 for i in match_clusters(synth_dataset, target_dataset)]
-
-                shds = []
-                for i, cluster in enumerate(synth_dataset.partitions):
-                    cd_model = instantiate(cfg.causal_discovery.model)
-                    cluster_dataset = data.PartitionData(features=cluster.features[..., :-1])
-                    df = cd.prepare_data(cfg=cfg, data=cluster_dataset, variables=variables)
-                    pred_cluster_graph = cd_model.predict(df)
-                    plot_graph(pred_cluster_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, cluster {i}")
-
-                    # interventional graph of the matched interventional distribution
-                    true_int_graph = get_interventional_graph(true_graph, int_targets[i])
-                    shds.append(cdt.metrics.SHD(true_int_graph, pred_cluster_graph, double_for_anticausal=False))
-
-                wandb.run.summary["Pred clusters: SHD (avg)"] = np.mean(shds)
+            metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+            plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+            shds.append(wandb.run.summary["SHD"])
 
             ################
             ### ANALYSIS ###
             ################
-
-            if cfg.do.context_analysis:
-                if cfg.clustering.name == "Target":
-                    # FN edges from context variables to intervention targets
-                    tps = 0
-                    fps = 0
-                    pred_adj_matrix = nx.to_numpy_array(context_graph)
-                    for i in range(cfg.graph.num_vars):
-                        tps += pred_adj_matrix[cfg.graph.num_vars + i + 1, i] == 1  # +1 because the first cluster (index 0) is observational
-                        temp_matrix = pred_adj_matrix.copy()
-                        temp_matrix[cfg.graph.num_vars + i + 1, i] = 0  # remove edge from context to target variable
-                        temp_matrix[i, cfg.graph.num_vars + i + 1] = 0  # remove edge from target to context variable
-                        fps += np.sum(temp_matrix[cfg.graph.num_vars + i + 1, :]) + np.sum(temp_matrix[:, cfg.graph.num_vars + i + 1])
-
-                    tps /= cfg.graph.num_vars
-                    fps /= cfg.graph.num_vars
-
-                    wandb.run.summary["PC+context target: TPs context vars"] = tps
-                    wandb.run.summary["PC+context target: FPs context vars"] = fps
-
-                plot_graph(context_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}, context graph")
 
             if cfg.do.plot_marginals:
                 for i in range(cfg.graph.num_vars):
@@ -274,10 +187,6 @@ def predict_graphs(cfg: DictConfig) -> float:
                     plt.legend()
                     plt.savefig(f"marginal_seed_{seed}_{variables[i]}.pdf")
                     plt.close()
-
-         #   if cfg.do.search_modes:
-         #       clustering = sklearn.cluster.MeanShift().fit(synth_dataset.features[..., :-1])
-         #       n_modes = len(np.unique(clustering.labels_))
 
             wandb.finish()
 

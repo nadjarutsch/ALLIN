@@ -1,6 +1,0 @@
-clusterer:
-  _target_: clustering.depcon_kmeans.DepconKmeans
-  n_clusters: 11
-  max_iters: 100
-  device: ${device}
-name: Depcon Kmeans
