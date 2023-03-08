@@ -8,7 +8,6 @@ if os.path.split(os.getcwd())[-1] != 'src':
     os.chdir('../src')
 
 import networkx as nx
-# import causaldag
 import cdt
 
 import data_generation.data_generation as data_gen
@@ -19,7 +18,6 @@ from plotting import plot_graph
 from data_generation.causal_graphs.graph_utils import dag_to_mec, add_context_vars, get_interventional_graph, get_root_nodes
 
 import sklearn
-from sklearn.neighbors import KNeighborsClassifier
 from clustering.utils import *
 
 import seaborn as sns
@@ -28,31 +26,38 @@ import matplotlib
 import random
 
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['WANDB_MODE'] = 'offline'
-os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+os.environ['WANDB_MODE'] = 'offline'
 
+# enable adding two variables in config file
 OmegaConf.register_new_resolver("add", lambda x, y: int(x) + int(y))
 
 @hydra.main(config_path="./config", config_name="config")
-def main(cfg: DictConfig):
+def predict_graphs(cfg: DictConfig) -> float:
+    """...
+        Args:
+            cfg:
+
+        Returns:
+            The SHD between the predicted graphs and the true graphs, averaged over all runs.
+    """
     
     if torch.cuda.is_available():
-   #     cdt.SETTINGS.rpath = '/sw/arch/Debian10/EB_production/2021/software/R/4.1.0-foss-2021a/lib/R/bin/Rscript'
         cfg.device = 'cuda:0'
-        try:
-            cfg.causal_discovery.model.device = 'cuda:0'
-        except:
-            pass
+#        try:
+#            cfg.causal_discovery.model.device = 'cuda:0'
+#        except:
+#            pass
     else:
-    #    cdt.SETTINGS.rpath = '/usr/local/bin/Rscript'
         cfg.device = 'cpu'
 
     shds = []
+
+    print(cfg.causal_discovery.model.device)
+
     for seed in range(cfg.start_seed, cfg.end_seed):
         cfg.seed = seed
-        if str(cfg.clustering.name) == "Target non-roots":
-            cfg.clustering.clusterer.roots = None
+      #  if str(cfg.clustering.name) == "Target non-roots":
+      #      cfg.clustering.clusterer.roots = None
         if str(cfg.clustering.name) == "K-Means":  # TODO: with resolver (hydra)
             cfg.clustering.clusterer.n_clusters = cfg.n_int_targets + 1
         if "GMM" in str(cfg.clustering.name):
@@ -280,4 +285,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == '__main__':
-    main()
+    predict_graphs()
