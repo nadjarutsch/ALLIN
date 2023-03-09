@@ -55,8 +55,7 @@ class PartitionData(Dataset):
         if ispartition:
             self.features = features 
         else: 
-            ids = torch.arange(features.shape[0]).reshape((features.shape[0],1)) # [:,None].expand(-1,features.shape[-1])
-           # self.features = torch.stack((features, ids), dim=-1)
+            ids = torch.arange(features.shape[0]).reshape((features.shape[0], 1))
             self.features = torch.cat((features, ids), -1)
         self.targets = targets
         if not ispartition:
@@ -65,8 +64,6 @@ class PartitionData(Dataset):
                                              ispartition=True)]
         self.memberships = None
         self.labels = None
-            
-        
 
     def __len__(self):
         """Returns the number of datapoints."""
@@ -82,55 +79,11 @@ class PartitionData(Dataset):
         for label in set(partitions) - set([-1]):
             indices = torch.nonzero(torch.tensor(partitions) == label).long().squeeze()
             partition_features = torch.index_select(self.features, 0, indices)
-          #  partition_targets = torch.index_select(self.targets, 0, indices)
             partitions_lst.append(PartitionData(features=partition_features,
                                                 targets=self.targets[indices.numpy()],
                                                 ispartition=True))
         self.partitions = partitions_lst
         self.labels = partitions
-        #self.features = self.features[partitions >= 0] # drop datapoints with negative labels (outliers)
-        #self.memberships = labels_to_one_hot(partitions[partitions >= 0], np.max(partitions) + 1)
-    
-    def save_to_file(self, directory: str) -> str:
-        """Saves the Dataset to a file, using a randomly generated unique identifier.
-        
-        Attributes:
-            directory: Where to save the dataset.
-        
-        Returns:
-            Filename of the dataset."""
-            
-        filename = str(uuid.uuid1())
-        torch.save(self, os.path.join('..', 'data', directory, filename))
-        return filename
-    
-    '''def set_true_intervention_targets(self, ground_truth: list[int]): # TODO: deprecated, was only used for prototype
-        # lists of indices that belong to each cluster, 0-th cluster corresponds to observational data
-        partitions = []
-        num_vars = self.features.shape[-1] - 1
-        partitions.append(list(set(self.partitions[0].features[...,1].flatten().tolist())))
-
-        for i, (idx_lower, idx_upper)in enumerate(zip(ground_truth, ground_truth[1:])):
-            partitions.append(
-                list(set(self.partitions[1].features[...,1][(self.partitions[1].features[...,1] > idx_lower) &
-                                                            (self.partitions[1].features[...,1] <= idx_upper)].flatten().tolist()))
-            )
-            target = np.zeros(num_vars)
-            target[i] = 1
-            self.intervention_targets.append(target)
-    
-        partitions.append(list(set(self.partitions[1].features[...,1][self.partitions[1].features[...,1] < ground_truth[0]].flatten().tolist())))
-        self.intervention_targets.append(torch.ones(num_vars)) # set false positives to 1-vector
-        self.update_partitions(partitions)''' # deprecated
-
-    def set_random_intervention_targets(self): # TODO: rename into set_unknown_context_vars
-        if len(self.partitions) > 1:
-            self.intervention_targets = []
-
-            for i in range(len(self.partitions)):
-                target = torch.zeros(len(self.partitions))
-                target[i] = 1
-                self.intervention_targets.append(target)
 
 
 class InterventionalDataset(object):

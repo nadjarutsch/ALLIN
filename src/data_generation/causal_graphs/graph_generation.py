@@ -87,17 +87,12 @@ def graph_from_adjmatrix(variable_names, dist_func, adj_matrix, latents=None):
     return graph
 
 
-
-
 def graph_from_edges(variable_names, dist_func, edges, latents=None):
     """
     Same as graph_from_adjmatrix, just with edges instead of an adjacency matrix.
     """
     adj_matrix = edges_to_adj_matrix(edges, len(variable_names))
     return graph_from_adjmatrix(variable_names, dist_func, adj_matrix, latents=latents)
-
-
-
 
 
 def generate_random_graph(variable_names, dist_func, edge_prob, connected=False, max_parents=-1, num_latents=0, **kwargs):
@@ -205,7 +200,6 @@ def generate_random_graph(variable_names, dist_func, edge_prob, connected=False,
     return graph_from_adjmatrix(variable_names, dist_func, adj_matrix, latents=latents)
 
 
-
 def generate_chain(variable_names, dist_func, **kwargs):
     """
     Generates a graph structure which follows the 'chain' graph structure. In this,
@@ -229,7 +223,6 @@ def generate_chain(variable_names, dist_func, **kwargs):
         adj_matrix[v_idx, v_idx+1] = True
 
     return graph_from_adjmatrix(variable_names, dist_func, adj_matrix)
-
 
 
 def generate_bidiag(variable_names, dist_func, **kwargs):
@@ -259,7 +252,6 @@ def generate_bidiag(variable_names, dist_func, **kwargs):
     return graph_from_adjmatrix(variable_names, dist_func, adj_matrix)
 
 
-
 def generate_collider(variable_names, dist_func, **kwargs):
     """
     Generates a graph structure which follows the 'collider' graph structure. One variable
@@ -282,7 +274,6 @@ def generate_collider(variable_names, dist_func, **kwargs):
     adj_matrix[:-1, -1] = True
 
     return graph_from_adjmatrix(variable_names, dist_func, adj_matrix)
-
 
 
 def generate_jungle(variable_names, dist_func, num_levels=2, **kwargs):
@@ -320,7 +311,6 @@ def generate_jungle(variable_names, dist_func, num_levels=2, **kwargs):
     return graph_from_edges(variable_names, dist_func, edges)
 
 
-
 def generate_full(variable_names, dist_func, **kwargs):
     """
     Generates a graph structure which follows the 'full' graph structure. It is the same
@@ -337,8 +327,6 @@ def generate_full(variable_names, dist_func, **kwargs):
                 to model. As output, it is expected to give a ProbDist object.
     """
     return generate_random_graph(variable_names, dist_func, edge_prob=1.0)
-
-
 
 
 def generate_regular_graph(variable_names, dist_func, num_neigh=10, **kwargs):
@@ -368,7 +356,6 @@ def generate_regular_graph(variable_names, dist_func, num_neigh=10, **kwargs):
     return graph_from_edges(variable_names, dist_func, edges)
 
 
-
 def get_graph_func(name):
     """
     Converts a string describing the wanted graph structure into the corresponding function. 
@@ -393,8 +380,6 @@ def get_graph_func(name):
     else:
         f = generate_random_graph
     return f
-
-
 
 
 def generate_categorical_graph(num_vars,
@@ -460,23 +445,13 @@ def generate_categorical_graph(num_vars,
     return graph_func(variable_names, dist_func, **kwargs)
 
 
-
-
-def generate_continuous_graph(num_vars, 
-                              num_coeff=4,
+def generate_continuous_graph(num_vars,
                               graph_func=generate_random_graph,
                               seed=-1,
                               mu=None,
                               sigma=None,
-                              equations=None,
-                              negative=False,
                               **kwargs):
-    
-  #  if mus is None:
-  #      mus = [0.0 for i in range(num_vars)]
-    
-  #  if sigmas is None:
-   #     sigmas = [1.0 for i in range(num_vars)]
+
     mu = 0.0 if mu == None else mu
     sigma = 1.0 if sigma == None else sigma
         
@@ -489,50 +464,13 @@ def generate_continuous_graph(num_vars,
         variable_names = [r"$X_{%s}$" % i for i in range(1, num_vars+1)]
 
     def dist_func(input_names, name):
-        dist = get_linear_gaussian(input_names=input_names, mu=mu, sigma=sigma, negative=negative)
+        dist = get_linear_gaussian(input_names=input_names, mu=mu, sigma=sigma)
         return dist
 
     return graph_func(variable_names, dist_func, **kwargs)
 
 
-
-def generate_graph_from_equations(equations: dict,
-                                  seed=-1,
-                                  latents=None):
-    
-    # TODO: test with mu_fn and sigma_fn
-    # equations key must be variable name, then the value must be a dictionary
-    # with the keys 'input_names' (list), 'mu_fn' (function with all variables 
-    # as inputs), 'sigma_fn' (same)
-    
-    variable_names = list(equations.keys())
-    adj_matrix = np.zeros((len(variable_names), len(variable_names)))
-    
-    for idx1, name1 in enumerate(variable_names):
-        for name2 in equations[name1]['input_names']:
-            idx2 = variable_names.index(name2)
-            adj_matrix[idx2, idx1] = 1
-    
-    if seed >= 0:
-        np.random.seed(seed)
-        random.seed(seed)
-        
-    def dist_func(input_names: list, name: str) -> ProbDist:
-        
-        def mu_func(inputs: dict) -> float:
-            return equations[name]['mu_fn'](inputs)
-        
-        def sigma_func(inputs: dict) -> float:
-            return equations[name]['sigma_fn'](inputs)
-            
-        return GaussianDist(mu_func, sigma_func)
-    
-    return graph_from_adjmatrix(variable_names, dist_func, adj_matrix, latents=latents)
-
-
-
 def generate_random_dag(variable_names, dist_func, p):
-    
 
     random_graph = nx.fast_gnp_random_graph(len(variable_names), p, directed=True)
     random_dag = nx.DiGraph()
@@ -542,14 +480,10 @@ def generate_random_dag(variable_names, dist_func, p):
     for (u, v) in random_graph.edges():
         if u < v:
             random_dag.add_edge(variable_names[u], variable_names[v])
-    
-    
- #   edges = np.array(random_dag.edges())
- #   edges.sort(axis=-1)
-  #  adj_matrix = 
-   # print(adj_matrix)
-    dag = graph_from_adjmatrix(variable_names=variable_names, dist_func=dist_func, adj_matrix=nx.to_numpy_array(random_dag))
-  #  dag = graph_from_edges(variable_names, dist_func, edges)
+
+    dag = graph_from_adjmatrix(variable_names=variable_names,
+                               dist_func=dist_func,
+                               adj_matrix=nx.to_numpy_array(random_dag))
     dag.nx_graph = random_dag
 
     return dag

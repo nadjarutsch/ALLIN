@@ -348,12 +348,9 @@ def get_random_gaussian(input_names, num_coeff=4, **kwargs):
 	return GaussianDist(mu_func, sigma_func, **kwargs)
 
 
-def get_linear_gaussian(input_names, mu, sigma, negative=False):
+def get_linear_gaussian(input_names, mu, sigma):
 	if len(input_names) > 0:
-		if negative:
-			mu_func = lambda inputs: sum([-inputs[n] for n in input_names]) + mu
-		else:
-			mu_func = lambda inputs: sum([inputs[n] for n in input_names]) + mu
+		mu_func = lambda inputs: sum([inputs[n] for n in input_names]) + mu
 	else:
 		mu_func = lambda inputs: mu
 
