@@ -20,25 +20,25 @@ import sklearn
 
 @hydra.main(config_path="./config", config_name="config")
 def predict_graphs(cfg: DictConfig) -> float:
-    """ Executes a causal discovery algorithm on synthetic graph data, sampled from a specified number of random graphs.
-        The following causal discovery algorithms are supported:
+    """Executes a causal discovery algorithm on synthetic graph data, sampled from a specified number of random graphs.
+    The following causal discovery algorithms are supported:
 
-            - PC
-            - PC-JCI with Clustering (K-means, GMM)
-            - PC-JCI oracle
-            - NOTEARS
-            - ALLIN (MSE, Gaussian)
-            - ALLIN with Clustering
-            - ALLIN K-oracle
-            - ALLIN Z-oracle
-            - DCDI-L
-            - ENCO
+        - PC
+        - PC-JCI with Clustering (K-means, GMM)
+        - PC-JCI oracle
+        - NOTEARS
+        - ALLIN (MSE, Gaussian)
+        - ALLIN with Clustering
+        - ALLIN K-oracle
+        - ALLIN Z-oracle
+        - DCDI-L
+        - ENCO
 
-        Args:
-            cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
+    Args:
+        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
 
-        Returns:
-            The SHD between the predicted graphs and the true graphs, averaged over all runs.
+    Returns:
+        The SHD between the predicted graphs and the true graphs, averaged over all runs.
     """
 
     os.environ['WANDB_MODE'] = 'offline'    # TODO: pass over from cfg
