@@ -1,6 +1,6 @@
 defaults:
-  - causal_discovery: pc_causallearn
-  - clustering: gmm
+  - causal_discovery: notears
+  - clustering: none
   - _self_
 wandb:
   project: allin
@@ -12,18 +12,14 @@ graph:
   e_n: 4
 dist:
   n: 500
-  int_ratio: 1
+  intv_ratio: 1
   obs_means: [ 0 ]
   obs_std: 0.5
-  int_mean: 1.0
-  int_std: ${dist.obs_std}
-  negative: False
-do:
-  oracle: False
-  plot_marginals: False
-end_seed: 4
-start_seed: 3
+  intv_mean: 1.0
+  intv_std: ${dist.obs_std}
+start_seed: 0
+end_seed: 5
 seed: -1
 device: cpu
 normalize: True
-n_int_targets: 10
+n_intv_targets: 10
