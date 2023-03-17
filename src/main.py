@@ -2,6 +2,7 @@ import wandb
 from omegaconf import DictConfig, OmegaConf
 import hydra
 from hydra.utils import instantiate
+import sklearn
 
 import os
 if os.path.split(os.getcwd())[-1] != 'src':
@@ -14,8 +15,6 @@ import metrics
 from plotting import plot_graph
 from data_generation.causal_graphs.graph_utils import dag_to_mec, get_root_nodes
 from data_generation.causal_graphs.graph_generation import generate_continuous_graph, generate_random_dag
-
-import sklearn
 
 
 @hydra.main(config_path="./config", config_name="config")
@@ -98,6 +97,7 @@ def predict_graphs(cfg: DictConfig) -> float:
             if "Target" in cfg.clustering.name:
                 clusterer.roots = [variable_names.index(n) for n in get_root_nodes(true_graph)]
                 clusterer.intv_targets = [variable_names.index(v.name) for v in intv_variables]
+           #     print(clusterer.intv_variables)
 
             clusterer.fit(features)
 

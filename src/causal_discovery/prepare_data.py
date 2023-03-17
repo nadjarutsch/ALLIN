@@ -1,63 +1,78 @@
-import pandas as pd
-import numpy as np
+import torch
 from torch.utils.data import TensorDataset, DataLoader
-from itertools import chain
+import numpy as np
+from omegaconf import DictConfig
 
-from data_generation.datasets import *
+from data_generation.datasets import InterventionalDataset
 from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
 
 
-def prepare_data(cfg, features, target_labels, memberships, labels, variables: list[str]):
+def prepare_data(cfg: DictConfig,
+                 features: torch.Tensor,
+                 target_labels: torch.Tensor,
+                 memberships: torch.Tensor,
+                 labels: torch.Tensor,
+                 variables: list[str]) -> tuple:
+    """Prepares ...
 
-    # remove datapoints with label -1 (i.e. outliers as detected by the clustering)
-    for tensor in [features, target_labels]:
-        tensor = tensor[labels >= 0]    # TODO: doublecheck if this really changes the tensor
+    Args:
+        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
+        features:
+        target_labels:
+        memberships:
+        labels:
+        variables:
+
+    Returns:
+        All inputs that are required for the specified causal discovery algorithm, e.g. a list of variable names and
+        a dataset, transformed as required for the algorithm, e.g. into a numpy array or PyTorch dataset.
+    """
+
+    # remove datapoints with negative (e.g. outliers as detected by the clustering)
+    features = features[labels >= 0]
+    target_labels = target_labels[labels >= 0]
 
     # zero-center the data
-    features -= torch.mean(features, dim=0, keepdim=True)
+    features = features - torch.mean(features, dim=0, keepdim=True)
 
     # normalize to a standard deviation of 1
     if cfg.normalize:
-        features /= torch.std(features, dim=0, keepdim=True)
+        features = features / torch.std(features, dim=0, keepdim=True)
 
-    '''if cfg.causal_discovery.name == "ENCO":
-            int_dataloaders = {}
-            for idx, partition in enumerate(data.partitions[1:]):
-                var_idx = partition.targets[0] - 1
-                dataset = TensorDataset(partition.features[..., :-1])
-                int_dataloaders[var_idx] = DataLoader(dataset,
-                                                      batch_size=cfg.causal_discovery.model.batch_size,
-                                                      shuffle=True,
-                                                      pin_memory=False,
-                                                      drop_last=False)
-    
-            obs_dataset = TensorDataset(data.partitions[0].features[..., :-1])
-            int_dataset = InterventionalDataset(dataloaders=int_dataloaders)
-            return variables, obs_dataset, int_dataset
-    
-        elif "NOTEARS Pytorch" in cfg.causal_discovery.name or "IDIOD" in cfg.causal_discovery.name or "ALLIN" in cfg.causal_discovery.name:
-            mixture_in = data.features[..., :-1].clone() if cfg.clustering.name == "None" or cfg.clustering.name == "Observational" else torch.from_numpy(data.memberships).float()
-            return variables, OnlyFeatures(features=data.features[..., :-1], mixture_in=mixture_in, targets=data.targets)
-    
-        elif cfg.causal_discovery.name == "Faria":
-            dataset = OnlyFeatures(features=data.features[..., :-1])
-            OnlyFeatures.__getitem__ = OnlyFeatures.return_only_features
-            return variables, dataset
-    
-        elif "PC Causallearn" in cfg.causal_discovery.name:
-            features = data.features[..., :-1].clone().numpy()
-            memberships = data.memberships
-            X = np.concatenate((features, memberships), axis=1, dtype=np.double)
-    
-            if cfg.causal_discovery.background_knowledge:
-                bk = BackgroundKnowledge()
-                bk.add_forbidden_by_pattern(".*", "I_.*")
-            else:
-                bk = None
-    
-            return variables, X, bk'''
+    if "IDIOD" in cfg.causal_discovery.name:
+        mixture_in = features.clone() if cfg.clustering.name == "None" else torch.from_numpy(memberships).float()
+        return variables, TensorDataset(features, mixture_in, target_labels)
 
-    if cfg.causal_discovery.name == "asdf":
-        pass
+    elif cfg.causal_discovery.name == "PC":
+        data = np.concatenate((features.clone.numpy(), memberships.clone.numpy()), axis=1, dtype=np.double)
+
+        if cfg.causal_discovery.background_knowledge:
+            bk = BackgroundKnowledge()
+            bk.add_forbidden_by_pattern(".*", "I_.*")   # context variables can not be caused by any other variables
+        else:
+            bk = None
+
+        return variables, data, bk
+
     elif cfg.causal_discovery.name == "NOTEARS":
         return variables, features.clone().numpy()
+
+    elif cfg.causal_discovery.name == "Faria":
+        return variables, TensorDataset(features)
+
+    elif cfg.causal_discovery.name == "ENCO":
+        int_dataloaders = {}
+
+        # create dataloaders with interventions on different variables
+        for label in set(torch.unique(target_labels).tolist()) - {0}:
+            dataset = TensorDataset(features[target_labels == label])
+            batch_size = min(len(dataset), cfg.causal_discovery.model.batch_size)
+            int_dataloaders[label - 1] = DataLoader(dataset,
+                                                    batch_size=batch_size,
+                                                    shuffle=True,
+                                                    pin_memory=False,
+                                                    drop_last=False)
+
+        obs_dataset = TensorDataset(features[target_labels == 0])
+        int_dataset = InterventionalDataset(dataloaders=int_dataloaders)
+        return variables, obs_dataset, int_dataset

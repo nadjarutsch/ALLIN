@@ -3,21 +3,21 @@ import numpy as np
 
 
 class TargetClusterer:
-    def __init__(self, n, int_ratio, n_int_targets, num_vars, non_roots_only=False):
+    def __init__(self, n, int_ratio, n_intv_targets, num_vars, non_roots_only=False):
         self.labels_ = None
         self.int_ratio = int_ratio
-        self.n_int_targets = n_int_targets
-        self.n_obs = int(n / (1 + self.int_ratio * self.n_int_targets))
+        self.n_intv_targets = n_intv_targets
+        self.n_obs = int(n / (1 + self.int_ratio * self.n_intv_targets))
         self.n_int = int(self.n_obs * self.int_ratio)
         self.num_vars = num_vars
         self.non_roots_only = non_roots_only
-        self.int_targets = None
+        self.intv_targets = None
         self.roots = None
 
     def fit(self, features):
         true_target_labels = np.zeros(shape=len(features))
 
-        for i, t in enumerate(self.int_targets):
+        for i, t in enumerate(self.intv_targets):
             if self.non_roots_only:
                 if t in self.roots:
                     true_target_labels[self.n_obs + i * self.n_int:self.n_obs + (i + 1) * self.n_int] = 0
@@ -33,6 +33,7 @@ class TargetClusterer:
 class NoClusterer:
     def __init__(self):
         self.labels_ = None
+        self.memberships_ = None
 
     def fit(self, features):
         self.labels_ = np.zeros(shape=len(features))

@@ -27,4 +27,4 @@ model:
   deterministic: True
   obs_prior_prob: 0.9
   fix_bias: False
-name: IDIOD+context
+name: IDIOD

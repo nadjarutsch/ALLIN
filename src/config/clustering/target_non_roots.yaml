@@ -1,8 +1,8 @@
 clusterer:
   _target_: clustering.utils.TargetClusterer
   n: ${dist.n}
-  n_int_targets: ${n_int_targets}
-  int_ratio: ${dist.int_ratio}
+  n_intv_targets: ${n_intv_targets}
+  int_ratio: ${dist.intv_ratio}
   num_vars: ${graph.num_vars}
   non_roots_only: True
 name: Target non-roots

@@ -1,9 +1,9 @@
 model:
   _target_: causal_discovery.notears_model.Notears
-  lambda1: 0.22
+  lambda1: 0.3
   loss_type: l2
   max_iter: 100
   h_tol: 1e-8
   rho_max: 1e+16
-  w_threshold: 0.03
+  w_threshold: 0.1
 name: NOTEARS

@@ -142,7 +142,7 @@ def run_discover(makeup, device, data, use_wandb=False, debug=False):
              #           mixer=mixer
              #       )
 
-                x = x.to(device)
+                x = x[0].to(device)
                 loss, model_outputs, info = model(x=x,
                                                   temperature=temperature,
                                                   ro=ro,
@@ -206,7 +206,7 @@ def run_discover(makeup, device, data, use_wandb=False, debug=False):
        #     y=y,
        #     targets=targets):
         for x in data:
-            x = x.to(device)
+            x = x[0].to(device)
 
            # if makeup["oracle"] or makeup["ssl"] :
 #

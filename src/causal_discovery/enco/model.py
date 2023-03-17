@@ -87,7 +87,8 @@ class ENCO:
                                            betas=self.betas_model,
                                            weight_decay=self.weight_decay)
 
-        obs_dataloader = data.DataLoader(obs_dataset, batch_size=self.batch_size, shuffle=True, drop_last=True)
+        batch_size = min(self.batch_size, len(obs_dataset))
+        obs_dataloader = data.DataLoader(obs_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
 
         self.distribution_fitting_module = DistributionFitting(model=model,
                                                                optimizer=model_optimizer,
@@ -98,7 +99,7 @@ class ENCO:
                                                  num_batches=self.GF_num_batches,
                                                  num_graphs=self.GF_num_graphs,
                                                  theta_only_num_graphs=self.theta_only_num_graphs,
-                                                 batch_size=self.batch_size,
+                                                 batch_size=batch_size,
                                                  lambda_sparse=self.lambda_sparse,
                                                  max_graph_stacking=self.max_graph_stacking,
                                                  sample_size_inters=self.sample_size_inters,
