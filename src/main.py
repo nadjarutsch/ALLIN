@@ -119,7 +119,7 @@ def predict_graphs(cfg: DictConfig) -> float:
             pred_graph = cd_model.predict(cd_input)
 
             # logging (causal discovery performance)
-            metrics.log_cd_metrics(true_graph, pred_graph, mec, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
+            metrics.log_cd_metrics(true_graph, pred_graph)
             plot_graph(pred_graph, f"{cfg.causal_discovery.name} {cfg.clustering.name}")
             shds.append(wandb.run.summary["SHD"])
 
