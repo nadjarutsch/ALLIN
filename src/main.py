@@ -97,7 +97,6 @@ def predict_graphs(cfg: DictConfig) -> float:
             if "Target" in cfg.clustering.name:
                 clusterer.roots = [variable_names.index(n) for n in get_root_nodes(true_graph)]
                 clusterer.intv_targets = [variable_names.index(v.name) for v in intv_variables]
-           #     print(clusterer.intv_variables)
 
             clusterer.fit(features)
 
