@@ -11,9 +11,9 @@ from numpy import ndarray
 
 from causallearn.graph.GraphClass import CausalGraph
 from causallearn.utils.PCUtils.BackgroundKnowledge import BackgroundKnowledge
-from causal_discovery.PC.cit import *
+from causal_discovery.pc.cit import *
 from causallearn.utils.PCUtils import Helper, Meek, UCSepset
-from causal_discovery.PC import SkeletonDiscovery
+from causal_discovery.pc import SkeletonDiscovery
 from causallearn.utils.PCUtils.BackgroundKnowledgeOrientUtils import \
     orient_by_background_knowledge
 
