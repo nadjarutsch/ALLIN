@@ -13,16 +13,15 @@ def prepare_data(cfg: DictConfig,
                  memberships: torch.Tensor,
                  labels: torch.Tensor,
                  variables: list[str]) -> tuple:
-    """Filters, standardizes and transforms the data into the shape required for the specified causal discovery
-    algorithm.
+    """Filters, standardizes and transforms the data into the required shape.
 
     Args:
-        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line.
-        features: dataset of size M x D.
-        target_labels: true assignments of datapoints to their generating SCMs (0 is observational), size M x 1.
-        memberships: one-hot encoded cluster labels returned by the clustering algorithm, size M x K.
-        labels: cluster labels  returned by the clustering algorithm, size M x 1.
-        variables: list of variable names.
+        cfg: Run configurations (e.g. hyperparameters) as specified in config-file and command line.
+        features: Dataset of size M x D.
+        target_labels: True assignments of datapoints to their generating SCMs (0 is observational), size M x 1.
+        memberships: One-hot encoded cluster labels returned by the clustering algorithm, size M x K.
+        labels: Cluster labels  returned by the clustering algorithm, size M x 1.
+        variables: List of variable names.
 
     Returns:
         List of variable names, the prepared dataset(s), background knowledge (for PC algorithm).
