@@ -19,7 +19,7 @@ def prepare_data(cfg: DictConfig,
     Args:
         cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line.
         features: dataset of size M x D.
-        target_labels: true assignments of datapoints to their generating SCMs (0 is observational), size M x (D+1).
+        target_labels: true assignments of datapoints to their generating SCMs (0 is observational), size M x 1.
         memberships: one-hot encoded cluster labels returned by the clustering algorithm, size M x K.
         labels: cluster labels  returned by the clustering algorithm, size M x 1.
         variables: list of variable names.

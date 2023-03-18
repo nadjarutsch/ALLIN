@@ -12,13 +12,13 @@ def generate_data(dags: list[CausalDAG], cfg: DictConfig) -> tuple[torch.Tensor,
     distributions.
 
     Args:
-        dags: list of DAGs that are used for sampling the data
-        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
+        dags: list of DAGs that are used for sampling the data.
+        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line.
 
     Returns:
-         features: tensor of shape M x D
-         target_labels: tensor of shape M x 1
-         intv_variables: list of intervened variables, length R
+         features: dataset of size M x D.
+         target_labels: true assignments of datapoints to their generating SCMs (0 is observational), size M x 1.
+         intv_variables: list of intervened variables, length R.
     """
 
     n_obs = int(cfg.dist.n / (1 + cfg.dist.intv_ratio * cfg.n_intv_targets))
