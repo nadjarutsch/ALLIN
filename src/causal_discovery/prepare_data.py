@@ -13,19 +13,19 @@ def prepare_data(cfg: DictConfig,
                  memberships: torch.Tensor,
                  labels: torch.Tensor,
                  variables: list[str]) -> tuple:
-    """Prepares ...
+    """Filters, standardizes and transforms the data into the shape required for the specified causal discovery
+    algorithm.
 
     Args:
-        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line
-        features:
-        target_labels:
-        memberships:
-        labels:
-        variables:
+        cfg: run configurations (e.g. hyperparameters) as specified in config-file and command line.
+        features: dataset of size M x D.
+        target_labels: true assignments of datapoints to their generating SCMs (0 is observational), size M x (D+1).
+        memberships: one-hot encoded cluster labels returned by the clustering algorithm, size M x K.
+        labels: cluster labels  returned by the clustering algorithm, size M x 1.
+        variables: list of variable names.
 
     Returns:
-        All inputs that are required for the specified causal discovery algorithm, e.g. a list of variable names and
-        a dataset, transformed as required for the algorithm, e.g. into a numpy array or PyTorch dataset.
+        List of variable names, the prepared dataset(s), background knowledge (for PC algorithm).
     """
 
     # remove datapoints with negative (e.g. outliers as detected by the clustering)
