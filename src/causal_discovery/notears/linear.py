@@ -4,6 +4,9 @@ import scipy.optimize as sopt
 from scipy.special import expit as sigmoid
 import scipy.stats as st
 
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 def notears_linear(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+16, w_threshold=0.3):
     """Solve min_W L(W; X) + lambda1 ‖W‖_1 s.t. h(W) = 0 using augmented Lagrangian.
@@ -209,7 +212,7 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
             R_int = X - M_int
          #   R = X - M
             loss = 0.5 / X.shape[0] * ((P * (R_obs ** 2)).sum() + ((1 - P) * (R_int ** 2)).sum())
-            G_loss_obs = - 1.0 / X.shape[0] * (X_augmented.T @ (P * R_obs))
+            G_loss_obs = - 1.0 / (X.shape[0] * P.mean()) * (X_augmented.T @ (P * R_obs))
             G_loss_int = - 1.0 / X.shape[0] * (X_augmented.T @ ((1 - P) * R_int))
             G_loss_int[:-1, ...] = 0
             G_loss = np.concatenate((G_loss_obs, G_loss_int), axis=0)
@@ -242,7 +245,7 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
 
         return np.concatenate((W_obs, W_obs_bias, W_int, W_int_bias), axis=0)
 
-    def _func(w):
+    def _func(w, plot=False):
         """Evaluate value and gradient of augmented Lagrangian for doubled variables ([2 d^2] array)."""
         W = _adj(w)
         loss, G_loss = _loss(W)
@@ -255,6 +258,19 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
         g_obj_int = np.concatenate((G_loss[d+1:2*d+1, ...], - G_loss[d+1:2*d+1, ...]), axis=None)
         g_obj_bias_int = np.concatenate((G_loss[-1, ...], - G_loss[-1, ...]), axis=None)
         g_obj = np.concatenate((g_obj_obs, g_obj_bias_obs, g_obj_int, g_obj_bias_int), axis=None)
+
+      #  if plot:
+      #      sns.histplot(data=-1 * G_smooth.flatten(), binwidth=0.1, kde=True)
+      #      plt.title("Gradients")
+      #      plt.show()
+      #      plt.close()
+
+#            gradient_obs = -(g_obj_obs[:d * d] - g_obj_obs[d * d:])
+ #           sns.histplot(data=gradient_obs, binwidth=0.1, kde=True)
+  #          plt.title("Gradients smooth")
+   #         plt.show()
+    #        plt.close()
+
         return obj, g_obj
 
     n, d = X.shape
@@ -267,10 +283,12 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
     bnds_int = [(0, 0) for _ in range(2) for i in range(d) for j in range(d)]
     bnds_int_bias = [(0, None) for _ in range(2) for i in range(d)]
 
+    lambda1 = lambda1 * P.mean()
     w_est = np.concatenate((w_est_obs_augm, w_est_int_augm))
     bnds = bnds_obs + bnds_obs_bias + bnds_int + bnds_int_bias
     if loss_type == 'l2':
         X = X - np.mean(X, axis=0, keepdims=True)
+
     for _ in range(max_iter):
         w_new, h_new = None, None
         while rho < rho_max:
@@ -285,6 +303,12 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
         alpha += rho * h
         if h <= h_tol or rho >= rho_max:
             break
+
+    w_est_obs, rho, alpha, h = np.zeros(2 * d * d), 1.0, 0.0, np.inf  # double w_est into (w_pos, w_neg)
+    w_est_obs_augm = np.concatenate((w_est_obs, np.zeros(2 * d)))
+    w_est_int = np.zeros(2 * d * d)
+    w_est_int_augm = np.concatenate((w_est_int, np.zeros(2 * d)))
+    _func(np.concatenate((w_est_obs_augm, w_est_int_augm)), plot=True)  # for plotting
     W_est = _adj(w_est)
    # W_est[np.abs(W_est) < w_threshold] = 0
     return W_est
@@ -439,3 +463,92 @@ if __name__ == '__main__':
     acc = utils.count_accuracy(B_true, W_est != 0)
     print(acc)
 
+
+
+def condition_number(X, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+16, w_threshold=0.3):
+    """Solve min_W L(W; X) + lambda1 ‖W‖_1 s.t. h(W) = 0 using augmented Lagrangian.
+    Args:
+        X (np.ndarray): [n, d] sample matrix
+        lambda1 (float): l1 penalty parameter
+        loss_type (str): l2, logistic, poisson
+        max_iter (int): max num of dual ascent steps
+        h_tol (float): exit if |h(w_est)| <= htol
+        rho_max (float): exit if rho >= rho_max
+        w_threshold (float): drop edge if |weight| < threshold
+    Returns:
+        W_est (np.ndarray): [d, d] estimated DAG
+    """
+    def _loss(W):
+        """Evaluate value and gradient of loss."""
+        M = X @ W
+        if loss_type == 'l2':
+            R = X - M
+            loss = 0.5 / X.shape[0] * (R ** 2).sum()
+            G_loss = - 1.0 / X.shape[0] * X.T @ R
+        elif loss_type == 'logistic':
+            loss = 1.0 / X.shape[0] * (np.logaddexp(0, M) - X * M).sum()
+            G_loss = 1.0 / X.shape[0] * X.T @ (sigmoid(M) - X)
+        elif loss_type == 'poisson':
+            S = np.exp(M)
+            loss = 1.0 / X.shape[0] * (S - X * M).sum()
+            G_loss = 1.0 / X.shape[0] * X.T @ (S - X)
+        else:
+            raise ValueError('unknown loss type')
+        return loss, G_loss
+
+    def _kappa(W):
+        """Evaluate value and gradient of acyclicity constraint."""
+    #    W_thresh = W.copy()
+    #    W_thresh[np.abs(W_thresh) < w_threshold] = 0
+   #     print(W)
+        W_complete = W + np.eye(3)
+  #      print(W_complete)
+        W_complete = W_complete - w_threshold
+
+ #       print(W_complete)
+        W_complete_2 = 1 / (1 + np.exp(-1e1*W_complete))
+#        print(W_complete)
+        W_inv = np.linalg.inv(W_complete_2)
+        W_norm = np.linalg.norm(W_complete_2)
+        W_inv_norm = np.linalg.norm(W_inv)
+        kappa = W_norm * W_inv_norm
+       # kappa = W_inv_norm
+        T_0 = np.exp(-1e1*W_complete)
+        T_1 = 1 / (T_0.T + 1)
+        T_2 = 1 + T_0
+        t_3 = np.linalg.norm(T_1)
+        T_4 = np.linalg.inv(T_1)
+        t_5 = np.linalg.norm(T_4)
+        T_6 = T_2 * T_2
+        G_kappa = t_5 / t_3 * T_0 / T_2 / T_6 - t_3 / t_5 * T_0 * (T_4 @ np.linalg.inv(1 / T_2) @ T_4) / T_6
+
+       # G_kappa = W_inv_norm / W_norm * W_complete - W_norm / W_inv_norm * W_inv.T @ W_inv @ W_inv.T
+       # G_kappa = -1 / W_inv_norm * W_inv.T @ W_inv @ W_inv.T
+        return kappa, G_kappa
+
+    def _adj(w):
+        """Convert doubled variables ([2 d^2] array) back to original variables ([d, d] matrix)."""
+        return (w[:d * d] - w[d * d:]).reshape([d, d])
+
+    def _func(w):
+        """Evaluate value and gradient of augmented Lagrangian for doubled variables ([2 d^2] array)."""
+        W = _adj(w)
+        loss, G_loss = _loss(W)
+        kappa, G_kappa = _kappa(W)
+        obj = loss + kappa #+ 0.5 * rho * h * h + alpha * h #+ lambda1 * w.sum()
+        G_smooth = G_loss + G_kappa #+ G_h
+        g_obj = np.concatenate((G_smooth, - G_smooth), axis=None)
+        return obj, g_obj
+
+    n, d = X.shape
+    w_est, rho, alpha, h = np.zeros(2 * d * d), 1.0, 0.0, np.inf  # double w_est into (w_pos, w_neg)
+    bnds = [(0, 0) if i == j else (0, None) for _ in range(2) for i in range(d) for j in range(d)]
+    if loss_type == 'l2':
+        X = X - np.mean(X, axis=0, keepdims=True)
+
+    sol = sopt.minimize(_func, w_est, method='L-BFGS-B', jac=True, bounds=bnds)
+
+    W_est = _adj(sol.x)
+    print(W_est)
+    W_est[np.abs(W_est) < w_threshold] = 0
+    return W_est

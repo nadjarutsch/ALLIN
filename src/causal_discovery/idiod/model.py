@@ -6,15 +6,15 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from data_generation.datasets import *
 from causal_discovery.idiod.mixture import IdentityMixture
-from tqdm import tqdm
 import os
 import uuid
-from models.mlp import MLP
+import numpy as np
 import wandb
 from itertools import chain
 import shutil
 import sklearn
 from utils import set_seed
+from typing import Union
 
 from causal_discovery.notears_model import Notears
 from causal_discovery.notears_model import NotearsAdv
@@ -97,6 +97,8 @@ class IDIOD(nn.Module):
         self.mixture = mixture_model.to(self.device)
         self.model_obs_threshold = LinearThreshold(self.model_obs, self.w_threshold)
 
+        self.mix_coeff_obs = obs_prior_prob
+
         # init params
         set_seed(seed)
         for i, param in enumerate(self.mixture.parameters()):
@@ -156,69 +158,83 @@ class IDIOD(nn.Module):
 
         self.model_obs.bias.requires_grad = True
 
+        preds = self.model_obs(data.tensors[0])
+        targets = data.tensors[0]
+        k = round(data.tensors[0].shape[0] * (1-self.mix_coeff_obs)) * data.tensors[0].shape[1]
+        losses = self.loss(preds, targets)
+        indices_high_losses = torch.topk(self.loss(preds, targets).flatten(), k).indices
+
+        features_flat = data.tensors[0].clone()
+        features_flat = features_flat.flatten()
+
+        probs = torch.ones_like(features_flat, requires_grad=False)
+        probs[indices_high_losses] = 0
+        probs = probs.reshape_as(data.tensors[0])
+
         for _ in range(self.max_steps):
             # learn distribution assignments
             print("\n Searching for interventional data...")
-            if not isinstance(self.mixture, IdentityMixture):
-                optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
-                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                         rho=rho,
-                                                         alpha=alpha,
-                                                         h=h,
-                                                         optimizers=[optimizer_mix],
-                                                         mixture=True,
-                                                         apply_threshold=self.apply_threshold)
+          #  mu_intv = torch.sum(probs * data.tensors[0], dim=0) / torch.sum(probs, dim=0)
+          #  mu_obs = torch.sum((1 - probs) * data.tensors[0], dim=0) / torch.sum(1 - probs, dim=0)
+            means_intv = self.model_int(data.tensors[0])
+            means_obs = self.model_obs_threshold(data.tensors[0])
+
+            vars_intv = torch.sum((1 - probs) * (data.tensors[0] - means_intv)**2, dim=0) / torch.sum(1 - probs, dim=0)
+            vars_obs = torch.sum(probs * (data.tensors[0] - means_obs)**2, dim=0) / torch.sum(probs, dim=0)
+
+            self.mix_coeff_obs = torch.mean(probs, dim=0)
+            ll_intv = torch.exp(- 1/2 * (data.tensors[0] - means_intv)**2 / vars_intv) / torch.sqrt(vars_intv)
+            ll_obs = torch.exp(- 1/2 * (data.tensors[0] - means_obs)**2 / vars_obs) / torch.sqrt(vars_obs)
+
+            probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
+
+
+
+         #   probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
+       #     if not isinstance(self.mixture, IdentityMixture):
+       #         optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
+       #         rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+       #                                                  rho=rho,
+        #                                                 alpha=alpha,
+         #                                                h=h,
+          #                                               optimizers=[optimizer_mix],
+           #                                              mixture=True,
+            #                                             apply_threshold=self.apply_threshold)
 
             # relearn weights
             print("\n Adjusting weights...")
 
-            if self.speedup:
-                notears_in = data.tensors[0].clone().numpy()
-                probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
+            notears_in = data.tensors[0].clone().numpy()
 
-                if self.auto_thresh:
-                    W_est = allin_linear_adv(X=notears_in,
-                                         P=probs,
-                                         lambda1=self.lambda1,
-                                         loss_type=self.loss_type,
-                                         max_iter=self.max_iter,
-                                         h_tol=self.h_tol,
-                                         rho_max=self.rho_max,
-                                         thresh=self.alpha)
-                else:
-                    W_est = allin_linear(X=notears_in,
-                                         P=probs,
-                                         lambda1=self.lambda1,
-                                         loss_type=self.loss_type,
-                                         max_iter=self.max_iter,
-                                         h_tol=self.h_tol,
-                                         rho_max=self.rho_max,
-                                         w_threshold=self.w_threshold)
 
-                    self.W_est = W_est
-
-                W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
-                W_obs = W_obs_augmented[:-1, ...]
-                bias_obs = W_obs_augmented[-1, ...]
-                bias_int = W_int_augmented[-1, ...]
-                self.model_obs.weight.data.copy_(torch.from_numpy(W_obs.T))
-                self.model_obs.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
-                self.model_int.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
-
+            if self.auto_thresh:
+                W_est = allin_linear_adv(X=notears_in,
+                                     P=probs.numpy(),
+                                     lambda1=self.lambda1,
+                                     loss_type=self.loss_type,
+                                     max_iter=self.max_iter,
+                                     h_tol=self.h_tol,
+                                     rho_max=self.rho_max,
+                                     thresh=self.alpha)
             else:
-                nn.init.constant_(self.model_obs.weight, 0)
-                nn.init.constant_(self.model_obs.bias, 0)
-                nn.init.constant_(self.model_int.bias, 0)
-                optimizer_obs = optim.Adam(self.model_obs.parameters(), lr=self.lr)
-                optimizer_int = optim.Adam(self.model_int.parameters(), lr=self.lr)
+                W_est = allin_linear(X=notears_in,
+                                     P=probs.numpy(),
+                                     lambda1=self.lambda1,
+                                     loss_type=self.loss_type,
+                                     max_iter=self.max_iter,
+                                     h_tol=self.h_tol,
+                                     rho_max=self.rho_max,
+                                     w_threshold=self.w_threshold)
 
-                rho, alpha, h = 1.0, 0.0, np.inf  # reset Lagrangian stuff
-                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-                                                         rho=rho,
-                                                         alpha=alpha,
-                                                         h=h,
-                                                         optimizers=[optimizer_obs, optimizer_int],
-                                                         mixture=True)
+                self.W_est = W_est
+
+            W_obs_augmented, W_int_augmented = np.split(W_est, 2, axis=0)
+            W_obs = W_obs_augmented[:-1, ...]
+            bias_obs = W_obs_augmented[-1, ...]
+            bias_int = W_int_augmented[-1, ...]
+            self.model_obs.weight.data.copy_(torch.from_numpy(W_obs.T))
+            self.model_obs.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
+            self.model_int.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
 
         W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
         if self.save_w_est:
@@ -242,7 +258,17 @@ class IDIOD(nn.Module):
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
-            probs = self.mixture(mixture_in)
+        #    probs = self.mixture(mixture_in)
+            means_intv = self.model_int(features)
+            means_obs = self.model_obs_threshold(features)
+
+       #     vars_intv = torch.sum((1 - probs) * (features - means_intv) ** 2, dim=0) / torch.sum(1 - probs, dim=0)
+       #     vars_obs = torch.sum(probs * (features - means_obs) ** 2, dim=0) / torch.sum(probs, dim=0)
+
+            ll_intv = torch.exp(- 1 / 2 * (features - means_intv) ** 2 / vars_intv) / torch.sqrt(vars_intv)
+            ll_obs = torch.exp(- 1 / 2 * (features - means_obs) ** 2 / vars_obs) / torch.sqrt(vars_obs)
+
+            probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
 
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
@@ -266,8 +292,6 @@ class IDIOD(nn.Module):
 
         counts = np.array([data.tensors[2].tolist().count(i) for i in range(len(variables) + 1)])
         p_correct = (p_correct / counts).tolist()
-        if self.clustering == "observational":
-            data.tensors[2] = torch.zeros(len(labels))    # one cluster would be optimal
 
         n_int = np.count_nonzero(data.tensors[2])
         wandb.run.summary["Precision intv"] = n_int_correct / n_int_assign

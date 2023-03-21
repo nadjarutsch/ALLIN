@@ -1,24 +1,24 @@
 defaults:
-  - causal_discovery: notears
+  - causal_discovery: idiod
   - clustering: none
   - _self_
 wandb:
   project: allin
   entity: nadjarutsch
-  group: constraint
+  group: em
 graph:
   num_vars: 10
   structure: random
   e_n: 4
 dist:
-  n: 500
+  n: 5000
   intv_ratio: 1
   obs_means: [ 0 ]
   obs_std: 0.5
   intv_mean: 1.0
   intv_std: ${dist.obs_std}
 start_seed: 0
-end_seed: 5
+end_seed: 50
 seed: -1
 device: cpu
 normalize: True
