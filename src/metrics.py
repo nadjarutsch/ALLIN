@@ -14,7 +14,7 @@ def log_cd_metrics(pred_graph: nx.DiGraph, target_graph: nx.DiGraph):
         pred_graph: Predicted causal graph.
         target_graph: True underlying causal graph.
     """
-    set_edge_attributes(pred_graph)
+    set_edge_attributes(pred_graph)     # mark undirected edges
 
     pred_graph.remove_nodes_from(list(set(pred_graph) - set(target_graph)))
     wandb.run.summary["SHD"] = cdt.metrics.SHD(target_graph, pred_graph, double_for_anticausal=False)
