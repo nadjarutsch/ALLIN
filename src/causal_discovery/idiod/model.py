@@ -158,33 +158,34 @@ class IDIOD(nn.Module):
 
         self.model_obs.bias.requires_grad = True
 
-        preds = self.model_obs(data.tensors[0])
-        targets = data.tensors[0]
-        k = round(data.tensors[0].shape[0] * (1-self.mix_coeff_obs)) * data.tensors[0].shape[1]
+        all_feats = data.tensors[0].to(self.device)
+        preds = self.model_obs(all_feats)
+        targets = data.tensors[0].to(self.device)
+        k = round(all_feats.shape[0] * (1-self.mix_coeff_obs)) * all_feats.shape[1]
         losses = self.loss(preds, targets)
         indices_high_losses = torch.topk(self.loss(preds, targets).flatten(), k).indices
 
-        features_flat = data.tensors[0].clone()
+        features_flat = all_feats.clone()
         features_flat = features_flat.flatten()
 
         probs = torch.ones_like(features_flat, requires_grad=False)
         probs[indices_high_losses] = 0
-        probs = probs.reshape_as(data.tensors[0])
+        probs = probs.reshape_as(all_feats)
 
         for _ in range(self.max_steps):
             # learn distribution assignments
             print("\n Searching for interventional data...")
           #  mu_intv = torch.sum(probs * data.tensors[0], dim=0) / torch.sum(probs, dim=0)
           #  mu_obs = torch.sum((1 - probs) * data.tensors[0], dim=0) / torch.sum(1 - probs, dim=0)
-            means_intv = self.model_int(data.tensors[0])
-            means_obs = self.model_obs_threshold(data.tensors[0])
+            means_intv = self.model_int(all_feats)
+            means_obs = self.model_obs_threshold(all_feats)
 
-            vars_intv = torch.sum((1 - probs) * (data.tensors[0] - means_intv)**2, dim=0) / torch.sum(1 - probs, dim=0)
-            vars_obs = torch.sum(probs * (data.tensors[0] - means_obs)**2, dim=0) / torch.sum(probs, dim=0)
+            vars_intv = torch.sum((1 - probs) * (all_feats - means_intv)**2, dim=0) / torch.sum(1 - probs, dim=0)
+            vars_obs = torch.sum(probs * (all_feats - means_obs)**2, dim=0) / torch.sum(probs, dim=0)
 
             self.mix_coeff_obs = torch.mean(probs, dim=0)
-            ll_intv = torch.exp(- 1/2 * (data.tensors[0] - means_intv)**2 / vars_intv) / torch.sqrt(vars_intv)
-            ll_obs = torch.exp(- 1/2 * (data.tensors[0] - means_obs)**2 / vars_obs) / torch.sqrt(vars_obs)
+            ll_intv = torch.exp(- 1/2 * (all_feats - means_intv)**2 / vars_intv) / torch.sqrt(vars_intv)
+            ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / vars_obs) / torch.sqrt(vars_obs)
 
             probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
 
@@ -254,10 +255,10 @@ class IDIOD(nn.Module):
         p_correct = np.zeros(len(variables) + 1)
         n_int_assign = 0
         n_int_correct = 0
-
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
+            features = features.to(self.device)
         #    probs = self.mixture(mixture_in)
             means_intv = self.model_int(features)
             means_obs = self.model_obs_threshold(features)
