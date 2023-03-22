@@ -16,6 +16,7 @@ class GMM(GaussianMixture):
         labels_: Cluster labels, size M x 1.
         memberships_: One-hot encoded cluster memberships, size M x n_clusters.
     """
+
     def __init__(self, n_clusters: int, random_state: int):
         """Initializes the instance from given data.
 
