@@ -206,14 +206,17 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
         X_augmented = np.concatenate((X, np.ones((X.shape[0], 1))), axis=1)   # TODO: doublecheck
         M_obs = X_augmented @ W_obs_augmented
         M_int = X_augmented @ W_int_augmented
-    #    M = X @ W
+
         if loss_type == 'l2':
             R_obs = X - M_obs
             R_int = X - M_int
-         #   R = X - M
-            loss = 0.5 / X.shape[0] * ((P * (R_obs ** 2)).sum() + ((1 - P) * (R_int ** 2)).sum())
-            G_loss_obs = - 1.0 / (X.shape[0] * P.mean()) * (X_augmented.T @ (P * R_obs))
-            G_loss_int = - 1.0 / X.shape[0] * (X_augmented.T @ ((1 - P) * R_int))
+
+            P_obs = P.mean(axis=0)
+            scale_obs = np.where((X.shape[0] * (P_obs)) == 0, X.shape[0], (X.shape[0] * (P_obs)))
+            scale_int = np.where((X.shape[0] * (1-P_obs)) == 0, X.shape[0], (X.shape[0] * (1-P_obs)))
+            loss = 0.5 * (((P * (R_obs ** 2)).sum(axis=0) / scale_obs).sum() + (((1 - P) * (R_int ** 2)).sum(axis=0) / scale_int).sum())
+            G_loss_obs = - 1.0 * (X_augmented.T @ ((P * R_obs) / scale_obs))
+            G_loss_int = - 1.0 * (X_augmented.T @ ((1 - P) * R_int / scale_int))
             G_loss_int[:-1, ...] = 0
             G_loss = np.concatenate((G_loss_obs, G_loss_int), axis=0)
         return loss, G_loss

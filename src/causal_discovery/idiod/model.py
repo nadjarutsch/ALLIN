@@ -192,20 +192,21 @@ class IDIOD(nn.Module):
 
 
 
-         #   probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
-       #     if not isinstance(self.mixture, IdentityMixture):
-       #         optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
-       #         rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
-       #                                                  rho=rho,
-        #                                                 alpha=alpha,
-         #                                                h=h,
-          #                                               optimizers=[optimizer_mix],
-           #                                              mixture=True,
-            #                                             apply_threshold=self.apply_threshold)
+      #      probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
+            if not isinstance(self.mixture, IdentityMixture):
+                optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
+                rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
+                                                         rho=rho,
+                                                         alpha=alpha,
+                                                         h=h,
+                                                         optimizers=[optimizer_mix],
+                                                         mixture=True,
+                                                         apply_threshold=self.apply_threshold)
 
             # relearn weights
             print("\n Adjusting weights...")
 
+            probs = self.mixture(data.tensors[1].to(self.device)).clone().detach()#.cpu().numpy()
             notears_in = data.tensors[0].clone().numpy()
 
 
@@ -220,7 +221,7 @@ class IDIOD(nn.Module):
                                      thresh=self.alpha)
             else:
                 W_est = allin_linear(X=notears_in,
-                                     P=assignments.cpu().numpy(),
+                                     P=probs.cpu().numpy(),
                                      lambda1=self.lambda1,
                                      loss_type=self.loss_type,
                                      max_iter=self.max_iter,
@@ -260,7 +261,7 @@ class IDIOD(nn.Module):
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
             features = features.to(self.device)
-        #    probs = self.mixture(mixture_in)
+            probs = self.mixture(mixture_in)
             means_intv = self.model_int(features)
             means_obs = self.model_obs_threshold(features)
 
@@ -270,7 +271,7 @@ class IDIOD(nn.Module):
             ll_intv = torch.exp(- 1 / 2 * (features - means_intv) ** 2 / vars_intv) / torch.sqrt(vars_intv)
             ll_obs = torch.exp(- 1 / 2 * (features - means_obs) ** 2 / vars_obs) / torch.sqrt(vars_obs)
 
-            probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
+        #    probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
 
             assignments = torch.round(probs)
             labels_batch = torch.sum(assignments * (2 ** torch.tensor(list(range(len(variables))), device=self.device)),
