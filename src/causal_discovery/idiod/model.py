@@ -188,7 +188,7 @@ class IDIOD(nn.Module):
             ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / vars_obs) / torch.sqrt(vars_obs)
 
             probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
-            probs = torch.round(probs)
+            assignments = torch.round(probs)
 
 
 
@@ -211,7 +211,7 @@ class IDIOD(nn.Module):
 
             if self.auto_thresh:
                 W_est = allin_linear_adv(X=notears_in,
-                                     P=probs.cpu().numpy(),
+                                     P=assignments.cpu().numpy(),
                                      lambda1=self.lambda1,
                                      loss_type=self.loss_type,
                                      max_iter=self.max_iter,
@@ -220,7 +220,7 @@ class IDIOD(nn.Module):
                                      thresh=self.alpha)
             else:
                 W_est = allin_linear(X=notears_in,
-                                     P=probs.cpu().numpy(),
+                                     P=assignments.cpu().numpy(),
                                      lambda1=self.lambda1,
                                      loss_type=self.loss_type,
                                      max_iter=self.max_iter,
