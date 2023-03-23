@@ -2,5 +2,4 @@ clusterer:
   _target_: clustering.kmeans.Kmeans
   init: k-means++
   n_clusters: 0
-  soft: False
 name: K-Means
