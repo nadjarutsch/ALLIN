@@ -191,7 +191,7 @@ class IDIOD(nn.Module):
 
         #    self.mix_coeff_obs = torch.mean(probs, dim=0)
         #    ll_intv = torch.exp(- 1/2 * (all_feats - means_intv)**2 / 1)# / torch.sqrt(vars_intv)
-            ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / 1) #/ torch.sqrt(vars_obs)
+        #    ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / 1) #/ torch.sqrt(vars_obs)
 
         #    probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
         #    assignments = torch.round(probs)
