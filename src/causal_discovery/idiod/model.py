@@ -162,7 +162,7 @@ class IDIOD(nn.Module):
                                                      optimizers=[optimizer_obs],
                                                      mixture=False)
 
-      #  self.model_obs.bias.requires_grad = True
+        self.model_obs.bias.requires_grad = True
 
         all_feats = data.tensors[0].to(self.device)
         preds = self.model_obs(all_feats)
