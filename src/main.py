@@ -41,7 +41,7 @@ def predict_graphs(cfg: DictConfig) -> float:
     """
 
    # os.environ['WANDB_MODE'] = 'offline'    # TODO: pass over from cfg
-    os.environ['HYDRA_FULL_ERROR'] = 1
+    os.environ['HYDRA_FULL_ERROR'] = '1'
     cfg.device = get_device()   # cpu or gpu
     shds = []
 
