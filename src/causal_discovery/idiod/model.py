@@ -121,7 +121,7 @@ class IDIOD(nn.Module):
 
         # freeze weights
         self.model_obs.bias.requires_grad = False   # for pretraining
-        self.model_int.bias.requires_grad = False  # TODO: temporary
+       # self.model_int.bias.requires_grad = False  # TODO: temporary
         self.model_int.weight.requires_grad = False
         if not isinstance(self.mixture, IdentityMixture):
             self.mixture.layers[-2].bias.requires_grad = not self.fix_bias
