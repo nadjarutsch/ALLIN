@@ -121,7 +121,7 @@ class IDIOD(nn.Module):
 
         # freeze weights
         self.model_obs.bias.requires_grad = False   # for pretraining
-       # self.model_int.bias.requires_grad = False  # TODO: temporary
+        self.model_int.bias.requires_grad = False  # TODO: temporary
         self.model_int.weight.requires_grad = False
         if not isinstance(self.mixture, IdentityMixture):
             self.mixture.layers[-2].bias.requires_grad = not self.fix_bias
@@ -162,7 +162,7 @@ class IDIOD(nn.Module):
                                                      optimizers=[optimizer_obs],
                                                      mixture=False)
 
-        self.model_obs.bias.requires_grad = True
+      #  self.model_obs.bias.requires_grad = True
 
         all_feats = data.tensors[0].to(self.device)
         preds = self.model_obs(all_feats)
