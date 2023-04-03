@@ -13,6 +13,7 @@ import wandb
 from itertools import chain
 import shutil
 import sklearn
+from sklearn import manifold
 from utils import set_seed
 from typing import Union
 
@@ -20,6 +21,10 @@ from causal_discovery.notears_model import Notears
 from causal_discovery.notears_model import NotearsAdv
 from causal_discovery.notears.linear import allin_linear
 from causal_discovery.notears.linear import allin_linear_adv
+
+import matplotlib; matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 loss_dict = {'mse': nn.MSELoss(reduction='none')}
@@ -172,27 +177,30 @@ class IDIOD(nn.Module):
         probs[indices_high_losses] = 0
         probs = probs.reshape_as(all_feats)
 
+        assignments_em = []
+        assignments_mlp = []
+
         for _ in range(self.max_steps):
             # learn distribution assignments
             print("\n Searching for interventional data...")
-          #  mu_intv = torch.sum(probs * data.tensors[0], dim=0) / torch.sum(probs, dim=0)
-          #  mu_obs = torch.sum((1 - probs) * data.tensors[0], dim=0) / torch.sum(1 - probs, dim=0)
-            means_intv = self.model_int(all_feats)
-            means_obs = self.model_obs_threshold(all_feats)
+        #    means_intv = self.model_int(all_feats)
+        #    means_obs = self.model_obs_threshold(all_feats)
 
-            vars_intv = torch.sum((1 - probs) * (all_feats - means_intv)**2, dim=0) / torch.sum(1 - probs, dim=0)
-            vars_obs = torch.sum(probs * (all_feats - means_obs)**2, dim=0) / torch.sum(probs, dim=0)
+        #    vars_intv = torch.sum((1 - probs) * (all_feats - means_intv)**2, dim=0) / torch.sum(1 - probs, dim=0)
+        #    vars_obs = torch.sum(probs * (all_feats - means_obs)**2, dim=0) / torch.sum(probs, dim=0)
 
-            self.mix_coeff_obs = torch.mean(probs, dim=0)
-            ll_intv = torch.exp(- 1/2 * (all_feats - means_intv)**2 / vars_intv) / torch.sqrt(vars_intv)
-            ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / vars_obs) / torch.sqrt(vars_obs)
+        #    self.mix_coeff_obs = torch.mean(probs, dim=0)
+        #    ll_intv = torch.exp(- 1/2 * (all_feats - means_intv)**2 / 1)# / torch.sqrt(vars_intv)
+            ll_obs = torch.exp(- 1/2 * (all_feats - means_obs)**2 / 1) #/ torch.sqrt(vars_obs)
 
-            probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
-            assignments = torch.round(probs)
+        #    probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
+        #    assignments = torch.round(probs)
+
+        #    assignments_em.append(assignments)
 
 
 
-      #      probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
+            probs = self.mixture(data.tensors[1].to(self.device)).clone().detach().cpu().numpy()
             if not isinstance(self.mixture, IdentityMixture):
                 optimizer_mix = optim.Adam(self.mixture.parameters(), lr=self.lr)
                 rho, alpha, h = self.optimize_lagrangian(dataloader=dataloader,
@@ -207,6 +215,10 @@ class IDIOD(nn.Module):
             print("\n Adjusting weights...")
 
             probs = self.mixture(data.tensors[1].to(self.device)).clone().detach()#.cpu().numpy()
+
+            assignments = torch.round(probs)
+            assignments_mlp.append(assignments)
+
             notears_in = data.tensors[0].clone().numpy()
 
 
@@ -257,6 +269,32 @@ class IDIOD(nn.Module):
         p_correct = np.zeros(len(variables) + 1)
         n_int_assign = 0
         n_int_correct = 0
+
+  #      probs = self.mixture(data.tensors[1].to(self.device)).clone().detach()
+  #      assignments = torch.round(probs)
+
+     #   def prepare_animation(bar_container, idx):
+     #       def animate(frame_number):
+     #           # simulate new data coming in
+     #           vals = data.tensors[0][:, idx][assignments_mlp[frame_number][:, idx] == 1].numpy()
+     #           n, _ = np.histogram(vals, 50)
+     #           for count, rect in zip(n, bar_container.patches):
+     #               rect.set_height(count)
+     #           return bar_container.patches
+     #       return animate
+
+     #   fig, ax = plt.subplots()
+     #   _, _, bar_container = ax.hist(data.tensors[0][:, 8], 50, lw=1, ec="yellow", fc="green", alpha=0.5)
+#        ax.set_ylim(top=55)  # set safe limit to ensure that all data is visible.
+
+     #   for idx in range(10):
+     #       ani = animation.FuncAnimation(fig, prepare_animation(bar_container, idx), 8,
+     #                                 repeat=False, blit=True)
+
+      #      writergif = animation.PillowWriter(fps=4)
+       #     ani.save(f"animation_em_{idx}.gif", writer=writergif)
+
+
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
             mixture_in = mixture_in.to(self.device)
@@ -265,11 +303,11 @@ class IDIOD(nn.Module):
             means_intv = self.model_int(features)
             means_obs = self.model_obs_threshold(features)
 
-       #     vars_intv = torch.sum((1 - probs) * (features - means_intv) ** 2, dim=0) / torch.sum(1 - probs, dim=0)
-       #     vars_obs = torch.sum(probs * (features - means_obs) ** 2, dim=0) / torch.sum(probs, dim=0)
+          #  vars_intv = torch.sum((1 - probs) * (features - means_intv) ** 2, dim=0) / torch.sum(1 - probs, dim=0)
+         #   vars_obs = torch.sum(probs * (features - means_obs) ** 2, dim=0) / torch.sum(probs, dim=0)
 
-            ll_intv = torch.exp(- 1 / 2 * (features - means_intv) ** 2 / vars_intv) / torch.sqrt(vars_intv)
-            ll_obs = torch.exp(- 1 / 2 * (features - means_obs) ** 2 / vars_obs) / torch.sqrt(vars_obs)
+          #  ll_intv = torch.exp(- 1 / 2 * (features - means_intv) ** 2 / vars_intv) / torch.sqrt(vars_intv)
+          #  ll_obs = torch.exp(- 1 / 2 * (features - means_obs) ** 2 / vars_obs) / torch.sqrt(vars_obs)
 
         #    probs = (self.mix_coeff_obs * ll_obs / (self.mix_coeff_obs * ll_obs + (1 - self.mix_coeff_obs) * ll_intv)).detach()
 

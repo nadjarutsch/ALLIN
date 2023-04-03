@@ -40,7 +40,7 @@ def predict_graphs(cfg: DictConfig) -> float:
         The SHD between the predicted graphs and the true graphs, averaged over all runs.
     """
 
-    #os.environ['WANDB_MODE'] = 'offline'    # TODO: pass over from cfg
+    # os.environ['WANDB_MODE'] = 'offline'    # TODO: pass over from cfg
     cfg.device = get_device()   # cpu or gpu
     shds = []
 
