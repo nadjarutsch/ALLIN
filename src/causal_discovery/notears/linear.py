@@ -311,10 +311,10 @@ def allin_linear(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+
     w_est_obs_augm = np.concatenate((w_est_obs, np.zeros(2 * d)))
     w_est_int = np.zeros(2 * d * d)
     w_est_int_augm = np.concatenate((w_est_int, np.zeros(2 * d)))
-    _func(np.concatenate((w_est_obs_augm, w_est_int_augm)), plot=True)  # for plotting
+    train_loss, _ = _func(np.concatenate((w_est_obs_augm, w_est_int_augm)), plot=True)  # for plotting
     W_est = _adj(w_est)
    # W_est[np.abs(W_est) < w_threshold] = 0
-    return W_est
+    return W_est, train_loss
 
 
 def allin_linear_adv(X, P, lambda1, loss_type, max_iter=100, h_tol=1e-8, rho_max=1e+16, thresh=0.01):

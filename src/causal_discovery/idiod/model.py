@@ -181,7 +181,12 @@ class IDIOD(nn.Module):
         assignments_em = []
         assignments_mlp = []
 
-        for _ in range(self.max_steps):
+        train_losses = []
+        patience = 0
+        Ws = []
+        best_iter = 0
+
+        for iter in range(self.max_steps):
             # learn distribution assignments
             print("\n Searching for interventional data...")
         #    means_intv = self.model_int(all_feats)
@@ -233,14 +238,14 @@ class IDIOD(nn.Module):
                                      rho_max=self.rho_max,
                                      thresh=self.alpha)
             else:
-                W_est = allin_linear(X=notears_in,
-                                     P=probs.cpu().numpy(),
-                                     lambda1=self.lambda1,
-                                     loss_type=self.loss_type,
-                                     max_iter=self.max_iter,
-                                     h_tol=self.h_tol,
-                                     rho_max=self.rho_max,
-                                     w_threshold=self.w_threshold)
+                W_est, train_loss = allin_linear(X=notears_in,
+                                                 P=probs.cpu().numpy(),
+                                                 lambda1=self.lambda1,
+                                                 loss_type=self.loss_type,
+                                                 max_iter=self.max_iter,
+                                                 h_tol=self.h_tol,
+                                                 rho_max=self.rho_max,
+                                                 w_threshold=self.w_threshold)
 
                 self.W_est = W_est
 
@@ -252,7 +257,19 @@ class IDIOD(nn.Module):
             self.model_obs.bias.data.copy_(torch.from_numpy(bias_obs).squeeze())
             self.model_int.bias.data.copy_(torch.from_numpy(bias_int).squeeze())
 
-        W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
+            Ws.append(self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T)
+            train_losses.append(train_loss)
+            if train_losses[-1] < train_losses[best_epoch]:
+                best_epoch = iter
+                patience = 0
+            else:
+                patience += 1
+
+            if patience == 3:
+                break
+
+        W_est = Ws[best_epoch]
+        #W_est = self.model_obs.weight[:self.d, ...].detach().cpu().numpy().T
         if self.save_w_est:
             np.savetxt(f'{self.name}_{self.clustering}_seed_{self.seed}.txt', W_est)
         if not self.auto_thresh:
@@ -270,31 +287,6 @@ class IDIOD(nn.Module):
         p_correct = np.zeros(len(variables) + 1)
         n_int_assign = 0
         n_int_correct = 0
-
-  #      probs = self.mixture(data.tensors[1].to(self.device)).clone().detach()
-  #      assignments = torch.round(probs)
-
-     #   def prepare_animation(bar_container, idx):
-     #       def animate(frame_number):
-     #           # simulate new data coming in
-     #           vals = data.tensors[0][:, idx][assignments_mlp[frame_number][:, idx] == 1].numpy()
-     #           n, _ = np.histogram(vals, 50)
-     #           for count, rect in zip(n, bar_container.patches):
-     #               rect.set_height(count)
-     #           return bar_container.patches
-     #       return animate
-
-     #   fig, ax = plt.subplots()
-     #   _, _, bar_container = ax.hist(data.tensors[0][:, 8], 50, lw=1, ec="yellow", fc="green", alpha=0.5)
-#        ax.set_ylim(top=55)  # set safe limit to ensure that all data is visible.
-
-     #   for idx in range(10):
-     #       ani = animation.FuncAnimation(fig, prepare_animation(bar_container, idx), 8,
-     #                                 repeat=False, blit=True)
-
-      #      writergif = animation.PillowWriter(fps=4)
-       #     ani.save(f"animation_em_{idx}.gif", writer=writergif)
-
 
         for batch in eval_dataloader:
             features, mixture_in, targets = batch
